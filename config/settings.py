@@ -50,7 +50,7 @@ INSTALLED_APPS = [
     'corsheaders',
     "drf_spectacular",
     # local
-    "intercorrencias",
+    "intercorrencias.apps.IntercorrenciasConfig",
 ]
 
 
@@ -156,12 +156,12 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # DRF + JWT (SimpleJWT já instalado, pode ativar quando integrar)
 REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
-    "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
-    ],
-    "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.IsAuthenticatedOrReadOnly",
-    ],
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "intercorrencias.auth.RemoteJWTAuthentication",  # nossa classe custom
+    ),
+    "DEFAULT_PERMISSION_CLASSES": (
+        "rest_framework.permissions.IsAuthenticated",
+    ),
 }
 
 # OpenAPI / Swagger
@@ -169,9 +169,62 @@ SPECTACULAR_SETTINGS = {
     "TITLE": "API - Intercorrências Escolares",
     "DESCRIPTION": "Micro serviço responsável pela gestão de intercorrências.",
     "VERSION": "1.0.0",
-    "SERVERS": [{"url": "http://localhost:8000", "description": "Local"}],
-    "SERVE_INCLUDE_SCHEMA": False,
+    "SWAGGER_UI_SETTINGS": {"persistAuthorization": True},
+    # (opcional, mas útil para aplicar o Bearer globalmente no spec)
+    "SECURITY": [{"Bearer": []}],
 }
 
 # CORS
+CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[])
+
+# Variáveis de ambiente (coloque em .env e leia com django-environ se quiser)
+AUTH_VERIFY_URL = os.getenv("AUTH_VERIFY_URL", "https://servico-auth/api/token/verify/")
+AUTH_ME_URL     = os.getenv("AUTH_ME_URL",     "https://servico-auth/api/me")
+UNIDADES_BASE_URL = os.getenv("UNIDADES_BASE_URL", "https://servico-auth/api/unidades") 
+
+ADMIN_URL = env("DJANGO_ADMIN_URL", default="api-intercorrencias/v1/admin/")
+
+# LOGGING
+# ------------------------------------------------------------------------------
+# https://docs.djangoproject.com/en/dev/ref/settings/#logging
+# See https://docs.djangoproject.com/en/dev/topics/logging for
+# more details on how to customize your logging configuration.
+# A sample logging configuration. The only tangible logging
+# performed by this configuration is to send an email to
+# the site admins on every HTTP 500 error when DEBUG=False.
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "filters": {"require_debug_false": {"()": "django.utils.log.RequireDebugFalse"}},
+    "formatters": {
+        "verbose": {
+            "format": "%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s",
+        },
+    },
+    "handlers": {
+        "mail_admins": {
+            "level": "ERROR",
+            "filters": ["require_debug_false"],
+            "class": "django.utils.log.AdminEmailHandler",
+        },
+        "console": {
+            "level": "DEBUG",
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+    },
+    "root": {"level": "INFO", "handlers": ["console"]},
+    "loggers": {
+        "django.request": {
+            "handlers": ["mail_admins"],
+            "level": "ERROR",
+            "propagate": True,
+        },
+        "django.security.DisallowedHost": {
+            "level": "ERROR",
+            "handlers": ["console", "mail_admins"],
+            "propagate": True,
+        },
+    },
+}

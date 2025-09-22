@@ -77,7 +77,7 @@ Primeiro, clone o projeto:
 ### 🚀 Executando o projeto
     $ python manage.py runserver
 
-Feito tudo isso, o projeto estará executando no endereço [localhost:8000](http://localhost:8000).
+Feito tudo isso, o projeto estará executando no endereço [localhost:8000/api-intercorrencias/v1/](http://localhost:8000/api-intercorrencias/v1/).
 
 ### 👑 Opcional: Criando um super usuário
     $ python manage.py createsuperuser
@@ -87,6 +87,7 @@ Feito tudo isso, o projeto estará executando no endereço [localhost:8000](http
 
 ### 🧪 Executando a cobertura dos testes
     $ coverage run -m pytest
+    $ coverage report -m
     $ coverage html
     $ open htmlcov/index.html
 
