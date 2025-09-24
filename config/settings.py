@@ -140,7 +140,8 @@ USE_TZ = True
 
 STATIC_ROOT = str(BASE_DIR / "staticfiles")
 STATIC_URL = "/django_static/"
-STATICFILES_DIRS = [str(BASE_DIR / "static")]
+_project_static = BASE_DIR / "static"
+STATICFILES_DIRS = [_project_static] if _project_static.exists() else []
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage" 
 
 
