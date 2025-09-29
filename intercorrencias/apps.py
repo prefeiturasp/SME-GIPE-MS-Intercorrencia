@@ -1,0 +1,10 @@
+from django.apps import AppConfig
+
+
+class IntercorrenciasConfig(AppConfig):
+    default_auto_field = 'django.db.models.BigAutoField'
+    name = 'intercorrencias'
+
+    def ready(self):
+        # importa a extensão para registrá-la no ciclo de vida do Django
+        import intercorrencias.spectacular_ext  # noqa: F401
