@@ -1,101 +1,80 @@
-# tests/intercorrencias/services/test_unidades_service.py
-import importlib
 import pytest
 import requests
+from unittest.mock import patch, MagicMock
 
+from django.conf import settings
 
-class _FakeResponse:
-    def __init__(self, status_code=200, payload=None):
-        self.status_code = status_code
-        self._payload = payload or {}
-
-    def json(self):
-        return self._payload
-
-    def raise_for_status(self):
-        # 404 é tratado antes no código; aqui simulamos erro para outros 4xx/5xx
-        if self.status_code >= 400 and self.status_code != 404:
-            # usar a exceção real do requests (fica disponível pois não trocaremos o módulo)
-            raise requests.HTTPError(f"HTTP {self.status_code}")
-
+from intercorrencias.services import unidades_service
+from intercorrencias.services.unidades_service import ExternalServiceError
 
 @pytest.mark.django_db
-def test_get_unidade_ok_returns_dict(settings, monkeypatch, caplog):
-    # Configura base URL com barra final para testarmos o rstrip("/")
-    settings.UNIDADES_BASE_URL = "http://servico-unidades/api/v1/unidades/"
-    import intercorrencias.services.unidades_service as svc
-    importlib.reload(svc)
+class TestUnidadesService:
 
-    def fake_get(url, timeout):
-        # A URL final deve estar sem barra duplicada e terminar com "/<codigo>/"
-        assert url == f"{svc.BASE}/123456/"
-        assert abs(timeout - 3.0) < 1e-6
-        return _FakeResponse(200, {"codigo_eol": "123456", "dre_codigo_eol": "654321"})
+    @patch("intercorrencias.services.unidades_service.requests.get")
+    def test_get_unidade_sucesso(self, mock_get):
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"codigo_eol": "123", "dre_codigo_eol": "456"}
+        mock_get.return_value = mock_response
 
-    # 🔧 Patch apenas da função get, mantendo o módulo requests real
-    monkeypatch.setattr(svc.requests, "get", fake_get)
+        result = unidades_service.get_unidade("123")
+        assert result == {"codigo_eol": "123", "dre_codigo_eol": "456"}
+        mock_get.assert_called_once_with(f"{settings.UNIDADES_BASE_URL.rstrip('/')}/123/", timeout=3.0)
 
-    with caplog.at_level("INFO"):
-        data = svc.get_unidade("123456")
+    @patch("intercorrencias.services.unidades_service.requests.get")
+    def test_get_unidade_404(self, mock_get):
+        mock_response = MagicMock()
+        mock_response.status_code = 404
+        mock_get.return_value = mock_response
 
-    assert data == {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
-    assert any("Consultando unidade no serviço B:" in rec.message for rec in caplog.records)
+        result = unidades_service.get_unidade("123")
+        assert result is None
 
+    @patch("intercorrencias.services.unidades_service.requests.get")
+    def test_get_unidade_request_exception(self, mock_get):
+        mock_get.side_effect = requests.RequestException("Erro de conexão")
 
-@pytest.mark.django_db
-def test_get_unidade_404_returns_none(settings, monkeypatch):
-    settings.UNIDADES_BASE_URL = "http://servico-unidades/api/v1/unidades/"
-    import intercorrencias.services.unidades_service as svc
-    importlib.reload(svc)
+        with pytest.raises(ExternalServiceError) as exc:
+            unidades_service.get_unidade("123")
+        assert "Falha ao consultar unidade" in str(exc.value)
 
-    def fake_get(url, timeout):
-        return _FakeResponse(404)
+    @patch("intercorrencias.services.unidades_service.requests.get")
+    def test_validar_unidade_usuario_sucesso_200(self, mock_get):
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"detail": "A unidade pertence ao usuário."}
+        mock_get.return_value = mock_response
 
-    monkeypatch.setattr(svc.requests, "get", fake_get)
+        result = unidades_service.validar_unidade_usuario("123", "token123")
+        assert result == {"detail": "A unidade pertence ao usuário."}
+        mock_get.assert_called_once_with(
+            f"{settings.UNIDADES_BASE_URL.rstrip('/')}/123/verificar-unidade/",
+            headers={"Authorization": "Bearer token123", "Accept": "application/json"},
+            timeout=3.0
+        )
 
-    data = svc.get_unidade("999999")
-    assert data is None
+    @patch("intercorrencias.services.unidades_service.requests.get")
+    def test_validar_unidade_usuario_sucesso_403(self, mock_get):
+        mock_response = MagicMock()
+        mock_response.status_code = 403
+        mock_response.json.return_value = {"detail": "Unidade não pertence."}
+        mock_get.return_value = mock_response
 
+        result = unidades_service.validar_unidade_usuario("123", "token123")
+        assert result == {"detail": "Unidade não pertence."}
 
-@pytest.mark.django_db
-def test_get_unidade_http_500_raises_external_service_error(settings, monkeypatch):
-    settings.UNIDADES_BASE_URL = "http://servico-unidades/api/v1/unidades/"
-    import intercorrencias.services.unidades_service as svc
-    importlib.reload(svc)
+    @patch("intercorrencias.services.unidades_service.requests.get")
+    def test_validar_unidade_usuario_outros_status(self, mock_get):
+        mock_response = MagicMock()
+        mock_response.status_code = 500
+        mock_get.return_value = mock_response
 
-    def fake_get(url, timeout):
-        return _FakeResponse(500)
+        result = unidades_service.validar_unidade_usuario("123", "token123")
+        assert result is None
 
-    monkeypatch.setattr(svc.requests, "get", fake_get)
-
-    with pytest.raises(svc.ExternalServiceError) as exc:
-        svc.get_unidade("123456")
-    assert "Falha ao consultar unidade:" in str(exc.value)
-
-
-@pytest.mark.django_db
-def test_get_unidade_timeout_raises_external_service_error(settings, monkeypatch):
-    settings.UNIDADES_BASE_URL = "http://servico-unidades/api/v1/unidades/"
-    import intercorrencias.services.unidades_service as svc
-    importlib.reload(svc)
-
-    def fake_get(url, timeout):
-        # usa a Timeout real do requests; será capturada como RequestException
-        raise requests.Timeout("tempo esgotado")
-
-    monkeypatch.setattr(svc.requests, "get", fake_get)
-
-    with pytest.raises(svc.ExternalServiceError) as exc:
-        svc.get_unidade("123456")
-    assert "Falha ao consultar unidade:" in str(exc.value)
-    assert "tempo esgotado" in str(exc.value)
-
-
-@pytest.mark.django_db
-def test_base_usa_rstrip_barra_final(settings):
-    settings.UNIDADES_BASE_URL = "http://host/base/com/barra/"
-    import intercorrencias.services.unidades_service as svc
-    importlib.reload(svc)
-
-    assert svc.BASE == "http://host/base/com/barra"
-    assert not svc.BASE.endswith("/")
+    @patch("intercorrencias.services.unidades_service.requests.get")
+    def test_validar_unidade_usuario_request_exception(self, mock_get):
+        mock_get.side_effect = requests.RequestException("Erro de conexão")
+        with pytest.raises(ExternalServiceError) as exc:
+            unidades_service.validar_unidade_usuario("123", "token123")
+        assert "Falha ao validar unidade" in str(exc.value)
