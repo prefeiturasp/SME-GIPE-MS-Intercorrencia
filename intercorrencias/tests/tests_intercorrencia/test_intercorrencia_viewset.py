@@ -1,5 +1,6 @@
 import pytest
 from unittest.mock import patch
+import secrets
 
 from django.urls import reverse
 from django.utils import timezone
@@ -16,7 +17,11 @@ class TestIntercorrenciaViewSet:
 
     @pytest.fixture
     def api_client(self, django_user_model):
-        user = django_user_model.objects.create_user(username="user1", password="pass")
+        # avoid hard-coded credential literals; generate a secure password at runtime
+        pwd = secrets.token_urlsafe(16)
+        user = django_user_model.objects.create_user(username="user1")
+        user.set_password(pwd)
+        user.save()
         client = APIClient()
         client.force_authenticate(user=user)
         return client
