@@ -1,13 +1,6 @@
-import uuid
 from django.db import models
+from .modelo_base import ModeloBase
 
-class ModeloBase(models.Model):
-    uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
-    criado_em = models.DateTimeField(auto_now_add=True)
-    atualizado_em = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        abstract = True
 
 class Intercorrencia(ModeloBase):
     data_ocorrencia = models.DateTimeField(
