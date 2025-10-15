@@ -1,6 +1,7 @@
 from django.db import models
+from .modelo_base import ModeloBase
 
-class TipoOcorrencia(models.Model):
+class TipoOcorrencia(ModeloBase):
     nome = models.CharField("Tipo de ocorrência", max_length=100, unique=True)
     ativo = models.BooleanField(default=True)
 
