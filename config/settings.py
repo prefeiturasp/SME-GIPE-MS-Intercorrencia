@@ -188,6 +188,10 @@ UNIDADES_BASE_URL = os.getenv("UNIDADES_BASE_URL", "https://servico-auth/api/uni
 
 ADMIN_URL = env("DJANGO_ADMIN_URL", default="api-intercorrencias/v1/admin/")
 
+CODIGO_PERFIL_GIPE = env("CODIGO_PERFIL_GIPE", default="")
+CODIGO_PERFIL_DRE = env("CODIGO_PERFIL_DRE", default="")
+CODIGO_PERFIL_DIRETOR = env("CODIGO_PERFIL_DIRETOR", default="")
+
 # LOGGING
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#logging
