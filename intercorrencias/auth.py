@@ -16,6 +16,7 @@ class ExternalUser:
     username: str
     name: str | None = None
     cargo_codigo: int | None = None
+    unidade_codigo_eol: str | None = None
     is_authenticated: bool = True
 
 class RemoteJWTAuthentication(BaseAuthentication):
@@ -47,7 +48,8 @@ class RemoteJWTAuthentication(BaseAuthentication):
         user = ExternalUser(
             username=username,
             name=user_payload.get("name"),
-            cargo_codigo=user_payload.get("perfil_codigo") or user_payload.get("cargo_codigo"),
+            cargo_codigo=user_payload.get("perfil_codigo"),
+            unidade_codigo_eol=user_payload.get("codigo_unidade_eol"),
         )
         return (user, None)
 
