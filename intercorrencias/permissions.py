@@ -17,8 +17,9 @@ class IntercorrenciaPermission(BasePermission):
         cargo_codigo = getattr(request.user, "cargo_codigo", None)
         if cargo_codigo is None:
             return False
-
-        if str(cargo_codigo) not in [CODIGO_PERFIL_DIRETOR, CODIGO_PERFIL_DRE, CODIGO_PERFIL_GIPE]:
+        # normalize to string for comparison because settings may define codes as int or str
+        cargo_str = str(cargo_codigo)
+        if cargo_str not in [str(CODIGO_PERFIL_DIRETOR), str(CODIGO_PERFIL_DRE), str(CODIGO_PERFIL_GIPE)]:
             return False
 
         return True
@@ -32,13 +33,12 @@ class IntercorrenciaPermission(BasePermission):
         if cargo_codigo is None:
             return False
 
-        if str(cargo_codigo) == CODIGO_PERFIL_DIRETOR:
+        cargo_str = str(cargo_codigo)
+        if cargo_str == str(CODIGO_PERFIL_DIRETOR):
             return self._check_diretor_permission(request, obj)
-        
-        elif str(cargo_codigo) == CODIGO_PERFIL_DRE:
+        elif cargo_str == str(CODIGO_PERFIL_DRE):
             return self._check_dre_permission(request, obj)
-        
-        elif str(cargo_codigo) == CODIGO_PERFIL_GIPE:
+        elif cargo_str == str(CODIGO_PERFIL_GIPE):
             return self._check_gipe_permission(request, obj)
 
         return False
