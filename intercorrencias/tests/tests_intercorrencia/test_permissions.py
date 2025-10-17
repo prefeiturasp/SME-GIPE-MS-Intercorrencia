@@ -5,6 +5,7 @@ from rest_framework.views import APIView
 from config.settings import CODIGO_PERFIL_DIRETOR, CODIGO_PERFIL_DRE, CODIGO_PERFIL_GIPE
 
 from intercorrencias.permissions import IntercorrenciaPermission
+import intercorrencias.permissions as perms
 
 
 @pytest.fixture
@@ -105,12 +106,43 @@ class TestIntercorrenciaPermission:
         req.user = diretor_user
         assert permission.has_object_permission(req, view, intercorrencia)
 
-    def test_has_object_permission_dre(self, permission, req, view, dre_user, intercorrencia):
-        req.user = dre_user
+    def test_has_object_permission_with_integer_codes(self, permission, req, view, intercorrencia, monkeypatch):
+        """Ensure the permission dispatch still works when the imported profile codes are integers.
+
+        This exercises the str() normalization in the permission implementation.
+        """
+        # patch the constants inside the permissions module to integers
+        monkeypatch.setattr(perms, "CODIGO_PERFIL_DIRETOR", 10)
+        monkeypatch.setattr(perms, "CODIGO_PERFIL_DRE", 20)
+        monkeypatch.setattr(perms, "CODIGO_PERFIL_GIPE", 30)
+
+        # Diretor integer-coded user
+        u_dir = Mock()
+        u_dir.username = "dir_int"
+        u_dir.is_authenticated = True
+        u_dir.cargo_codigo = 10
+        u_dir.unidade_codigo_eol = intercorrencia.unidade_codigo_eol
+
+        req.user = u_dir
         assert permission.has_object_permission(req, view, intercorrencia)
 
-    def test_has_object_permission_gipe(self, permission, req, view, gipe_user, intercorrencia):
-        req.user = gipe_user
+        # DRE integer-coded user
+        u_dre = Mock()
+        u_dre.username = "dre_int"
+        u_dre.is_authenticated = True
+        u_dre.cargo_codigo = 20
+        u_dre.dre_codigo_eol = intercorrencia.dre_codigo_eol
+
+        req.user = u_dre
+        assert permission.has_object_permission(req, view, intercorrencia)
+
+        # GIPE integer-coded user
+        u_gipe = Mock()
+        u_gipe.username = "gipe_int"
+        u_gipe.is_authenticated = True
+        u_gipe.cargo_codigo = 30
+
+        req.user = u_gipe
         assert permission.has_object_permission(req, view, intercorrencia)
 
     def test_diretor_logger_warning(self, permission, req, diretor_user, intercorrencia):
