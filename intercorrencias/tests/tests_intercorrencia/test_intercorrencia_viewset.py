@@ -17,10 +17,10 @@ class TestIntercorrenciaViewSet:
 
     @pytest.fixture
     def api_client(self, django_user_model):
-        # avoid hard-coded credential literals; generate a secure password at runtime
         pwd = secrets.token_urlsafe(16)
         user = django_user_model.objects.create_user(username="user1")
         user.set_password(pwd)
+        user.unidade_codigo_eol = "123"
         user.save()
         client = APIClient()
         client.force_authenticate(user=user)
@@ -36,22 +36,26 @@ class TestIntercorrenciaViewSet:
             user_username="user1"
         )
 
-    @patch("intercorrencias.api.serializers.intercorrencia_serializer.unidades_service.get_unidade")
-    @patch("intercorrencias.api.serializers.intercorrencia_serializer.unidades_service.validar_unidade_usuario")
-    def test_create_intercorrencia_success(self, mock_validar, mock_get, api_client):
-        mock_get.return_value = {"codigo_eol": "123", "dre_codigo_eol": "456"}
-        mock_validar.return_value = {"detail": "A unidade pertence ao usuário."}
-
+    def test_create_intercorrencia_success(self, api_client):
         data = {
             "data_ocorrencia": timezone.now(),
             "unidade_codigo_eol": "123",
             "dre_codigo_eol": "456",
             "sobre_furto_roubo_invasao_depredacao": True
         }
+
         url = reverse("intercorrencia-list")
-        response = api_client.post(url, data, format="json")
+
+        with patch("intercorrencias.api.serializers.intercorrencia_serializer.unidades_service.get_unidade") as mock_get_unidade:
+            mock_get_unidade.return_value = {"codigo_eol": "123", "dre_codigo_eol": "456"}
+
+            response = api_client.post(url, data, format="json")
+
         assert response.status_code == 201
         assert response.data["user_username"] == "user1"
+        assert response.data["unidade_codigo_eol"] == "123"
+        assert response.data["dre_codigo_eol"] == "456"
+        assert response.data["sobre_furto_roubo_invasao_depredacao"] is True
 
     def test_retrieve_intercorrencia(self, api_client, intercorrencia):
         url = reverse("intercorrencia-detail", args=[intercorrencia.uuid])
