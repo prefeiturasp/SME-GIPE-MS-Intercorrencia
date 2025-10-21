@@ -26,7 +26,7 @@ def test_listar_apenas_tipos_ativos(client, django_user_model):
     Usuário autenticado vê apenas os tipos com ativo=True.
     """
     # cria usuário e autentica
-    user = django_user_model.objects.create_user(username="u1", password="pw")
+    user = django_user_model.objects.create_user(username="u1")
     client.force_authenticate(user=user)
 
     # dados
