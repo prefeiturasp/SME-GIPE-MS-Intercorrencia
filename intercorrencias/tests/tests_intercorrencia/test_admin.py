@@ -62,20 +62,17 @@ class TestIntercorrenciaAdmin:
     def test_intercorrencia_admin_configuracoes(self, intercorrencia_admin):
         """Testa as configurações básicas do IntercorrenciaAdmin"""
         assert intercorrencia_admin.list_display == (
-            "unidade_codigo_eol",
-            "data_ocorrencia",
             "user_username",
+            "unidade_codigo_eol",
             "dre_codigo_eol",
             "sobre_furto_roubo_invasao_depredacao",
-            "status",
-            "get_tipos_ocorrencia",
-            "descricao_ocorrencia",
-            "smart_sampa_situacao",
             "criado_em",
         )
         assert intercorrencia_admin.list_filter == (
+            "user_username", 
+            "unidade_codigo_eol", 
+            "dre_codigo_eol", 
             "sobre_furto_roubo_invasao_depredacao", 
-            "dre_codigo_eol"
         )
         assert intercorrencia_admin.search_fields == (
             "unidade_codigo_eol", 
