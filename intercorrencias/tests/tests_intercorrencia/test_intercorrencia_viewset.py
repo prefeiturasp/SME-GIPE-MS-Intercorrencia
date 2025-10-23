@@ -13,12 +13,7 @@ from intercorrencias.models.intercorrencia import Intercorrencia
 from intercorrencias.models.tipos_ocorrencia import TipoOcorrencia
 from intercorrencias.api.views.intercorrencias_viewset import IntercorrenciaDiretorViewSet
 
-from config.settings import (
-    CODIGO_PERFIL_DIRETOR,
-    CODIGO_PERFIL_ASSISTENTE_DIRECAO,
-    CODIGO_PERFIL_DRE,
-    CODIGO_PERFIL_GIPE,
-)
+from django.conf import settings
 
 @pytest.fixture(autouse=True)
 def mock_get_unidade():
@@ -57,19 +52,19 @@ class TestIntercorrenciaDiretorViewSet:
 
     @pytest.fixture
     def diretor_user(self, create_user):
-        return create_user("diretor", CODIGO_PERFIL_DIRETOR, "200237")
+        return create_user("diretor", settings.CODIGO_PERFIL_DIRETOR, "200237")
 
     @pytest.fixture
     def assistente_user(self, create_user):
-        return create_user("assistente", CODIGO_PERFIL_ASSISTENTE_DIRECAO, "200237")
+        return create_user("assistente", settings.CODIGO_PERFIL_ASSISTENTE_DIRECAO, "200237")
 
     @pytest.fixture
     def dre_user(self, create_user):
-        return create_user("dre", CODIGO_PERFIL_DRE, "DRE01")
+        return create_user("dre", settings.CODIGO_PERFIL_DRE, "DRE01")
 
     @pytest.fixture
     def gipe_user(self, create_user):
-        return create_user("gipe", CODIGO_PERFIL_GIPE, "GIPE01")
+        return create_user("gipe", settings.CODIGO_PERFIL_GIPE, "GIPE01")
 
     @pytest.fixture
     def create_intercorrencia(self, diretor_user):
