@@ -69,3 +69,8 @@ class Intercorrencia(ModeloBase):
 
     def __str__(self) -> str:
         return f"{self.unidade_codigo_eol} @ {self.data_ocorrencia:%d/%m/%Y %H:%M}"
+    
+    @property
+    def pode_ser_editado_por_diretor(self):
+        """Verifica se ainda pode ser editado pelo diretor"""
+        return self.status == 'em_preenchimento_diretor'

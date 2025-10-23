@@ -1,6 +1,8 @@
 from rest_framework import serializers
 from intercorrencias.services import unidades_service
 from intercorrencias.models.intercorrencia import Intercorrencia
+from intercorrencias.models.tipos_ocorrencia import TipoOcorrencia
+from intercorrencias.api.serializers.tipo_ocorrencia_serializer import TipoOcorrenciaSerializer
 
 
 class IntercorrenciaSerializer(serializers.ModelSerializer):
@@ -10,17 +12,6 @@ class IntercorrenciaSerializer(serializers.ModelSerializer):
 
     def get_status_extra(self, obj):
         return obj.STATUS_EXTRA_LABELS.get(obj.status)
-
-    class Meta:
-        model = Intercorrencia
-        read_only_fields = ("user_username", "uuid", "criado_em", "atualizado_em")
-        fields = (
-            "id", "uuid", "data_ocorrencia",
-            "unidade_codigo_eol", "dre_codigo_eol",
-            "sobre_furto_roubo_invasao_depredacao",
-            "user_username", "criado_em", "atualizado_em",
-            "status_display", "status_extra"
-        )
 
     def validate(self, attrs):
         """
@@ -66,33 +57,76 @@ class IntercorrenciaSecaoInicialSerializer(IntercorrenciaSerializer):
 
     def validate(self, attrs):
         return super().validate(attrs)
+    
+    def is_valid(self, raise_exception=False):
+        
+        valid = super().is_valid(raise_exception=False)
+        if not valid:
+            first_field, first_error_list = next(iter(self.errors.items()))
+            message = first_error_list[0] if isinstance(first_error_list, list) else str(first_error_list)
+            self._errors = {"detail": f"{first_field}: {message}"}
+
+            if raise_exception:
+                raise serializers.ValidationError(self._errors)
+
+        return valid
 
 
 class IntercorrenciaFurtoRouboSerializer(IntercorrenciaSerializer):
     """Serializer para furto/roubo/invasão/depredação - Diretor"""
 
+    tipos_ocorrencia = serializers.SlugRelatedField(
+        many=True,
+        slug_field="uuid",
+        queryset=TipoOcorrencia.objects.all(),
+        required=True,
+        write_only=True
+    )
+    tipos_ocorrencia_detalhes = TipoOcorrenciaSerializer(
+        many=True,
+        read_only=True,
+        source="tipos_ocorrencia"
+    )
+    descricao_ocorrencia = serializers.CharField(required=True, allow_blank=False)
+    smart_sampa_situacao = serializers.ChoiceField(
+        required=True, 
+        allow_blank=False, 
+        choices=Intercorrencia.SMART_SAMPA_CHOICES
+    )
+
     class Meta:
         model = Intercorrencia
         fields = (
-            "uuid", "tipos_ocorrencia", "descricao_ocorrencia", "smart_sampa_situacao",
+            "uuid", "tipos_ocorrencia", "tipos_ocorrencia_detalhes", "descricao_ocorrencia", "smart_sampa_situacao",
             "status_display", "status_extra"
         )
         read_only_fields = ("uuid",)
 
+    def validate_tipos_ocorrencia(self, value):
+        if not value:
+            raise serializers.ValidationError("Este campo é obrigatório e não pode estar vazio.")
+        return value
+
     def validate(self, attrs):
         instance = self.instance
-
         if instance and not instance.sobre_furto_roubo_invasao_depredacao:
             raise serializers.ValidationError(
                 "Esta intercorrência não é sobre furto/roubo/invasão/depredação."
             )
-
-        obrigatorios = ["tipos_ocorrencia", "descricao_ocorrencia", "smart_sampa_situacao"]
-        for field in obrigatorios:
-            if not attrs.get(field) and not (instance and getattr(instance, field)):
-                raise serializers.ValidationError({field: "Este campo é obrigatório."})
-
         return attrs
+    
+    def is_valid(self, raise_exception=False):
+
+        valid = super().is_valid(raise_exception=False)
+        if not valid:
+            first_field, first_error_list = next(iter(self.errors.items()))
+            message = first_error_list[0] if isinstance(first_error_list, list) else str(first_error_list)
+            self._errors = {"detail": f"{first_field}: {message}"}
+
+            if raise_exception:
+                raise serializers.ValidationError(self._errors)
+
+        return valid
 
 
 class IntercorrenciaDiretorCompletoSerializer(serializers.ModelSerializer):
@@ -103,6 +137,7 @@ class IntercorrenciaDiretorCompletoSerializer(serializers.ModelSerializer):
     smart_sampa_situacao_display = serializers.CharField(
         source='get_smart_sampa_situacao_display', read_only=True
     )
+    tipos_ocorrencia = TipoOcorrenciaSerializer(many=True)
 
     def get_status_extra(self, obj):
         return obj.STATUS_EXTRA_LABELS.get(obj.status)

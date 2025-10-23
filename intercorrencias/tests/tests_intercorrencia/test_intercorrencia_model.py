@@ -78,4 +78,15 @@ def test_uuid_unico(intercorrencia_factory):
     a = intercorrencia_factory()
     b = intercorrencia_factory()
     assert a.uuid != b.uuid
-    assert Intercorrencia.objects.filter(uuid=a.uuid).count() == 1    
+    assert Intercorrencia.objects.filter(uuid=a.uuid).count() == 1
+
+@pytest.mark.django_db
+def test_pode_ser_editado_por_diretor(intercorrencia_factory):
+    obj = intercorrencia_factory(status='em_preenchimento_diretor')
+    assert obj.pode_ser_editado_por_diretor is True
+
+    obj.status = 'concluida'
+    assert obj.pode_ser_editado_por_diretor is False
+
+    obj.status = 'em_preenchimento_assistente'
+    assert obj.pode_ser_editado_por_diretor is False
