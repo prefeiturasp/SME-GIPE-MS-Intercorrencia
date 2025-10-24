@@ -55,9 +55,9 @@ class IntercorrenciaDiretorViewSet(viewsets.GenericViewSet, mixins.ListModelMixi
         # Filtra apenas intercorrências da unidade do Diretor/ Assistente
         cargo_str = str(cargo_codigo)
         if cargo_str in [str(CODIGO_PERFIL_DIRETOR), str(CODIGO_PERFIL_ASSISTENTE_DIRECAO)]:
-            user_unidade = getattr(self.request.user, 'unidade_codigo_eol', None)
-            if user_unidade:
-                return qs.filter(unidade_codigo_eol=user_unidade)
+            user_name = getattr(self.request.user, 'username', None)
+            if user_name:
+                return qs.filter(user_username=user_name)
             
         # Filtra apenas intercorrências da DRE do ponto focal
         if cargo_str == str(CODIGO_PERFIL_DRE):
