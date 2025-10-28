@@ -2,6 +2,8 @@ import factory
 from django.utils import timezone
 from django.contrib.auth.models import User
 from intercorrencias.models.intercorrencia import Intercorrencia
+from intercorrencias.models.tipos_ocorrencia import TipoOcorrencia
+
 
 
 class UserFactory(factory.django.DjangoModelFactory):
@@ -26,3 +28,12 @@ class IntercorrenciaFactory(factory.django.DjangoModelFactory):
     unidade_codigo_eol = factory.Faker('bothify', text='??????')
     dre_codigo_eol = factory.Faker('bothify', text='??????')
     user_username = factory.SubFactory(UserFactory)
+
+
+class TipoOcorrenciaFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = TipoOcorrencia
+        django_get_or_create = ('nome',)
+
+    nome = factory.Faker('word')
+    ativo = True

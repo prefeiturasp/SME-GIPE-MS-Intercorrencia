@@ -1,15 +1,22 @@
-import uuid
 from django.db import models
-
-class ModeloBase(models.Model):
-    uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
-    criado_em = models.DateTimeField(auto_now_add=True)
-    atualizado_em = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        abstract = True
+from .modelo_base import ModeloBase
 
 class Intercorrencia(ModeloBase):
+
+    STATUS_CHOICES = [
+        ("em_preenchimento_diretor", "Em preenchimento - Diretor"),
+    ]
+
+    STATUS_EXTRA_LABELS = {
+        "em_preenchimento_diretor": "Incompleta",
+    }
+
+    SMART_SAMPA_CHOICES = [
+        ("sim_com_dano", "Sim e houve dano"),
+        ("sim_sem_dano", "Sim, mas não houve dano"),
+        ("nao_faz_parte", "A UE não faz parte do Smart Sampa"),
+    ]
+
     data_ocorrencia = models.DateTimeField(
         verbose_name="Data e Hora da Ocorrência",
         help_text="Data e hora em que a intercorrência ocorreu"
@@ -33,9 +40,37 @@ class Intercorrencia(ModeloBase):
         "É sobre furto, roubo, invasão ou depredação?",
         default=False
     )
+    status = models.CharField(
+        max_length=30,
+        choices=STATUS_CHOICES,
+        default="em_preenchimento_diretor",
+        verbose_name="Status da Intercorrência",
+    )
+    tipos_ocorrencia = models.ManyToManyField(
+        "intercorrencias.TipoOcorrencia",
+        verbose_name="Tipos de Ocorrência",
+        help_text="Selecione um ou mais tipos de ocorrência",
+        blank=True,
+    )
+    descricao_ocorrencia = models.TextField(
+        verbose_name="Descrição da Ocorrência",
+        help_text="Descreva o fato ocorrido, incluindo informações sobre agressores, vítimas e prejuízos.",
+        blank=True,
+    )
+    smart_sampa_situacao = models.CharField(
+        max_length=20,
+        choices=SMART_SAMPA_CHOICES,
+        verbose_name="UE é contemplada pelo Smart Sampa? Houve dano às câmeras?",
+        blank=True,
+    )
 
     class Meta:
         ordering = ("-criado_em",)
 
     def __str__(self) -> str:
         return f"{self.unidade_codigo_eol} @ {self.data_ocorrencia:%d/%m/%Y %H:%M}"
+    
+    @property
+    def pode_ser_editado_por_diretor(self):
+        """Verifica se ainda pode ser editado pelo diretor"""
+        return self.status == 'em_preenchimento_diretor'
