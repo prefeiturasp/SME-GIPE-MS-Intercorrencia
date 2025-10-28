@@ -20,27 +20,3 @@ def get_unidade(codigo_eol: str) -> dict | None:
         return r.json()
     except requests.RequestException as e:
         raise ExternalServiceError(f"Falha ao consultar unidade: {e}") from e
-    
-def validar_unidade_usuario(codigo_eol: str, token: str) -> dict | None:
-    """
-    Valida se a unidade informada pertence ao usuário autenticado.
-    """
-
-    logger.info("Validando se a unidade %s pertence ao usuário autenticado", codigo_eol)
-
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Accept": "application/json",
-    }
-
-    try:
-        url = f"{BASE}/{codigo_eol}/verificar-unidade/"
-        r = requests.get(url, headers=headers, timeout=3.0)
-
-        if r.status_code in (200, 403):
-            return r.json()
-        
-        return None
-
-    except requests.RequestException as e:
-        raise ExternalServiceError(f"Falha ao validar unidade: {e}") from e
