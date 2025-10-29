@@ -1,0 +1,1 @@
+from .declarante import Declarante
