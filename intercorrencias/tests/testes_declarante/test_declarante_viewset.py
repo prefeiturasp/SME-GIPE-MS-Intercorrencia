@@ -47,17 +47,20 @@ class TestDeclaranteViewSet:
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert "detail" in response.data
-
+    
     def test_ordering_by_declarante(self, api_client):
         client = api_client()
-        Declarante.objects.create(declarante="Zeta", ativo=True)
-        Declarante.objects.create(declarante="Alpha", ativo=True)
+        d_zeta = Declarante.objects.create(declarante="Zeta", ativo=True)
+        d_alpha = Declarante.objects.create(declarante="Alpha", ativo=True)
 
         url = reverse("intercorrencia-declarante-list")
         response = client.get(url)
         names = [item["declarante"] for item in response.json()]
 
-        assert names == sorted(names)
+        assert d_alpha.declarante in names
+        assert d_zeta.declarante in names
+
+        assert names.index(d_alpha.declarante) < names.index(d_zeta.declarante)
 
     def test_serializer_fields(self, api_client, declarantes):
         client = api_client()
