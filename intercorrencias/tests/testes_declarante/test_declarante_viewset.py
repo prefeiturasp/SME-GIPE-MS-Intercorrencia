@@ -1,8 +1,6 @@
 import pytest
 import secrets
 from django.urls import reverse
-from django.contrib.auth.models import User
-
 from rest_framework import status
 from rest_framework.test import APIClient
 
@@ -13,12 +11,16 @@ from intercorrencias.models.declarante import Declarante
 class TestDeclaranteViewSet:
 
     @pytest.fixture
-    def api_client(self):
-        pwd = secrets.token_urlsafe(16)
-        user = User.objects.create_user(username="tester", password=pwd)
-        client = APIClient()
-        client.force_authenticate(user=user)
-        return client
+    def api_client(self, django_user_model):
+        def _create(username="tester"):
+            pwd = secrets.token_urlsafe(16)
+            user = django_user_model.objects.create_user(username=username)
+            user.set_password(pwd)
+            user.save()
+            client = APIClient()
+            client.force_authenticate(user=user)
+            return client
+        return _create
 
     @pytest.fixture
     def declarantes(self):
@@ -28,8 +30,9 @@ class TestDeclaranteViewSet:
         return {"ativo": ativo, "inativo": inativo}
 
     def test_list_declarantes_ativos(self, api_client, declarantes):
+        client = api_client()
         url = reverse("intercorrencia-declarante-list")
-        response = api_client.get(url)
+        response = client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
         results = response.json()
@@ -46,18 +49,20 @@ class TestDeclaranteViewSet:
         assert "detail" in response.data
 
     def test_ordering_by_declarante(self, api_client):
+        client = api_client()
         Declarante.objects.create(declarante="Zeta", ativo=True)
         Declarante.objects.create(declarante="Alpha", ativo=True)
 
         url = reverse("intercorrencia-declarante-list")
-        response = api_client.get(url)
+        response = client.get(url)
         names = [item["declarante"] for item in response.json()]
 
         assert names == sorted(names)
 
     def test_serializer_fields(self, api_client, declarantes):
+        client = api_client()
         url = reverse("intercorrencia-declarante-list")
-        response = api_client.get(url)
+        response = client.get(url)
         result = response.json()[0]
 
         expected_fields = {"uuid", "declarante"}
