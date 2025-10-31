@@ -1,5 +1,6 @@
 from django.contrib import admin
 
+from .models.declarante import Declarante
 from .models.intercorrencia import Intercorrencia
 from .models.tipos_ocorrencia import TipoOcorrencia
 
@@ -46,4 +47,10 @@ class IntercorrenciaAdmin(admin.ModelAdmin):
 class TipoOcorrenciaAdmin(admin.ModelAdmin):
     list_display = ("nome", "ativo")
     search_fields = ("nome",)
+    list_filter = ("ativo",)
+
+@admin.register(Declarante)
+class DeclaranteAdmin(admin.ModelAdmin):
+    list_display = ("declarante", "ativo")
+    search_fields = ("declarante",)
     list_filter = ("ativo",)
