@@ -1,8 +1,10 @@
 from django.contrib import admin
 
 from .models.declarante import Declarante
+from .models.envolvido import Envolvido
 from .models.intercorrencia import Intercorrencia
 from .models.tipos_ocorrencia import TipoOcorrencia
+
 
 
 @admin.register(Intercorrencia)
@@ -43,6 +45,7 @@ class IntercorrenciaAdmin(admin.ModelAdmin):
 
     get_tipos_ocorrencia.short_description = "Tipos de Ocorrência"
 
+
 @admin.register(TipoOcorrencia)
 class TipoOcorrenciaAdmin(admin.ModelAdmin):
     list_display = ("nome", "ativo")
@@ -53,4 +56,10 @@ class TipoOcorrenciaAdmin(admin.ModelAdmin):
 class DeclaranteAdmin(admin.ModelAdmin):
     list_display = ("declarante", "ativo")
     search_fields = ("declarante",)
+    list_filter = ("ativo",)
+
+@admin.register(Envolvido)
+class EnvolvidoAdmin(admin.ModelAdmin):
+    list_display = ("perfil_dos_envolvidos", "ativo")
+    search_fields = ("perfil_dos_envolvidos",)
     list_filter = ("ativo",)
