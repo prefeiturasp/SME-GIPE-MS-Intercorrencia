@@ -185,6 +185,8 @@ class TestIntercorrenciaFurtoRouboSerializer:
             "tipos_ocorrencia": [str(tipo.uuid)],
             "descricao_ocorrencia": "Roubo de equipamentos",
             "smart_sampa_situacao": "sim_com_dano",
+            "envolvido": "Apenas um estudante",
+            "tem_info_agressor_ou_vitima": "Não"
         }
         serializer = IntercorrenciaFurtoRouboSerializer(
             instance=intercorrencia, data=data, partial=True
@@ -204,6 +206,8 @@ class TestIntercorrenciaFurtoRouboSerializer:
             "tipos_ocorrencia": [str(tipo.uuid)],
             "descricao_ocorrencia": "Roubo de equipamentos",
             "smart_sampa_situacao": "sim_com_dano",
+            "envolvido": "Apenas um estudante",
+            "tem_info_agressor_ou_vitima": "Não"
         }
         serializer = IntercorrenciaFurtoRouboSerializer(
             instance=intercorrencia, data=data, partial=True
@@ -283,6 +287,8 @@ class TestIntercorrenciaFurtoRouboSerializer:
             "tipos_ocorrencia": [],
             "descricao_ocorrencia": "Roubo de equipamentos",
             "smart_sampa_situacao": "sim_com_dano",
+            "envolvido": "Apenas um estudante",
+            "tem_info_agressor_ou_vitima": "Não" 
         }
 
         serializer = IntercorrenciaFurtoRouboSerializer(
