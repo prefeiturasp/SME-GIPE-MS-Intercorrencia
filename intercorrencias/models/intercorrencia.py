@@ -17,6 +17,18 @@ class Intercorrencia(ModeloBase):
         ("nao_faz_parte", "A UE não faz parte do Smart Sampa"),
     ]
 
+    SEGURANCA_PUBLICA_CHOICES = [
+        ("sim_gcm", "Sim, com GCM"),
+        ("sim_pm", "Sim, com a PM"),
+        ("nao", "Não"),
+    ]
+
+    PROTOCOLO_CHOICES = [
+        ("ameaca", "Ameaça"),
+        ("alerta", "Alerta"),
+        ("registro", "Apenas para registro/ não se aplica"),
+    ]
+
     data_ocorrencia = models.DateTimeField(
         verbose_name="Data e Hora da Ocorrência",
         help_text="Data e hora em que a intercorrência ocorreu"
@@ -61,6 +73,26 @@ class Intercorrencia(ModeloBase):
         max_length=20,
         choices=SMART_SAMPA_CHOICES,
         verbose_name="UE é contemplada pelo Smart Sampa? Houve dano às câmeras?",
+        blank=True,
+    )
+    declarante = models.ForeignKey(
+        "intercorrencias.Declarante",
+        on_delete=models.PROTECT,
+        verbose_name="Quem é o declarante",
+        help_text="Selecione quem está declarando a intercorrência",
+        blank=True,
+        null=True,
+    )
+    comunicacao_seguranca_publica = models.CharField(
+        max_length=20,
+        choices=SEGURANCA_PUBLICA_CHOICES,
+        verbose_name="Houve comunicação com a segurança pública?",
+        blank=True,
+    )
+    protocolo_acionado = models.CharField(
+        max_length=20,
+        choices=PROTOCOLO_CHOICES,
+        verbose_name="Qual protocolo foi acionado?",
         blank=True,
     )
 
