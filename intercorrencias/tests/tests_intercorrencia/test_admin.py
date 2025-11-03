@@ -9,7 +9,7 @@ from intercorrencias.tests.factories import (
     TipoOcorrenciaFactory
 )
 
-
+@pytest.mark.django_db
 class TestIntercorrenciaAdmin:
     @pytest.fixture
     def admin_site(self):
@@ -23,7 +23,6 @@ class TestIntercorrenciaAdmin:
     def tipo_ocorrencia_admin(self, admin_site):
         return TipoOcorrenciaAdmin(TipoOcorrencia, admin_site)
 
-    @pytest.mark.django_db
     def test_get_tipos_ocorrencia_com_tipos(self, intercorrencia_admin):
         """Testa o método get_tipos_ocorrencia que formata a exibição dos tipos no admin - LINHA 28"""
         tipo1 = TipoOcorrenciaFactory(nome="Furto")
@@ -38,7 +37,6 @@ class TestIntercorrenciaAdmin:
         assert "Roubo" in result
         assert result == "Roubo, Furto"
 
-    @pytest.mark.django_db
     def test_get_tipos_ocorrencia_sem_tipos(self, intercorrencia_admin):
         """Testa o método get_tipos_ocorrencia quando não há tipos associados"""
         intercorrencia = IntercorrenciaFactory()
@@ -47,7 +45,6 @@ class TestIntercorrenciaAdmin:
         
         assert result == ""
 
-    @pytest.mark.django_db
     def test_get_tipos_ocorrencia_apenas_um_tipo(self, intercorrencia_admin):
         """Testa o método get_tipos_ocorrencia com apenas um tipo associado"""
         tipo = TipoOcorrenciaFactory(nome="Invasão")
@@ -58,7 +55,6 @@ class TestIntercorrenciaAdmin:
         
         assert result == "Invasão"
 
-    @pytest.mark.django_db
     def test_intercorrencia_admin_configuracoes(self, intercorrencia_admin):
         """Testa as configurações básicas do IntercorrenciaAdmin"""
         assert intercorrencia_admin.list_display == (
@@ -86,9 +82,28 @@ class TestIntercorrenciaAdmin:
         )
         assert intercorrencia_admin.ordering == ("-criado_em",)
 
-    @pytest.mark.django_db
     def test_tipo_ocorrencia_admin_configuracoes(self, tipo_ocorrencia_admin):
-        """Testa as configurações básicas do TipoOcorrenciaAdmin"""
         assert tipo_ocorrencia_admin.list_display == ("nome", "ativo")
         assert tipo_ocorrencia_admin.search_fields == ("nome",)
         assert tipo_ocorrencia_admin.list_filter == ("ativo",)
+
+    def test_fieldsets_existe_secao_final(self, intercorrencia_admin):
+        fieldsets = dict(intercorrencia_admin.fieldsets)
+        assert "Seção Final (Diretor)" in fieldsets, "A seção final não foi encontrada no fieldsets"
+
+    def test_campos_secao_final_estao_presentes(self, intercorrencia_admin):
+        fieldsets = dict(intercorrencia_admin.fieldsets)
+        secao_final = fieldsets.get("Seção Final (Diretor)")
+        campos = secao_final.get("fields", [])
+        assert "declarantes" in campos
+        assert "comunicacao_seguranca_publica" in campos
+        assert "protocolo_acionado" in campos
+
+    def test_ordem_das_secoes_fieldsets(self, intercorrencia_admin):
+        nomes_secoes = [titulo for titulo, _ in intercorrencia_admin.fieldsets]
+        assert nomes_secoes == [
+            "Seção inicial (Diretor)",
+            "Seção Furto/Roubo (Diretor)",
+            "Seção Final (Diretor)",
+            "Metadados",
+        ]
