@@ -20,37 +20,49 @@ class IntercorrenciaAdmin(admin.ModelAdmin):
     search_fields = ("unidade_codigo_eol", "user_username", "dre_codigo_eol")
     readonly_fields = ("uuid", "criado_em", "atualizado_em")
     ordering = ("-criado_em",)
-    fieldsets = (
-        ('Seção inicial (Diretor)', {
-            'fields': (
-                'status', 'user_username',
-                'data_ocorrencia', 'unidade_codigo_eol', 'dre_codigo_eol',
-                'sobre_furto_roubo_invasao_depredacao'
-            )
-        }),
-        ('Seção Furto/Roubo (Diretor)', {
-            'fields': (
-                'tipos_ocorrencia', 'descricao_ocorrencia', 'smart_sampa_situacao'    
-            )
-        }),
-        ('Seção Final (Diretor)', {
-            'fields': (
-                'declarante',
-                'comunicacao_seguranca_publica',
-                'protocolo_acionado',
-            )
-        }),
-        ('Metadados', {
-            'fields': ('uuid', 'criado_em', 'atualizado_em'),
-            'classes': ('collapse',)
-        }),
-    )
 
     def get_tipos_ocorrencia(self, obj):
         """Mostra os tipos de ocorrência como texto no admin."""
         return ", ".join([t.nome for t in obj.tipos_ocorrencia.all()])
 
     get_tipos_ocorrencia.short_description = "Tipos de Ocorrência"
+
+    def get_fieldsets(self, request, obj=None):
+        base_fieldsets = (
+            ('Seção inicial (Diretor)', {
+                'fields': (
+                    'status', 'user_username',
+                    'data_ocorrencia', 'unidade_codigo_eol', 'dre_codigo_eol',
+                    'sobre_furto_roubo_invasao_depredacao'
+                )
+            }),
+            ('Seção Final (Diretor)', {
+                'fields': (
+                    'declarante',
+                    'comunicacao_seguranca_publica',
+                    'protocolo_acionado',
+                )
+            }),
+            ('Metadados', {
+                'fields': ('uuid', 'criado_em', 'atualizado_em'),
+                'classes': ('collapse',)
+            }),
+        )
+
+        if obj and obj.sobre_furto_roubo_invasao_depredacao:
+            extra_fieldsets = (
+                ('Seção É Furto/Roubo (Diretor)', {
+                    'fields': ('tipos_ocorrencia', 'descricao_ocorrencia', 'smart_sampa_situacao')
+                }),
+            )
+        else:
+            extra_fieldsets = (
+                ('Seção Não Furto/Roubo (Diretor)', {
+                    'fields': ('tipos_ocorrencia', 'descricao_ocorrencia', 'envolvido', 'tem_info_agressor_ou_vitima')
+                }),
+            )
+
+        return base_fieldsets[:1] + extra_fieldsets + base_fieldsets[1:]
 
 
 @admin.register(TipoOcorrencia)
