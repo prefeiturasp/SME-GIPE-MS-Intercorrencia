@@ -33,6 +33,13 @@ class IntercorrenciaAdmin(admin.ModelAdmin):
                 'tipos_ocorrencia', 'descricao_ocorrencia', 'smart_sampa_situacao'    
             )
         }),
+        ('Seção Final (Diretor)', {
+            'fields': (
+                'declarantes',
+                'comunicacao_seguranca_publica',
+                'protocolo_acionado',
+            )
+        }),
         ('Metadados', {
             'fields': ('uuid', 'criado_em', 'atualizado_em'),
             'classes': ('collapse',)
