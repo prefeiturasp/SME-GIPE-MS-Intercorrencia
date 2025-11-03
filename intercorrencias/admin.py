@@ -35,7 +35,7 @@ class IntercorrenciaAdmin(admin.ModelAdmin):
         }),
         ('Seção Final (Diretor)', {
             'fields': (
-                'declarantes',
+                'declarante',
                 'comunicacao_seguranca_publica',
                 'protocolo_acionado',
             )

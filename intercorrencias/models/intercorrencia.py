@@ -17,14 +17,6 @@ class Intercorrencia(ModeloBase):
         ("nao_faz_parte", "A UE não faz parte do Smart Sampa"),
     ]
 
-    DECLARANTE_CHOICES = [
-        ("gabinete_dre", "Gabinete DRE"),
-        ("gcm", "GCM"),
-        ("gipe", "GIPE"),
-        ("naapa", "NAAPA"),
-        ("unidade_educacional", "Unidade Educacional"),
-    ]
-
     SEGURANCA_PUBLICA_CHOICES = [
         ("sim_gcm", "Sim, com GCM"),
         ("sim_pm", "Sim, com a PM"),
@@ -83,11 +75,13 @@ class Intercorrencia(ModeloBase):
         verbose_name="UE é contemplada pelo Smart Sampa? Houve dano às câmeras?",
         blank=True,
     )
-    declarantes = models.ManyToManyField(
+    declarante = models.ForeignKey(
         "intercorrencias.Declarante",
+        on_delete=models.SET_NULL,
         verbose_name="Quem é o declarante",
         help_text="Selecione quem está declarando a intercorrência",
         blank=True,
+        null=True,
     )
     comunicacao_seguranca_publica = models.CharField(
         max_length=20,
