@@ -77,7 +77,7 @@ class Intercorrencia(ModeloBase):
     )
     declarante = models.ForeignKey(
         "intercorrencias.Declarante",
-        on_delete=models.SET_NULL,
+        on_delete=models.PROTECT,
         verbose_name="Quem é o declarante",
         help_text="Selecione quem está declarando a intercorrência",
         blank=True,
