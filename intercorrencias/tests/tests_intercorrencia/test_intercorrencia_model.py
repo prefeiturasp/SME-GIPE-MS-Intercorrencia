@@ -1,15 +1,14 @@
 import pytest
 from datetime import datetime
-from django.core.exceptions import ValidationError
-from django.utils import timezone
+
 from freezegun import freeze_time
+from django.utils import timezone
+from django.core.exceptions import ValidationError
 
 from intercorrencias.models.intercorrencia import Intercorrencia
-from intercorrencias.models import Declarante
-from intercorrencias.tests.factories import (
-    IntercorrenciaFactory,
-    DeclaranteFactory,
-)
+from intercorrencias.tests.factories import IntercorrenciaFactory
+
+
 @pytest.mark.django_db
 class TestIntercorrencia:
 
@@ -94,17 +93,6 @@ class TestIntercorrencia:
 
         assert obj.comunicacao_seguranca_publica == "sim_gcm"
         assert obj.protocolo_acionado == "ameaca"
-
-    def test_relacionamento_declarantes(self, intercorrencia_factory):
-        d1 = DeclaranteFactory(declarante="GCM")
-        d2 = DeclaranteFactory(declarante="NAAPA")
-
-        obj = intercorrencia_factory()
-        obj.declarantes.set([d1, d2])
-
-        assert obj.declarantes.count() == 2
-        assert d1 in obj.declarantes.all()
-        assert d2 in obj.declarantes.all()
 
     def test_choices_validos(self, intercorrencia_factory):
         obj = intercorrencia_factory(

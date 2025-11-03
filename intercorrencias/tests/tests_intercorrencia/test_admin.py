@@ -95,7 +95,7 @@ class TestIntercorrenciaAdmin:
         fieldsets = dict(intercorrencia_admin.fieldsets)
         secao_final = fieldsets.get("Seção Final (Diretor)")
         campos = secao_final.get("fields", [])
-        assert "declarantes" in campos
+        assert "declarante" in campos
         assert "comunicacao_seguranca_publica" in campos
         assert "protocolo_acionado" in campos
 
