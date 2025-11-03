@@ -29,6 +29,11 @@ class Intercorrencia(ModeloBase):
         ("registro", "Apenas para registro/ não se aplica"),
     ]
 
+    INFORMACOES_AGRESSOR_VITIMA_CHOICES = [
+        ("sim", "Sim"),
+        ("nao", "Não"),
+    ]
+
     data_ocorrencia = models.DateTimeField(
         verbose_name="Data e Hora da Ocorrência",
         help_text="Data e hora em que a intercorrência ocorreu"
@@ -93,6 +98,20 @@ class Intercorrencia(ModeloBase):
         max_length=20,
         choices=PROTOCOLO_CHOICES,
         verbose_name="Qual protocolo foi acionado?",
+        blank=True,
+    )
+    envolvido = models.ForeignKey(
+        "intercorrencias.Envolvido",
+        verbose_name="Quem são os envolvidos?",
+        blank=True,
+        null=True,
+        on_delete=models.PROTECT,
+        help_text="Selecione quem são os envolvidos",
+    )
+    tem_info_agressor_ou_vitima = models.CharField(
+        max_length=3,
+        choices=INFORMACOES_AGRESSOR_VITIMA_CHOICES,
+        verbose_name="Existem informações sobre o agressor e/ou vítima?",
         blank=True,
     )
 
