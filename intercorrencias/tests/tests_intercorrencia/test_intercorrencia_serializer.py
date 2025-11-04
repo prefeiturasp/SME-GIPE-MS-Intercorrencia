@@ -11,9 +11,11 @@ from intercorrencias.api.serializers.intercorrencia_serializer import (
     IntercorrenciaDiretorCompletoSerializer,
     IntercorrenciaSecaoInicialSerializer,
     IntercorrenciaFurtoRouboSerializer,
+    IntercorrenciaSecaoFinalSerializer,
 )
 from intercorrencias.models.intercorrencia import Intercorrencia
 from intercorrencias.models.tipos_ocorrencia import TipoOcorrencia
+from intercorrencias.models.declarante import Declarante
 
 
 @pytest.fixture
@@ -297,3 +299,112 @@ class TestIntercorrenciaFurtoRouboSerializer:
             serializer.is_valid(raise_exception=True)
 
         assert "Este campo é obrigatório" in str(exc.value)
+
+
+@pytest.mark.django_db
+class TestIntercorrenciaSecaoFinalSerializer:
+    """Testes do serializer da seção final (Diretor)"""
+
+    @pytest.fixture
+    def declarante_obj(self):
+        return Declarante.objects.create(declarante="teste")
+
+    @pytest.fixture
+    def intercorrencia_obj(self):
+        return Intercorrencia.objects.create(
+            data_ocorrencia=timezone.now(),
+            user_username="diretor1",
+            unidade_codigo_eol="123",
+            dre_codigo_eol="456",
+        )
+
+    @patch("intercorrencias.services.unidades_service.get_unidade")
+    def test_validate_success(self, mock_get, intercorrencia_obj, declarante_obj, auth_request):
+        mock_get.return_value = {
+            "codigo_eol": "123",
+            "dre_codigo_eol": "456"
+        }
+
+        data = {
+            "declarante": str(declarante_obj.uuid),
+            "comunicacao_seguranca_publica": Intercorrencia.SEGURANCA_PUBLICA_CHOICES[0][0],
+            "protocolo_acionado": Intercorrencia.PROTOCOLO_CHOICES[0][0],
+            "unidade_codigo_eol": "123",
+            "dre_codigo_eol": "456",
+        }
+
+        serializer = IntercorrenciaSecaoFinalSerializer(
+            instance=intercorrencia_obj,
+            data=data,
+            context={"request": auth_request}
+        )
+
+        assert serializer.is_valid(), serializer.errors
+        result = serializer.save()
+        assert result.declarante == declarante_obj
+
+    @patch("intercorrencias.services.unidades_service.get_unidade")
+    def test_is_valid_error_format_missing_fields(self, mock_get, intercorrencia_obj, auth_request):
+        mock_get.return_value = {
+            "codigo_eol": "123",
+            "dre_codigo_eol": "456"
+        }
+
+        data = {
+            "declarante": "",
+            "comunicacao_seguranca_publica": "",
+            "protocolo_acionado": "",
+            "unidade_codigo_eol": "123",
+            "dre_codigo_eol": "456",
+        }
+
+        serializer = IntercorrenciaSecaoFinalSerializer(
+            instance=intercorrencia_obj,
+            data=data,
+            context={"request": auth_request}
+        )
+
+        is_valid = serializer.is_valid()
+        assert not is_valid
+        assert "detail" in serializer.errors
+
+    @patch("intercorrencias.services.unidades_service.get_unidade")
+    def test_is_valid_raise_exception(self, intercorrencia_obj, auth_request):
+        data = {
+            "declarante": None,
+            "comunicacao_seguranca_publica": None,
+            "protocolo_acionado": None,
+        }
+        serializer = IntercorrenciaSecaoFinalSerializer(
+            instance=intercorrencia_obj, data=data, context={"request": auth_request}
+        )
+        with pytest.raises(ValidationError) as exc:
+            serializer.is_valid(raise_exception=True)
+        assert "detail" in exc.value.detail
+
+    @patch("intercorrencias.services.unidades_service.get_unidade")
+    def test_is_valid_error_already_has_detail_key(self, mock_get, intercorrencia_obj, declarante_obj, auth_request):
+        mock_get.return_value = {
+            "codigo_eol": "123",
+            "dre_codigo_eol": "999"
+        }
+        
+        data = {
+            "declarante": str(declarante_obj.uuid),
+            "comunicacao_seguranca_publica": Intercorrencia.SEGURANCA_PUBLICA_CHOICES[0][0],
+            "protocolo_acionado": Intercorrencia.PROTOCOLO_CHOICES[0][0],
+            "unidade_codigo_eol": "123",
+            "dre_codigo_eol": "456",
+        }
+        
+        serializer = IntercorrenciaSecaoFinalSerializer(
+            instance=intercorrencia_obj,
+            data=data,
+            context={"request": auth_request}
+        )
+        
+        is_valid = serializer.is_valid(raise_exception=False)
+        
+        assert not is_valid
+        assert "detail" in serializer.errors
+        assert "DRE informada não corresponde" in str(serializer.errors["detail"])
