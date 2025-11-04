@@ -1,7 +1,11 @@
 from rest_framework import serializers
+
 from intercorrencias.services import unidades_service
+from intercorrencias.models.declarante import Declarante
 from intercorrencias.models.intercorrencia import Intercorrencia
 from intercorrencias.models.tipos_ocorrencia import TipoOcorrencia
+
+from intercorrencias.api.serializers.declarante_serializer import DeclaranteSerializer
 from intercorrencias.api.serializers.tipo_ocorrencia_serializer import TipoOcorrenciaSerializer
 
 
@@ -42,6 +46,25 @@ class IntercorrenciaSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"detail": "A unidade não pertence ao usuário autenticado."})
 
         return attrs
+    
+    def is_valid(self, raise_exception=False):
+        
+        valid = super().is_valid(raise_exception=False)
+        if not valid:
+            first_field, first_error_list = next(iter(self.errors.items()))
+            message = first_error_list[0] if isinstance(first_error_list, list) else str(first_error_list)
+
+            if isinstance(self._errors, dict) and "detail" in self._errors:
+                error_dict = self._errors
+            else:
+                error_dict = {"detail": f"{first_field}: {message}"}
+
+            self._errors = error_dict
+
+            if raise_exception:
+                raise serializers.ValidationError(self._errors)
+
+        return valid
 
 
 class IntercorrenciaSecaoInicialSerializer(IntercorrenciaSerializer):
@@ -57,19 +80,6 @@ class IntercorrenciaSecaoInicialSerializer(IntercorrenciaSerializer):
 
     def validate(self, attrs):
         return super().validate(attrs)
-    
-    def is_valid(self, raise_exception=False):
-        
-        valid = super().is_valid(raise_exception=False)
-        if not valid:
-            first_field, first_error_list = next(iter(self.errors.items()))
-            message = first_error_list[0] if isinstance(first_error_list, list) else str(first_error_list)
-            self._errors = {"detail": f"{first_field}: {message}"}
-
-            if raise_exception:
-                raise serializers.ValidationError(self._errors)
-
-        return valid
 
 
 class IntercorrenciaFurtoRouboSerializer(IntercorrenciaSerializer):
@@ -110,23 +120,48 @@ class IntercorrenciaFurtoRouboSerializer(IntercorrenciaSerializer):
     def validate(self, attrs):
         instance = self.instance
         if instance and not instance.sobre_furto_roubo_invasao_depredacao:
-            raise serializers.ValidationError(
+            raise serializers.ValidationError({"detail": 
                 "Esta intercorrência não é sobre furto/roubo/invasão/depredação."
-            )
+            })
         return attrs
     
-    def is_valid(self, raise_exception=False):
+    
+class IntercorrenciaSecaoFinalSerializer(IntercorrenciaSerializer):
+    """Serializer para a seção final - Diretor"""
 
-        valid = super().is_valid(raise_exception=False)
-        if not valid:
-            first_field, first_error_list = next(iter(self.errors.items()))
-            message = first_error_list[0] if isinstance(first_error_list, list) else str(first_error_list)
-            self._errors = {"detail": f"{first_field}: {message}"}
+    declarante = serializers.SlugRelatedField(
+        slug_field="uuid",
+        queryset=Declarante.objects.all(),
+        required=True,
+        write_only=True
+    )
+    declarante_detalhes = DeclaranteSerializer(
+        read_only=True,
+        source="declarante"
+    )
+    comunicacao_seguranca_publica = serializers.ChoiceField(
+        choices=Intercorrencia.SEGURANCA_PUBLICA_CHOICES,
+        required=True
+    )
+    protocolo_acionado = serializers.ChoiceField(
+        choices=Intercorrencia.PROTOCOLO_CHOICES,
+        required=True
+    )
 
-            if raise_exception:
-                raise serializers.ValidationError(self._errors)
-
-        return valid
+    class Meta:
+        model = Intercorrencia
+        fields = (
+            "uuid",
+            "unidade_codigo_eol",
+            "dre_codigo_eol",
+            "declarante",
+            "declarante_detalhes",
+            "comunicacao_seguranca_publica",
+            "protocolo_acionado",
+            "status_display",
+            "status_extra",
+        )
+        read_only_fields = ("uuid", "status_display")
 
 
 class IntercorrenciaDiretorCompletoSerializer(serializers.ModelSerializer):
@@ -138,6 +173,7 @@ class IntercorrenciaDiretorCompletoSerializer(serializers.ModelSerializer):
         source='get_smart_sampa_situacao_display', read_only=True
     )
     tipos_ocorrencia = TipoOcorrenciaSerializer(many=True)
+    declarante_detalhes = DeclaranteSerializer(source="declarante", read_only=True)
 
     def get_status_extra(self, obj):
         return obj.STATUS_EXTRA_LABELS.get(obj.status)
@@ -151,5 +187,6 @@ class IntercorrenciaDiretorCompletoSerializer(serializers.ModelSerializer):
             "sobre_furto_roubo_invasao_depredacao",
             "tipos_ocorrencia", "descricao_ocorrencia",
             "smart_sampa_situacao", "smart_sampa_situacao_display",
+            "declarante_detalhes", "comunicacao_seguranca_publica", "protocolo_acionado",
         )
         read_only_fields = ("id", "uuid", "user_username", "criado_em", "atualizado_em")
