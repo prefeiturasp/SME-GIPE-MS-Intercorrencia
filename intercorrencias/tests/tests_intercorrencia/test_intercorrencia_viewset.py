@@ -9,9 +9,10 @@ from rest_framework.request import Request
 from rest_framework.test import APIRequestFactory
 from rest_framework.exceptions import ValidationError
 
+from intercorrencias.models.envolvido import Envolvido
+from intercorrencias.models.declarante import Declarante
 from intercorrencias.models.intercorrencia import Intercorrencia
 from intercorrencias.models.tipos_ocorrencia import TipoOcorrencia
-from intercorrencias.models.envolvido import Envolvido
 
 from intercorrencias.api.views.intercorrencias_viewset import IntercorrenciaDiretorViewSet
 
@@ -100,6 +101,10 @@ class TestIntercorrenciaDiretorViewSet:
     @pytest.fixture
     def envolvido(self):
         return [Envolvido.objects.create(perfil_dos_envolvidos=i) for i in range(1, 3)]
+    
+    @pytest.fixture
+    def declarante(self):
+        return Declarante.objects.create(declarante="Declarante Teste", ativo=True)
 
     def _api_call(self, client, user, method, url, data):
         client.force_authenticate(user=user)
@@ -319,3 +324,87 @@ class TestIntercorrenciaDiretorViewSet:
             assert response.status_code == status.HTTP_400_BAD_REQUEST
             assert "Erro no furto/roubo" in str(response.data['detail'])
             MockSerializer.assert_called()
+    
+    def test_secao_final_update_sucesso(self, client, diretor_user, intercorrencia, declarante):
+        type(intercorrencia).pode_ser_editado_por_diretor = PropertyMock(return_value=True)
+        data = {
+            "unidade_codigo_eol": "200237",
+            "dre_codigo_eol": "108500",
+            "declarante": str(declarante.uuid),
+            "comunicacao_seguranca_publica": "sim_gcm",
+            "protocolo_acionado": "ameaca",
+        }
+        url = f"/api-intercorrencias/v1/diretor/{intercorrencia.uuid}/secao-final/"
+        response = self._api_call(client, diretor_user, 'put', url, data)
+        assert response.status_code == status.HTTP_200_OK
+    
+    def test_secao_final_intercorrencia_nao_editavel(self, client, diretor_user, intercorrencia, declarante):
+        client.force_authenticate(user=diretor_user)
+        type(intercorrencia).pode_ser_editado_por_diretor = PropertyMock(return_value=False)
+        data = {
+            "unidade_codigo_eol": "200237",
+            "dre_codigo_eol": "108500",
+            "declarante": str(declarante.uuid),
+            "comunicacao_seguranca_publica": "sim_gcm",
+            "protocolo_acionado": "ameaca",
+        }
+        url = f"/api-intercorrencias/v1/diretor/{intercorrencia.uuid}/secao-final/"
+
+        with patch("intercorrencias.api.views.intercorrencias_viewset.IntercorrenciaDiretorViewSet.check_object_permissions", return_value=None):
+            response = client.put(url, data, format="json")
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "não pode mais ser editada" in response.data["detail"]
+
+    def test_secao_final_sem_unidade(self, client, diretor_user, intercorrencia, declarante):
+        diretor_user.unidade_codigo_eol = None
+        diretor_user.save()
+        data = {
+            "unidade_codigo_eol": "",
+            "dre_codigo_eol": "",
+            "declarante": str(declarante.uuid),
+            "comunicacao_seguranca_publica": "sim_gcm",
+            "protocolo_acionado": "ameaca",
+        }
+        url = f"/api-intercorrencias/v1/diretor/{intercorrencia.uuid}/secao-final/"
+        response = self._api_call(client, diretor_user, 'put', url, data)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert "não tem permissão" in str(response.data["detail"]).lower()
+
+    def test_secao_final_serializer_exception(self, client, diretor_user, intercorrencia, declarante):
+        client.force_authenticate(user=diretor_user)
+        type(intercorrencia).pode_ser_editado_por_diretor = PropertyMock(return_value=True)
+        with patch("intercorrencias.api.views.intercorrencias_viewset.IntercorrenciaSecaoFinalSerializer") as MockSerializer:
+            mock_instance = Mock()
+            mock_instance.is_valid.side_effect = Exception("Erro no serializer da seção final")
+            MockSerializer.return_value = mock_instance
+            data = {
+                "unidade_codigo_eol": "200237",
+                "dre_codigo_eol": "108500",
+                "declarante": str(declarante.uuid),
+                "comunicacao_seguranca_publica": "sim_gcm",
+                "protocolo_acionado": "ameaca",
+            }
+            url = f"/api-intercorrencias/v1/diretor/{intercorrencia.uuid}/secao-final/"
+            response = client.put(url, data, format="json")
+            assert response.status_code == status.HTTP_400_BAD_REQUEST
+            assert "Erro no serializer da seção final" in str(response.data["detail"])
+            MockSerializer.assert_called()
+
+    def test_secao_final_generic_exception(self, client, diretor_user, intercorrencia, declarante):
+        client.force_authenticate(user=diretor_user)
+        with patch(
+            "intercorrencias.api.views.intercorrencias_viewset.IntercorrenciaDiretorViewSet.get_object",
+            side_effect=Exception("Erro inesperado na seção final"),
+        ):
+            url = f"/api-intercorrencias/v1/diretor/{intercorrencia.uuid}/secao-final/"
+            data = {
+                "unidade_codigo_eol": "200237",
+                "dre_codigo_eol": "108500",
+                "declarante": str(declarante.uuid),
+                "comunicacao_seguranca_publica": "sim_gcm",
+                "protocolo_acionado": "ameaca",
+            }
+            response = client.put(url, data, format="json")
+            assert response.status_code == status.HTTP_400_BAD_REQUEST
+            assert "Erro inesperado na seção final" in str(response.data["detail"])
