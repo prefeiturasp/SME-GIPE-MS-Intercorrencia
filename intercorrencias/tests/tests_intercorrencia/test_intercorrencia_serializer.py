@@ -21,6 +21,7 @@ from intercorrencias.models.declarante import Declarante
 from intercorrencias.models.intercorrencia import Intercorrencia
 from intercorrencias.models.tipos_ocorrencia import TipoOcorrencia
 from intercorrencias.models.envolvido import Envolvido
+from intercorrencias.services import unidades_service
 
 
 @pytest.fixture
@@ -129,7 +130,10 @@ class TestIntercorrenciaDiretorCompletoSerializer:
         serializer = IntercorrenciaDiretorCompletoSerializer()
         assert serializer.get_status_extra(intercorrencia) == "Concluído"
 
-    def test_serializer_fields(self):
+    @patch("intercorrencias.api.serializers.intercorrencia_serializer.unidades_service.get_unidade")
+    def test_serializer_fields(self, mock_get_unidade):
+        mock_get_unidade.return_value = {"nome": "Unidade Teste"}
+
         intercorrencia = Intercorrencia.objects.create(
             data_ocorrencia=timezone.now(),
             user_username="user",
@@ -141,6 +145,32 @@ class TestIntercorrenciaDiretorCompletoSerializer:
         data = serializer.data
         assert "status_display" in data
         assert "status_extra" in data
+        assert data["nome_unidade"] == "Unidade Teste"
+        assert data["nome_dre"] == "Unidade Teste" 
+
+    @patch("intercorrencias.api.serializers.intercorrencia_serializer.unidades_service.get_unidade")
+    def test_get_nome_unidade_quando_servico_lanca_erro(self, mock_get_unidade):
+        mock_get_unidade.side_effect = unidades_service.ExternalServiceError("Erro externo")
+
+        intercorrencia = Intercorrencia(
+            unidade_codigo_eol="123"
+        )
+        serializer = IntercorrenciaDiretorCompletoSerializer()
+
+        resultado = serializer.get_nome_unidade(intercorrencia)
+        assert resultado is None
+
+    @patch("intercorrencias.api.serializers.intercorrencia_serializer.unidades_service.get_unidade")
+    def test_get_nome_dre_quando_servico_lanca_erro(self, mock_get_unidade):
+        mock_get_unidade.side_effect = unidades_service.ExternalServiceError("Erro externo")
+
+        intercorrencia = Intercorrencia(
+            dre_codigo_eol="456"
+        )
+        serializer = IntercorrenciaDiretorCompletoSerializer()
+
+        resultado = serializer.get_nome_dre(intercorrencia)
+        assert resultado is None
 
 
 @pytest.mark.django_db
