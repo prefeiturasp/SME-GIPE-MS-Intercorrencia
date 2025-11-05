@@ -11,6 +11,8 @@ from rest_framework.exceptions import ValidationError
 
 from intercorrencias.models.intercorrencia import Intercorrencia
 from intercorrencias.models.tipos_ocorrencia import TipoOcorrencia
+from intercorrencias.models.envolvido import Envolvido
+
 from intercorrencias.api.views.intercorrencias_viewset import IntercorrenciaDiretorViewSet
 
 from django.conf import settings
@@ -94,6 +96,10 @@ class TestIntercorrenciaDiretorViewSet:
     @pytest.fixture
     def tipos_ocorrencia(self):
         return [TipoOcorrencia.objects.create(nome=f"Tipo {i}") for i in range(1, 3)]
+    
+    @pytest.fixture
+    def envolvido(self):
+        return [Envolvido.objects.create(perfil_dos_envolvidos=i) for i in range(1, 3)]
 
     def _api_call(self, client, user, method, url, data):
         client.force_authenticate(user=user)
@@ -193,6 +199,36 @@ class TestIntercorrenciaDiretorViewSet:
         url = f"/api-intercorrencias/v1/diretor/{intercorrencia.uuid}/furto-roubo/"
         response = self._api_call(client, diretor_user, 'put', url, data)
         assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_nao_furto_roubo_sucesso(self, client, diretor_user, intercorrencia, tipos_ocorrencia, envolvido):
+        type(intercorrencia).pode_ser_editado_por_diretor = PropertyMock(return_value=True)
+        intercorrencia.sobre_furto_roubo_invasao_depredacao = False
+        intercorrencia.save()
+        data = {"unidade_codigo_eol": "200237", "dre_codigo_eol": "108500", "tipos_ocorrencia": [str(t.uuid) for t in tipos_ocorrencia], "descricao_ocorrencia": "Teste", "tem_info_agressor_ou_vitima": "sim", "envolvido": str(envolvido[0].uuid)}
+        url = f"/api-intercorrencias/v1/diretor/{intercorrencia.uuid}/nao-furto-roubo/"
+        response = self._api_call(client, diretor_user, 'put', url, data)
+        print(response.status_code)
+        print(response.json())
+        assert response.status_code == status.HTTP_200_OK
+
+    def test_nao_furto_roubo_bloqueado(self, client, diretor_user, intercorrencia, tipos_ocorrencia, envolvido):
+        type(intercorrencia).pode_ser_editado_por_diretor = PropertyMock(return_value=False)
+        data = {"unidade_codigo_eol": "200237", "dre_codigo_eol": "108500", "tipos_ocorrencia": [str(t.uuid) for t in tipos_ocorrencia], "descricao_ocorrencia": "Teste", "tem_info_agressor_ou_vitima": "sim", "envolvido": str(envolvido[0].uuid)}
+        url = f"/api-intercorrencias/v1/diretor/{intercorrencia.uuid}/nao-furto-roubo/"
+        response = self._api_call(client, diretor_user, 'put', url, data)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_nao_furto_roubo_nao_editavel_retorna_400(self, client, diretor_user, intercorrencia, tipos_ocorrencia, envolvido):
+        client.force_authenticate(user=diretor_user)
+        type(intercorrencia).pode_ser_editado_por_diretor = PropertyMock(return_value=False)
+        data = {"unidade_codigo_eol": "200237", "dre_codigo_eol": "108500", "tipos_ocorrencia": [str(t.uuid) for t in tipos_ocorrencia], "descricao_ocorrencia": "Teste", "tem_info_agressor_ou_vitima": "sim", "envolvido": str(envolvido[0].uuid)}
+
+        url = f"/api-intercorrencias/v1/diretor/{intercorrencia.uuid}/nao-furto-roubo/"
+
+        with patch("intercorrencias.api.views.intercorrencias_viewset.IntercorrenciaDiretorViewSet.check_object_permissions", return_value=None):
+            response = client.put(url, data, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "não pode mais ser editada" in response.data["detail"]
 
     def test_secoes_update_raise_permission_denied_sem_unidade(self, diretor_user, intercorrencia):
         diretor_user.unidade_codigo_eol = None
