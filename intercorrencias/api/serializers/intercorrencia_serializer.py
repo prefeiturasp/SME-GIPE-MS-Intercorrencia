@@ -228,16 +228,36 @@ class IntercorrenciaDiretorCompletoSerializer(serializers.ModelSerializer):
     )
     tipos_ocorrencia = TipoOcorrenciaSerializer(many=True)
     declarante_detalhes = DeclaranteSerializer(source="declarante", read_only=True)
+    nome_unidade = serializers.SerializerMethodField()
+    nome_dre = serializers.SerializerMethodField()
 
     def get_status_extra(self, obj):
         return obj.STATUS_EXTRA_LABELS.get(obj.status)
+
+    def get_nome_unidade(self, obj):
+        """Obtém o nome da unidade via serviço externo."""
+        try:
+            unidade = unidades_service.get_unidade(obj.unidade_codigo_eol)
+            return unidade.get("nome")
+        except unidades_service.ExternalServiceError:
+            return None
+
+    def get_nome_dre(self, obj):
+        """Obtém o nome da DRE via serviço externo."""
+        try:
+            dre = unidades_service.get_unidade(obj.dre_codigo_eol)
+            return dre.get("nome")
+        except unidades_service.ExternalServiceError:
+            return None
+    
 
     class Meta:
         model = Intercorrencia
         fields = (
             "id", "uuid", "status", "status_display", "status_extra",
             "criado_em", "atualizado_em",
-            "data_ocorrencia", "unidade_codigo_eol", "dre_codigo_eol", "user_username",
+            "data_ocorrencia", "unidade_codigo_eol", "dre_codigo_eol",
+            "nome_unidade", "nome_dre", "user_username",
             "sobre_furto_roubo_invasao_depredacao",
             "tipos_ocorrencia", "descricao_ocorrencia",
             "smart_sampa_situacao", "smart_sampa_situacao_display",
