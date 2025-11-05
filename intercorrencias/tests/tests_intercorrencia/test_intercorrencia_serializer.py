@@ -2,6 +2,7 @@ import pytest
 from uuid import uuid4
 from django.utils import timezone
 from unittest.mock import patch, MagicMock
+from rest_framework import serializers
 from rest_framework.test import APIRequestFactory
 from rest_framework.exceptions import ValidationError
 
@@ -12,10 +13,14 @@ from intercorrencias.api.serializers.intercorrencia_serializer import (
     IntercorrenciaSecaoInicialSerializer,
     IntercorrenciaFurtoRouboSerializer,
     IntercorrenciaSecaoFinalSerializer,
+    IntercorrenciaNaoFurtoRouboSerializer
 )
 from intercorrencias.models.intercorrencia import Intercorrencia
 from intercorrencias.models.tipos_ocorrencia import TipoOcorrencia
 from intercorrencias.models.declarante import Declarante
+from intercorrencias.models.intercorrencia import Intercorrencia
+from intercorrencias.models.tipos_ocorrencia import TipoOcorrencia
+from intercorrencias.models.envolvido import Envolvido
 
 
 @pytest.fixture
@@ -408,3 +413,92 @@ class TestIntercorrenciaSecaoFinalSerializer:
         assert not is_valid
         assert "detail" in serializer.errors
         assert "DRE informada não corresponde" in str(serializer.errors["detail"])
+
+
+@pytest.mark.django_db
+class TestIntercorrenciaNaoFurtoRouboSerializer:
+    """Testes do serializer de intercorrências NÃO furto/roubo."""
+
+    def criar_dados_basicos(self, sobre_furto_roubo=False):
+        """Cria os objetos necessários para os testes."""
+        tipo = TipoOcorrencia.objects.create(nome="Briga entre alunos", ativo=True)
+        envolvido = Envolvido.objects.create(perfil_dos_envolvidos="Estudante", ativo=True)
+
+        intercorrencia = Intercorrencia.objects.create(
+            data_ocorrencia=timezone.now(),
+            sobre_furto_roubo_invasao_depredacao=sobre_furto_roubo,
+            unidade_codigo_eol="U12345",
+            dre_codigo_eol="D123",
+            user_username="diretor_teste",
+        )
+
+        return tipo, envolvido, intercorrencia
+
+    def test_valida_dados_corretos(self):
+        tipo, envolvido, intercorrencia = self.criar_dados_basicos(sobre_furto_roubo=False)
+
+        data = {
+            "tipos_ocorrencia": [str(tipo.uuid)],
+            "descricao_ocorrencia": "Aluno se machucou durante recreio",
+            "envolvido": envolvido.uuid,
+            "tem_info_agressor_ou_vitima": "nao",
+        }
+
+        serializer = IntercorrenciaNaoFurtoRouboSerializer(instance=intercorrencia, data=data)
+        assert serializer.is_valid(), serializer.errors
+
+        instancia_salva = serializer.save()
+        assert instancia_salva.descricao_ocorrencia == data["descricao_ocorrencia"]
+
+    def test_rejeita_quando_for_furto_roubo(self):
+        tipo, envolvido, intercorrencia = self.criar_dados_basicos(sobre_furto_roubo=True)
+
+        data = {
+            "tipos_ocorrencia": [str(tipo.uuid)],
+            "descricao_ocorrencia": "Roubo de material",
+            "envolvido": envolvido.uuid,
+            "tem_info_agressor_ou_vitima": "nao",
+        }
+
+        serializer = IntercorrenciaNaoFurtoRouboSerializer(instance=intercorrencia, data=data)
+        assert not serializer.is_valid()
+        assert "furto/roubo" in str(serializer.errors).lower()
+
+    def test_rejeita_quando_tipos_ocorrencia_vazio(self):
+        _, envolvido, intercorrencia = self.criar_dados_basicos(sobre_furto_roubo=False)
+
+        data = {
+            "tipos_ocorrencia": [],
+            "descricao_ocorrencia": "Ocorrência sem tipo",
+            "envolvido": envolvido.uuid,
+            "tem_info_agressor_ou_vitima": "sim",
+        }
+
+        serializer = IntercorrenciaNaoFurtoRouboSerializer(instance=intercorrencia, data=data)
+        assert not serializer.is_valid()
+        assert "tipos_ocorrencia" in serializer.errors["detail"]
+
+    def test_rejeita_quando_envolvido_invalido(self):
+        tipo, _, intercorrencia = self.criar_dados_basicos(sobre_furto_roubo=False)
+
+        data = {
+            "tipos_ocorrencia": [str(tipo.uuid)],
+            "descricao_ocorrencia": "Teste com envolvido inválido",
+            "envolvido": 9999,
+            "tem_info_agressor_ou_vitima": "sim",
+        }
+
+        serializer = IntercorrenciaNaoFurtoRouboSerializer(instance=intercorrencia, data=data)
+        assert not serializer.is_valid()
+        assert "envolvido" in serializer.errors.get("detail", "")
+
+    def test_is_valid_raise_exception_quando_invalido(self):
+        serializer = IntercorrenciaNaoFurtoRouboSerializer(
+            instance=Intercorrencia(sobre_furto_roubo_invasao_depredacao=False),
+            data={} 
+        )
+
+        with pytest.raises(serializers.ValidationError) as exc:
+            serializer.is_valid(raise_exception=True)
+
+        assert "detail" in exc.value.detail
