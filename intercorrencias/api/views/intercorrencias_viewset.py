@@ -20,10 +20,12 @@ from intercorrencias.api.serializers.intercorrencia_serializer import (
     IntercorrenciaSecaoInicialSerializer,
     IntercorrenciaDiretorCompletoSerializer,
     IntercorrenciaFurtoRouboSerializer,
-    IntercorrenciaNaoFurtoRouboSerializer   
+    IntercorrenciaNaoFurtoRouboSerializer,
+    IntercorrenciaSecaoFinalSerializer
 )
 
 logger = logging.getLogger(__name__)
+MSG_INTERCORRENCIA_NAO_EDITAVEL = "Esta intercorrência não pode mais ser editada."
 
 class IntercorrenciaDiretorViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.RetrieveModelMixin):
     """
@@ -40,6 +42,8 @@ class IntercorrenciaDiretorViewSet(viewsets.GenericViewSet, mixins.ListModelMixi
     PUT /api-intercorrencias/v1/diretor/{uuid}/furto-roubo/
         → Atualiza a seção de furto, roubo, invasão ou depredação.
     PUT /api-intercorrencias/v1/diretor/{uuid}/nao-furto-roubo/
+    PUT /api-intercorrencias/v1/diretor/{uuid}/secao-final/
+        → Atualiza a seção final.
     """
 
     queryset = Intercorrencia.objects.all()
@@ -78,7 +82,8 @@ class IntercorrenciaDiretorViewSet(viewsets.GenericViewSet, mixins.ListModelMixi
             "secao_inicial_create": IntercorrenciaSecaoInicialSerializer,
             "secao_inicial_update": IntercorrenciaSecaoInicialSerializer,
             "furto_roubo": IntercorrenciaFurtoRouboSerializer,
-            "nao_furto_roubo": IntercorrenciaNaoFurtoRouboSerializer
+            "nao_furto_roubo": IntercorrenciaNaoFurtoRouboSerializer,
+            "secao_final": IntercorrenciaSecaoFinalSerializer
         }
         return action_map.get(self.action, IntercorrenciaDiretorCompletoSerializer)
 
@@ -146,7 +151,7 @@ class IntercorrenciaDiretorViewSet(viewsets.GenericViewSet, mixins.ListModelMixi
 
             if hasattr(instance, "pode_ser_editado_por_diretor") and not instance.pode_ser_editado_por_diretor:
                 return Response(
-                    {"detail": "Esta intercorrência não pode mais ser editada."},
+                    {"detail": MSG_INTERCORRENCIA_NAO_EDITAVEL},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
@@ -170,7 +175,7 @@ class IntercorrenciaDiretorViewSet(viewsets.GenericViewSet, mixins.ListModelMixi
 
             if hasattr(instance, "pode_ser_editado_por_diretor") and not instance.pode_ser_editado_por_diretor:
                 return Response(
-                    {"detail": "Esta intercorrência não pode mais ser editada."},
+                    {"detail": MSG_INTERCORRENCIA_NAO_EDITAVEL},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
@@ -183,6 +188,33 @@ class IntercorrenciaDiretorViewSet(viewsets.GenericViewSet, mixins.ListModelMixi
             response_serializer = IntercorrenciaNaoFurtoRouboSerializer(instance)
             return Response(response_serializer.data, status=status.HTTP_200_OK)
         
+        except Exception as exc:
+            return self.handle_exception(exc)
+    
+    @action(detail=True, methods=["put"], url_path="secao-final")
+    def secao_final(self, request, uuid=None):
+
+        try:
+            instance = self.get_object()
+
+            if hasattr(instance, "pode_ser_editado_por_diretor") and not instance.pode_ser_editado_por_diretor:
+                return Response(
+                    {"detail": MSG_INTERCORRENCIA_NAO_EDITAVEL},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            serializer = self.get_serializer(
+                instance,
+                data=request.data,
+                partial=False,
+                context={"request": request},
+            )
+            serializer.is_valid(raise_exception=True)
+            serializer.save(atualizado_em=timezone.now())
+
+            response_serializer = IntercorrenciaSecaoFinalSerializer(instance)
+            return Response(response_serializer.data, status=status.HTTP_200_OK)
+
         except Exception as exc:
             return self.handle_exception(exc)
 
