@@ -20,6 +20,7 @@ from intercorrencias.api.serializers.intercorrencia_serializer import (
     IntercorrenciaSecaoInicialSerializer,
     IntercorrenciaDiretorCompletoSerializer,
     IntercorrenciaFurtoRouboSerializer,
+    IntercorrenciaNaoFurtoRouboSerializer   
 )
 
 logger = logging.getLogger(__name__)
@@ -38,6 +39,7 @@ class IntercorrenciaDiretorViewSet(viewsets.GenericViewSet, mixins.ListModelMixi
         → Atualiza os dados da seção inicial de uma intercorrência existente.
     PUT /api-intercorrencias/v1/diretor/{uuid}/furto-roubo/
         → Atualiza a seção de furto, roubo, invasão ou depredação.
+    PUT /api-intercorrencias/v1/diretor/{uuid}/nao-furto-roubo/
     """
 
     queryset = Intercorrencia.objects.all()
@@ -75,7 +77,8 @@ class IntercorrenciaDiretorViewSet(viewsets.GenericViewSet, mixins.ListModelMixi
         action_map = {
             "secao_inicial_create": IntercorrenciaSecaoInicialSerializer,
             "secao_inicial_update": IntercorrenciaSecaoInicialSerializer,
-            "furto_roubo": IntercorrenciaFurtoRouboSerializer
+            "furto_roubo": IntercorrenciaFurtoRouboSerializer,
+            "nao_furto_roubo": IntercorrenciaNaoFurtoRouboSerializer
         }
         return action_map.get(self.action, IntercorrenciaDiretorCompletoSerializer)
 
@@ -154,6 +157,30 @@ class IntercorrenciaDiretorViewSet(viewsets.GenericViewSet, mixins.ListModelMixi
             serializer.save(atualizado_em=timezone.now())
 
             response_serializer = IntercorrenciaFurtoRouboSerializer(instance)
+            return Response(response_serializer.data, status=status.HTTP_200_OK)
+        
+        except Exception as exc:
+            return self.handle_exception(exc)
+    
+    @action(detail=True, methods=["put"], url_path="nao-furto-roubo")
+    def nao_furto_roubo(self, request, uuid=None):
+
+        try:
+            instance = self.get_object()
+
+            if hasattr(instance, "pode_ser_editado_por_diretor") and not instance.pode_ser_editado_por_diretor:
+                return Response(
+                    {"detail": "Esta intercorrência não pode mais ser editada."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            serializer = self.get_serializer(
+                instance, data=request.data, partial=False, context={"request": request}
+            )
+            serializer.is_valid(raise_exception=True)
+            serializer.save(atualizado_em=timezone.now())
+
+            response_serializer = IntercorrenciaNaoFurtoRouboSerializer(instance)
             return Response(response_serializer.data, status=status.HTTP_200_OK)
         
         except Exception as exc:
