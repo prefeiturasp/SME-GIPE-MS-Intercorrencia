@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from rest_framework import viewsets, permissions, status
 
 from intercorrencias.models.intercorrencia import Intercorrencia
-from intercorrencias.api.serializers.verify_intercorrencia_serializer import VerifyIntercorrenciaSerializer
+from intercorrencias.api.serializers.verify_intercorrencia_serializer import VerifyIntercorrenciaSerializer, UUIDInputSerializer
 from config.settings import (
     CODIGO_PERFIL_DIRETOR,
     CODIGO_PERFIL_ASSISTENTE_DIRECAO,
@@ -24,6 +24,11 @@ class VerifyIntercorrenciaViewSet(viewsets.GenericViewSet):
     lookup_field = "uuid"
 
     def retrieve(self, request, *args, **kwargs):
+
+        uuid_param = kwargs.get("uuid")
+        input_serializer = UUIDInputSerializer(data={"uuid": uuid_param})
+        input_serializer.is_valid(raise_exception=True)
+
         user = request.user
         user_name = getattr(user, "username", None)
         perfil_codigo = getattr(user, "cargo_codigo", None)
