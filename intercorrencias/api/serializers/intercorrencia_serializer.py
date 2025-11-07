@@ -258,6 +258,7 @@ class IntercorrenciaDiretorCompletoSerializer(serializers.ModelSerializer):
             "criado_em", "atualizado_em",
             "data_ocorrencia", "unidade_codigo_eol", "dre_codigo_eol",
             "nome_unidade", "nome_dre", "user_username",
+            "envolvido", "tem_info_agressor_ou_vitima",
             "sobre_furto_roubo_invasao_depredacao",
             "tipos_ocorrencia", "descricao_ocorrencia",
             "smart_sampa_situacao", "smart_sampa_situacao_display",
