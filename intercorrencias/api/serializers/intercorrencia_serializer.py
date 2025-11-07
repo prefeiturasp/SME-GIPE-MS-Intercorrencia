@@ -230,6 +230,7 @@ class IntercorrenciaDiretorCompletoSerializer(serializers.ModelSerializer):
     declarante_detalhes = DeclaranteSerializer(source="declarante", read_only=True)
     nome_unidade = serializers.SerializerMethodField()
     nome_dre = serializers.SerializerMethodField()
+    envolvido = EnvolvidoSerializer(read_only=True)
 
     def get_status_extra(self, obj):
         return obj.STATUS_EXTRA_LABELS.get(obj.status)
