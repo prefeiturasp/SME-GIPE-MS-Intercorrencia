@@ -1,6 +1,8 @@
 import factory
 from django.utils import timezone
 from django.contrib.auth.models import User
+
+from intercorrencias.models.declarante import Declarante
 from intercorrencias.models.intercorrencia import Intercorrencia
 from intercorrencias.models.tipos_ocorrencia import TipoOcorrencia
 
@@ -27,13 +29,23 @@ class IntercorrenciaFactory(factory.django.DjangoModelFactory):
     sobre_furto_roubo_invasao_depredacao = factory.Faker('boolean')
     unidade_codigo_eol = factory.Faker('bothify', text='??????')
     dre_codigo_eol = factory.Faker('bothify', text='??????')
-    user_username = factory.SubFactory(UserFactory)
+    user_username = factory.Faker("user_name")
+    comunicacao_seguranca_publica = ""
+    protocolo_acionado = ""
 
 
 class TipoOcorrenciaFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = TipoOcorrencia
-        django_get_or_create = ('nome',)
+        django_get_or_create = ("nome",)
 
-    nome = factory.Faker('word')
+    nome = factory.Faker("word")
     ativo = True
+
+
+class DeclaranteFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = Declarante
+        django_get_or_create = ("declarante",)
+
+    declarante = factory.Faker("word")
