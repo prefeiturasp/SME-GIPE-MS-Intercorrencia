@@ -16,6 +16,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from intercorrencias.models.intercorrencia import Intercorrencia
 from intercorrencias.permissions import IntercorrenciaPermission
+from intercorrencias.choices.info_agressor_choices import get_values_info_agressor_choices
 from intercorrencias.api.serializers.intercorrencia_serializer import (
     IntercorrenciaSecaoInicialSerializer,
     IntercorrenciaDiretorCompletoSerializer,
@@ -215,6 +216,16 @@ class IntercorrenciaDiretorViewSet(viewsets.GenericViewSet, mixins.ListModelMixi
             response_serializer = IntercorrenciaSecaoFinalSerializer(instance)
             return Response(response_serializer.data, status=status.HTTP_200_OK)
 
+        except Exception as exc:
+            return self.handle_exception(exc)
+        
+    @action(detail=False, methods=['get'], url_path='categorias-disponiveis')
+    def categorias_disponiveis(self, request):
+
+        try:
+            data= get_values_info_agressor_choices()
+            return Response(data=data, status=status.HTTP_200_OK)
+        
         except Exception as exc:
             return self.handle_exception(exc)
 
