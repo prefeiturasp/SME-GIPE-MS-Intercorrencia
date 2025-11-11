@@ -43,17 +43,23 @@ def test_enum_has_values_and_labels(enum_class):
 def test_get_values_info_agressor_choices_returns_expected_keys():
     result = get_values_info_agressor_choices()
     expected_keys = {
-        "motivoocorrencia",
-        "grupoetnicoracial",
+        "motivo_ocorrencia",
+        "grupo_etnico_racial",
         "genero",
-        "frequenciaescolar",
-        "etapaescolar",
+        "frequencia_escolar",
+        "etapa_escolar",
     }
     assert set(result.keys()) == expected_keys
 
-def test_get_values_info_agressor_choices_values_are_lists():
+
+def test_get_values_info_agressor_choices_values_are_dicts_with_value_and_label():
     result = get_values_info_agressor_choices()
     for key, values in result.items():
         assert isinstance(values, list)
-        assert all(isinstance(v, str) for v in values)
         assert len(values) > 0
+        for item in values:
+            assert isinstance(item, dict)
+            assert "value" in item
+            assert "label" in item
+            assert isinstance(item["value"], str)
+            assert isinstance(item["label"], str)
