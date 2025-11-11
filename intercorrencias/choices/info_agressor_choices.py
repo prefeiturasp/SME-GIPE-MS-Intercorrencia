@@ -1,3 +1,4 @@
+import re
 import logging
 from django.db import models
 
@@ -65,6 +66,14 @@ def get_values_info_agressor_choices():
         FrequenciaEscolar,
         EtapaEscolar
     ]
+
+    def to_snake_case(name: str) -> str:
+        return re.sub(r'(?<!^)(?=[A-Z])', '_', name).lower()
+
     return {
-        cls.__name__.lower(): [c.label for c in cls] for cls in choices_classes
+        to_snake_case(cls.__name__): [
+            {"value": choice.value, "label": choice.label}
+            for choice in cls
+        ]
+        for cls in choices_classes
     }
