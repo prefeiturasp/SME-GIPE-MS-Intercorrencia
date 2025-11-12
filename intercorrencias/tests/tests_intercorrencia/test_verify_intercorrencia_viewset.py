@@ -61,7 +61,7 @@ class TestVerifyIntercorrenciaViewSet:
         assert response.status_code == status.HTTP_200_OK
         assert "uuid" in response.data
 
-    def test_retrieve_not_found_returns_404(self, factory, fake_user):
+    def test_retrieve_not_found_returns_400(self, factory, fake_user):
         fake_user.cargo_codigo = str(CODIGO_PERFIL_DIRETOR)
 
         with patch(
@@ -70,7 +70,7 @@ class TestVerifyIntercorrenciaViewSet:
         ):
             response = self._perform_request(factory, fake_user, uuid.uuid4())
 
-        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "não existe" in response.data["detail"].lower()
 
     def test_retrieve_dre_invalid_access_returns_400(self, factory, intercorrencia, fake_user):

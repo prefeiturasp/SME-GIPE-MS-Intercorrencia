@@ -408,3 +408,34 @@ class TestIntercorrenciaDiretorViewSet:
             response = client.put(url, data, format="json")
             assert response.status_code == status.HTTP_400_BAD_REQUEST
             assert "Erro inesperado na seção final" in str(response.data["detail"])
+
+    def test_categorias_disponiveis_sucesso(self, client, diretor_user):
+        client.force_authenticate(user=diretor_user)
+
+        mock_data = {
+            "motivoocorrencia": ["bullying", "racismo"],
+            "genero": ["homem_cis", "mulher_cis"]
+        }
+
+        with patch(
+            "intercorrencias.api.views.intercorrencias_viewset.get_values_info_agressor_choices",
+            return_value=mock_data
+        ) as mock_get_values:
+            response = client.get("/api-intercorrencias/v1/diretor/categorias-disponiveis/")
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data == mock_data
+        mock_get_values.assert_called_once()
+    
+    def test_categorias_disponiveis_generic_exception(self, client, diretor_user):
+        client.force_authenticate(user=diretor_user)
+
+        with patch(
+            "intercorrencias.api.views.intercorrencias_viewset.get_values_info_agressor_choices",
+            side_effect=Exception("Erro inesperado ao buscar categorias disponíveis")
+        ):
+            url = "/api-intercorrencias/v1/diretor/categorias-disponiveis/"
+            response = client.get(url)
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "Erro inesperado ao buscar categorias disponíveis" in str(response.data["detail"])
