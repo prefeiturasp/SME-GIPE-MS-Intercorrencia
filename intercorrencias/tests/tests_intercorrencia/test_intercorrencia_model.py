@@ -181,11 +181,11 @@ class TestIntercorrencia:
     def test_campos_endereco_podem_ser_nulos_ou_em_branco(self, intercorrencia_factory):
         obj = intercorrencia_factory(
             cep="",
-            logradouro=None,
+            logradouro="",
             numero_residencia="",
-            complemento=None,
+            complemento="",
             bairro="",
-            cidade=None,
+            cidade="",
             estado=""
         )
         obj.full_clean()
@@ -193,11 +193,11 @@ class TestIntercorrencia:
 
         obj.refresh_from_db()
         assert obj.cep == ""
-        assert obj.logradouro is None
+        assert obj.logradouro == ""
         assert obj.numero_residencia == ""
-        assert obj.complemento is None
+        assert obj.complemento == ""
         assert obj.bairro == ""
-        assert obj.cidade is None
+        assert obj.cidade == ""
         assert obj.estado == ""
 
     def test_validacao_max_length_endereco(self):
