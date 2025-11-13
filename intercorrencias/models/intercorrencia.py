@@ -1,6 +1,14 @@
 from django.db import models
 from .modelo_base import ModeloBase
 
+from intercorrencias.choices.info_agressor_choices import (
+    MotivoOcorrencia,
+    GrupoEtnicoRacial,
+    Genero,
+    FrequenciaEscolar,
+    EtapaEscolar
+)
+
 class Intercorrencia(ModeloBase):
 
     STATUS_CHOICES = [
@@ -113,6 +121,123 @@ class Intercorrencia(ModeloBase):
         choices=INFORMACOES_AGRESSOR_VITIMA_CHOICES,
         verbose_name="Existem informações sobre o agressor e/ou vítima?",
         blank=True,
+    )
+    nome_pessoa_agressora = models.CharField(
+        max_length=200,
+        verbose_name="Qual o nome da pessoa agressora?",
+        blank=True,
+        null=True
+    )
+    idade_pessoa_agressora = models.PositiveIntegerField(
+        verbose_name="Qual a idade da pessoa agressora?",
+        blank=True,
+        null=True
+    )
+    motivacao_ocorrencia = models.CharField(
+        verbose_name="O que motivou a ocorrência?",
+        max_length=23,
+        choices=MotivoOcorrencia.choices,
+        blank=True,
+        null=True
+    )
+    genero_pessoa_agressora = models.CharField(
+        max_length=18,
+        choices=Genero.choices,
+        verbose_name="Qual gênero?",
+        blank=True,
+        null=True
+    )
+    grupo_etnico_racial = models.CharField(
+        max_length=8,
+        choices=GrupoEtnicoRacial.choices,
+        verbose_name="Qual grupo étnico-racial?",
+        blank=True,
+        null=True
+    )
+    etapa_escolar = models.CharField(
+        max_length=27,
+        choices=EtapaEscolar.choices,
+        verbose_name="Qual etapa escolar?",
+        blank=True,
+        null=True
+    )
+    frequencia_escolar = models.CharField(
+        max_length=23,
+        choices=FrequenciaEscolar.choices,
+        verbose_name="Qual a frequência escolar?",
+        blank=True,
+        null=True
+    )
+    interacao_ambiente_escolar = models.TextField(
+        verbose_name="Como é a interação da pessoa agressora no ambiente escolar?",
+        blank=True,
+        null=True
+    )
+    redes_protecao_acompanhamento = models.TextField(
+        verbose_name="Quais redes de proteção estão acompanhando o caso?",
+        blank=True,
+        null=True
+    )
+    notificado_conselho_tutelar = models.BooleanField(
+        verbose_name="A ocorrência foi notificada ao Conselho Tutelar?",
+        default=False,
+        blank=True,
+        null=True
+    )
+    acompanhado_naapa = models.BooleanField(
+        verbose_name="A ocorrência foi acompanhada pelo NAAPA?",
+        default=False,
+        blank=True,
+        null=True
+    )
+    cep = models.CharField(
+        max_length=9,
+        verbose_name="CEP",
+        help_text="CEP do endereço relacionado à intercorrência",
+        blank=True,
+        null=True
+    )
+    logradouro = models.CharField(
+        max_length=255,
+        verbose_name="Logradouro",
+        help_text="Rua, avenida ou local da ocorrência",
+        blank=True,
+        null=True
+    )
+    numero_residencia = models.CharField(
+        max_length=10,
+        verbose_name="Número da residência",
+        help_text="Número do imóvel onde ocorreu a intercorrência",
+        blank=True,
+        null=True
+    )
+    complemento = models.CharField(
+        max_length=100,
+        verbose_name="Complemento",
+        help_text="Complemento do endereço (ex: bloco, apartamento, referência)",
+        blank=True,
+        null=True
+    )
+    bairro = models.CharField(
+        max_length=100,
+        verbose_name="Bairro",
+        help_text="Bairro do endereço da ocorrência",
+        blank=True,
+        null=True
+    )
+    cidade = models.CharField(
+        max_length=100,
+        verbose_name="Cidade",
+        help_text="Cidade onde ocorreu a intercorrência",
+        blank=True,
+        null=True
+    )
+    estado = models.CharField(
+        max_length=50,
+        verbose_name="Estado",
+        help_text="Nome do estado por extenso (ex: São Paulo, Rio de Janeiro)",
+        blank=True,
+        null=True
     )
 
     class Meta:

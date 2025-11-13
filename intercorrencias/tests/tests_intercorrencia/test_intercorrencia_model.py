@@ -7,6 +7,13 @@ from django.core.exceptions import ValidationError
 
 from intercorrencias.models.intercorrencia import Intercorrencia
 from intercorrencias.tests.factories import IntercorrenciaFactory
+from intercorrencias.choices.info_agressor_choices import (
+    MotivoOcorrencia,
+    GrupoEtnicoRacial,
+    Genero,
+    FrequenciaEscolar,
+    EtapaEscolar
+)
 
 
 @pytest.mark.django_db
@@ -83,7 +90,7 @@ class TestIntercorrencia:
         obj.status = 'em_preenchimento_assistente'
         assert obj.pode_ser_editado_por_diretor is False
 
-    def test_criar_intercorrencia_com_campos_comunicao_protocolo(self, intercorrencia_factory):
+    def test_criar_intercorrencia_com_campos_comunicacao_protocolo(self, intercorrencia_factory):
         obj = intercorrencia_factory(
             comunicacao_seguranca_publica="sim_gcm",
             protocolo_acionado="ameaca"
@@ -115,3 +122,114 @@ class TestIntercorrencia:
             protocolo_acionado=""
         )
         obj.full_clean()
+
+    def test_choices_info_agressor_validos(self, intercorrencia_factory):
+        obj = intercorrencia_factory(
+            motivacao_ocorrencia=MotivoOcorrencia.RACISMO,
+            genero_pessoa_agressora=Genero.HOMEM_CIS,
+            grupo_etnico_racial=GrupoEtnicoRacial.PARDO,
+            etapa_escolar=EtapaEscolar.FUNDAMENTAL_ALFABETIZACAO,
+            frequencia_escolar=FrequenciaEscolar.REGULARIZADA,
+        )
+        obj.full_clean()
+        obj.save()
+
+        assert obj.motivacao_ocorrencia == MotivoOcorrencia.RACISMO
+        assert obj.genero_pessoa_agressora == Genero.HOMEM_CIS
+        assert obj.grupo_etnico_racial == GrupoEtnicoRacial.PARDO
+        assert obj.etapa_escolar == EtapaEscolar.FUNDAMENTAL_ALFABETIZACAO
+        assert obj.frequencia_escolar == FrequenciaEscolar.REGULARIZADA
+
+    def test_choices_info_agressor_invalidos(self, intercorrencia_factory):
+        obj = intercorrencia_factory(
+            motivacao_ocorrencia="invalido",
+            genero_pessoa_agressora="errado",
+            grupo_etnico_racial="xyz",
+            etapa_escolar="errado",
+            frequencia_escolar="errado"
+        )
+        with pytest.raises(ValidationError):
+            obj.full_clean()
+
+    def test_campos_texto_opcionais_funcionam(self, intercorrencia_factory):
+        obj = intercorrencia_factory(
+            nome_pessoa_agressora="João da Silva",
+            interacao_ambiente_escolar="Agressor demonstra comportamento reservado.",
+            redes_protecao_acompanhamento="CRAS e Conselho Tutelar",
+            cep="01234-567",
+            logradouro="Rua das Flores",
+            numero_residencia="123",
+            complemento="Apto 12",
+            bairro="Jardim Paulista",
+            cidade="São Paulo",
+            estado="São Paulo"
+        )
+        obj.full_clean()
+        obj.save()
+
+        assert "João" in obj.nome_pessoa_agressora
+        assert "reservado" in obj.interacao_ambiente_escolar
+        assert "Conselho Tutelar" in obj.redes_protecao_acompanhamento
+        assert obj.cep == "01234-567"
+        assert obj.logradouro == "Rua das Flores"
+        assert obj.numero_residencia == "123"
+        assert obj.complemento == "Apto 12"
+        assert obj.bairro == "Jardim Paulista"
+        assert obj.cidade == "São Paulo"
+        assert obj.estado == "São Paulo"
+
+    def test_campos_endereco_podem_ser_nulos_ou_em_branco(self, intercorrencia_factory):
+        obj = intercorrencia_factory(
+            cep="",
+            logradouro=None,
+            numero_residencia="",
+            complemento=None,
+            bairro="",
+            cidade=None,
+            estado=""
+        )
+        obj.full_clean()
+        obj.save()
+
+        obj.refresh_from_db()
+        assert obj.cep == ""
+        assert obj.logradouro is None
+        assert obj.numero_residencia == ""
+        assert obj.complemento is None
+        assert obj.bairro == ""
+        assert obj.cidade is None
+        assert obj.estado == ""
+
+    def test_validacao_max_length_endereco(self):
+        obj = Intercorrencia(
+            data_ocorrencia=timezone.now(),
+            user_username="usuario",
+            unidade_codigo_eol="123456",
+            dre_codigo_eol="654321",
+            cep="9" * 10,
+            logradouro="x" * 256,
+            numero_residencia="x" * 11,
+            complemento="x" * 101,
+            bairro="x" * 101,
+            cidade="x" * 101,
+            estado="x" * 51,
+        )
+        with pytest.raises(ValidationError) as exc:
+            obj.full_clean()
+        err_dict = exc.value.error_dict
+        assert "cep" in err_dict
+        assert "logradouro" in err_dict
+        assert "numero_residencia" in err_dict
+        assert "complemento" in err_dict
+        assert "bairro" in err_dict
+        assert "cidade" in err_dict
+        assert "estado" in err_dict
+
+    def test_booleanos_funcionam(self, intercorrencia_factory):
+        obj = intercorrencia_factory(
+            notificado_conselho_tutelar=True,
+            acompanhado_naapa=False,
+        )
+        obj.full_clean()
+        assert obj.notificado_conselho_tutelar is True
+        assert obj.acompanhado_naapa is False
