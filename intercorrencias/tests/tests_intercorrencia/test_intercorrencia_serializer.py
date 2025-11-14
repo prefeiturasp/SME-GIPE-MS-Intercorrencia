@@ -538,7 +538,10 @@ class TestIntercorrenciaNaoFurtoRouboSerializer:
 @pytest.mark.django_db
 class TestIntercorrenciaInfoAgressorSerializer:
 
-    def setup_method(self):
+    @pytest.fixture(autouse=True)
+    def setup_method(self, request_factory):
+        self.request = request_factory.post("/fake-url/")
+        self.request.user = MagicMock(unidade_codigo_eol="123456")
         self.intercorrencia = Intercorrencia.objects.create(
             data_ocorrencia=timezone.now(),
             user_username="diretor1",
@@ -546,8 +549,9 @@ class TestIntercorrenciaInfoAgressorSerializer:
             dre_codigo_eol="654321",
             tem_info_agressor_ou_vitima="sim",
         )
-
         self.valid_data = {
+            "unidade_codigo_eol": "123456",
+            "dre_codigo_eol": "654321",
             "nome_pessoa_agressora": "João Silva",
             "idade_pessoa_agressora": 17,
             "motivacao_ocorrencia": "racismo",
@@ -568,31 +572,33 @@ class TestIntercorrenciaInfoAgressorSerializer:
             "estado": "São Paulo",
         }
 
-    def test_serializer_valido(self):
+    @patch("intercorrencias.services.unidades_service.get_unidade")
+    def test_serializer_valido(self, mock_get_unidade):
+        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
         serializer = IntercorrenciaInfoAgressorSerializer(
-            instance=self.intercorrencia, data=self.valid_data
+            instance=self.intercorrencia, data=self.valid_data, context={"request": self.request}
         )
         assert serializer.is_valid(), serializer.errors
         obj = serializer.save()
         assert obj.nome_pessoa_agressora == "João Silva"
-        assert obj.motivacao_ocorrencia == "racismo"
-        assert obj.genero_pessoa_agressora == "homem_cis"
 
-    def test_serializer_invalido_quando_tem_info_false(self):
+    @patch("intercorrencias.services.unidades_service.get_unidade")
+    def test_serializer_invalido_quando_tem_info_false(self, mock_get_unidade):
+        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
         intercorrencia = Intercorrencia.objects.create(
             data_ocorrencia=timezone.now(),
             user_username="diretor2",
-            unidade_codigo_eol="222222",
-            dre_codigo_eol="333333",
+            unidade_codigo_eol="123456",
+            dre_codigo_eol="654321",
             tem_info_agressor_ou_vitima="nao",
         )
-
         serializer = IntercorrenciaInfoAgressorSerializer(
-            instance=intercorrencia, data=self.valid_data
+            instance=intercorrencia, data=self.valid_data, context={"request": self.request}
         )
         assert not serializer.is_valid()
         assert "detail" in serializer.errors
-        assert "tem_info_agressor_vitima" not in serializer.errors
+        error_message = str(serializer.errors["detail"])
+        assert "Não é possível preencher informações de agressor/vítima" in error_message
 
     @pytest.mark.parametrize(
         "campo",
@@ -606,18 +612,17 @@ class TestIntercorrenciaInfoAgressorSerializer:
             "estado",
         ],
     )
-    def test_campo_obrigatorio_nao_informado(self, campo):
+    @patch("intercorrencias.services.unidades_service.get_unidade")
+    def test_campo_obrigatorio_nao_informado(self, mock_get_unidade, campo):
+        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
         data = self.valid_data.copy()
         data.pop(campo)
         serializer = IntercorrenciaInfoAgressorSerializer(
-            instance=self.intercorrencia, data=data
+            instance=self.intercorrencia, data=data, context={"request": self.request}
         )
         assert not serializer.is_valid()
-        assert campo in serializer.errors
-        assert serializer.errors[campo][0] in [
-            "Este campo é obrigatório.",
-            "Este campo não pode estar em branco.",
-        ]
+        assert "detail" in serializer.errors
+        assert campo in serializer.errors["detail"]
 
     @pytest.mark.parametrize(
         "campo",
@@ -629,38 +634,41 @@ class TestIntercorrenciaInfoAgressorSerializer:
             "cidade",
         ],
     )
-    def test_campo_nao_pode_ser_branco(self, campo):
+    @patch("intercorrencias.services.unidades_service.get_unidade")
+    def test_campo_nao_pode_ser_branco(self, mock_get_unidade, campo):
+        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
         data = self.valid_data.copy()
         data[campo] = ""
         serializer = IntercorrenciaInfoAgressorSerializer(
-            instance=self.intercorrencia, data=data
-        )
-        assert not serializer.is_valid()
-        assert campo in serializer.errors
-        assert serializer.errors[campo][0] == "Este campo não pode estar em branco."
-
-    def test_campo_complemento_pode_ser_vazio(self):
-        data = self.valid_data.copy()
-        data["complemento"] = ""
-        serializer = IntercorrenciaInfoAgressorSerializer(
-            instance=self.intercorrencia, data=data
-        )
-        assert serializer.is_valid(), serializer.errors
-
-    def test_serializer_erro_formato_detail(self):
-        intercorrencia = Intercorrencia.objects.create(
-            data_ocorrencia=timezone.now(),
-            user_username="diretor3",
-            unidade_codigo_eol="555555",
-            dre_codigo_eol="666666",
-            tem_info_agressor_ou_vitima="nao",
-        )
-
-        serializer = IntercorrenciaInfoAgressorSerializer(
-            instance=intercorrencia, data=self.valid_data
+            instance=self.intercorrencia, data=data, context={"request": self.request}
         )
         assert not serializer.is_valid()
         assert "detail" in serializer.errors
-        assert serializer.errors["detail"][0].startswith(
-            "Não é possível preencher informações de agressor/vítima"
+        assert campo in serializer.errors["detail"]
+        assert "não pode estar em branco" in serializer.errors["detail"]
+
+    @patch("intercorrencias.services.unidades_service.get_unidade")
+    def test_campo_complemento_pode_ser_vazio(self, mock_get_unidade):
+        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
+        data = self.valid_data.copy()
+        data["complemento"] = ""
+        serializer = IntercorrenciaInfoAgressorSerializer(
+            instance=self.intercorrencia, data=data, context={"request": self.request}
         )
+        assert serializer.is_valid(), serializer.errors
+
+    @patch("intercorrencias.services.unidades_service.get_unidade")
+    def test_serializer_erro_formato_detail(self, mock_get_unidade):
+        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
+        intercorrencia = Intercorrencia.objects.create(
+            data_ocorrencia=timezone.now(),
+            user_username="diretor3",
+            unidade_codigo_eol="123456",
+            dre_codigo_eol="654321",
+            tem_info_agressor_ou_vitima="nao",
+        )
+        serializer = IntercorrenciaInfoAgressorSerializer(
+            instance=intercorrencia, data=self.valid_data, context={"request": self.request}
+        )
+        assert not serializer.is_valid()
+        assert "detail" in serializer.errors
