@@ -224,7 +224,7 @@ class IntercorrenciaNaoFurtoRouboSerializer(IntercorrenciaSerializer):
         return attrs
     
 
-class IntercorrenciaInfoAgressorSerializer(serializers.ModelSerializer):
+class IntercorrenciaInfoAgressorSerializer(IntercorrenciaSerializer):
     """Serializer para informações do agressor/vítima - Diretor"""
 
     nome_pessoa_agressora = serializers.CharField(required=True, allow_blank=False)
@@ -249,7 +249,8 @@ class IntercorrenciaInfoAgressorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Intercorrencia
         fields = (
-            "uuid", "nome_pessoa_agressora", "idade_pessoa_agressora",
+            "uuid", "unidade_codigo_eol", "dre_codigo_eol",
+            "nome_pessoa_agressora", "idade_pessoa_agressora",
             "motivacao_ocorrencia", "genero_pessoa_agressora",
             "grupo_etnico_racial", "etapa_escolar", "frequencia_escolar",
             "interacao_ambiente_escolar", "redes_protecao_acompanhamento",
@@ -260,6 +261,7 @@ class IntercorrenciaInfoAgressorSerializer(serializers.ModelSerializer):
         read_only_fields = ("uuid",)
 
     def validate(self, attrs):
+        attrs = super().validate(attrs)
         instance = self.instance
 
         if instance and getattr(instance, "tem_info_agressor_ou_vitima", None) == "nao":
