@@ -12,7 +12,7 @@ from intercorrencias.choices.info_agressor_choices import (
     GrupoEtnicoRacial,
     Genero,
     FrequenciaEscolar,
-    EtapaEscolar
+    EtapaEscolar,
 )
 
 
@@ -64,7 +64,7 @@ class TestIntercorrencia:
             data_ocorrencia=timezone.now(),
             user_username="x" * 151,  # > 150
             unidade_codigo_eol="1234567",  # > 6
-            dre_codigo_eol="1234567",      # > 6
+            dre_codigo_eol="1234567",  # > 6
             sobre_furto_roubo_invasao_depredacao=False,
         )
         with pytest.raises(ValidationError) as exc:
@@ -81,19 +81,20 @@ class TestIntercorrencia:
         assert Intercorrencia.objects.filter(uuid=a.uuid).count() == 1
 
     def test_pode_ser_editado_por_diretor(self, intercorrencia_factory):
-        obj = intercorrencia_factory(status='em_preenchimento_diretor')
+        obj = intercorrencia_factory(status="em_preenchimento_diretor")
         assert obj.pode_ser_editado_por_diretor is True
 
-        obj.status = 'concluida'
+        obj.status = "concluida"
         assert obj.pode_ser_editado_por_diretor is False
 
-        obj.status = 'em_preenchimento_assistente'
+        obj.status = "em_preenchimento_assistente"
         assert obj.pode_ser_editado_por_diretor is False
 
-    def test_criar_intercorrencia_com_campos_comunicacao_protocolo(self, intercorrencia_factory):
+    def test_criar_intercorrencia_com_campos_comunicacao_protocolo(
+        self, intercorrencia_factory
+    ):
         obj = intercorrencia_factory(
-            comunicacao_seguranca_publica="sim_gcm",
-            protocolo_acionado="ameaca"
+            comunicacao_seguranca_publica="sim_gcm", protocolo_acionado="ameaca"
         )
         obj.save()
         obj.refresh_from_db()
@@ -103,23 +104,21 @@ class TestIntercorrencia:
 
     def test_choices_validos(self, intercorrencia_factory):
         obj = intercorrencia_factory(
-            comunicacao_seguranca_publica="sim_pm",
-            protocolo_acionado="alerta"
+            comunicacao_seguranca_publica="sim_pm", protocolo_acionado="alerta"
         )
         obj.full_clean()
 
     def test_choices_invalidos(self, intercorrencia_factory):
         obj = intercorrencia_factory(
             comunicacao_seguranca_publica="valor_invalido",
-            protocolo_acionado="outro_invalido"
+            protocolo_acionado="outro_invalido",
         )
         with pytest.raises(ValidationError):
             obj.full_clean()
 
     def test_campos_podem_ser_em_branco(self, intercorrencia_factory):
         obj = intercorrencia_factory(
-            comunicacao_seguranca_publica="",
-            protocolo_acionado=""
+            comunicacao_seguranca_publica="", protocolo_acionado=""
         )
         obj.full_clean()
 
@@ -146,7 +145,7 @@ class TestIntercorrencia:
             genero_pessoa_agressora="errado",
             grupo_etnico_racial="xyz",
             etapa_escolar="errado",
-            frequencia_escolar="errado"
+            frequencia_escolar="errado",
         )
         with pytest.raises(ValidationError):
             obj.full_clean()
@@ -162,7 +161,7 @@ class TestIntercorrencia:
             complemento="Apto 12",
             bairro="Jardim Paulista",
             cidade="São Paulo",
-            estado="São Paulo"
+            estado="São Paulo",
         )
         obj.full_clean()
         obj.save()
@@ -186,7 +185,7 @@ class TestIntercorrencia:
             complemento="",
             bairro="",
             cidade="",
-            estado=""
+            estado="",
         )
         obj.full_clean()
         obj.save()
@@ -233,3 +232,46 @@ class TestIntercorrencia:
         obj.full_clean()
         assert obj.notificado_conselho_tutelar is True
         assert obj.acompanhado_naapa is False
+
+    def test_campos_dre(self, intercorrencia_factory):
+        obj = intercorrencia_factory(
+            acionamento_seguranca_publica=True,
+            interlocucao_sts=True,
+            info_complementar_sts="Durante a análise da ocorrência de depredação, a STS identificou que os danos ao patrimônio geraram resíduos perigosos",
+            interlocucao_cpca=True,
+            info_complementar_cpca="Durante as investigações sobre a depredação do patrimônio, a CPCA identificou que entre os envolvidos no ato de vandalismo",
+            interlocucao_supervisao_escolar=True,
+            info_complementar_supervisao_escolar="Ocorreram 3 incidentes similares no mesmo mês, sempre às quartas-feiras no período vespertino",
+            interlocucao_naapa=True,
+            info_complementar_naapa="Ocorrido na EMF Jardim Paulista",
+        )
+        obj.full_clean()
+        obj.save()
+
+        assert obj.acionamento_seguranca_publica is True
+        assert obj.interlocucao_sts is True
+        assert "resíduos perigosos" in obj.info_complementar_sts
+        assert obj.interlocucao_cpca is True
+        assert "envolvidos no ato" in obj.info_complementar_cpca
+        assert obj.interlocucao_supervisao_escolar is True
+        assert "quartas-feiras" in obj.info_complementar_supervisao_escolar
+        assert obj.interlocucao_naapa is True
+        assert "EMF Jardim Paulista" in obj.info_complementar_naapa         
+        
+        
+    def test_pode_ser_editado_por_dre(self, intercorrencia_factory):
+        obj = intercorrencia_factory(status="em_preenchimento_dre")
+        assert obj.pode_ser_editado_por_dre is True
+        
+        obj.status = "em_preenchimento_diretor"
+        assert obj.pode_ser_editado_por_dre is True
+        
+        obj.status = "em_preenchimento_assistente"
+        assert obj.pode_ser_editado_por_dre is True
+
+        obj.status = "em_preenchimento_gipe"
+        assert obj.pode_ser_editado_por_dre is False
+        
+        obj.status = "concluida"
+        assert obj.pode_ser_editado_por_dre is False
+
