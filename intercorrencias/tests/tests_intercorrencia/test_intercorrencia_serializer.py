@@ -13,7 +13,8 @@ from intercorrencias.api.serializers.intercorrencia_serializer import (
     IntercorrenciaSecaoInicialSerializer,
     IntercorrenciaFurtoRouboSerializer,
     IntercorrenciaSecaoFinalSerializer,
-    IntercorrenciaNaoFurtoRouboSerializer
+    IntercorrenciaNaoFurtoRouboSerializer,
+    IntercorrenciaInfoAgressorSerializer
 )
 from intercorrencias.models.intercorrencia import Intercorrencia
 from intercorrencias.models.tipos_ocorrencia import TipoOcorrencia
@@ -532,3 +533,134 @@ class TestIntercorrenciaNaoFurtoRouboSerializer:
             serializer.is_valid(raise_exception=True)
 
         assert "detail" in exc.value.detail
+
+
+@pytest.mark.django_db
+class TestIntercorrenciaInfoAgressorSerializer:
+
+    def setup_method(self):
+        self.intercorrencia = Intercorrencia.objects.create(
+            data_ocorrencia=timezone.now(),
+            user_username="diretor1",
+            unidade_codigo_eol="123456",
+            dre_codigo_eol="654321",
+            tem_info_agressor_ou_vitima="sim",
+        )
+
+        self.valid_data = {
+            "nome_pessoa_agressora": "João Silva",
+            "idade_pessoa_agressora": 17,
+            "motivacao_ocorrencia": "racismo",
+            "genero_pessoa_agressora": "homem_cis",
+            "grupo_etnico_racial": "preto",
+            "etapa_escolar": "ensino_medio",
+            "frequencia_escolar": "regularizada",
+            "interacao_ambiente_escolar": "Interage bem com os colegas.",
+            "redes_protecao_acompanhamento": "CREAS",
+            "notificado_conselho_tutelar": True,
+            "acompanhado_naapa": False,
+            "cep": "01001-000",
+            "logradouro": "Rua das Flores",
+            "numero_residencia": "123",
+            "complemento": "",
+            "bairro": "Centro",
+            "cidade": "São Paulo",
+            "estado": "São Paulo",
+        }
+
+    def test_serializer_valido(self):
+        serializer = IntercorrenciaInfoAgressorSerializer(
+            instance=self.intercorrencia, data=self.valid_data
+        )
+        assert serializer.is_valid(), serializer.errors
+        obj = serializer.save()
+        assert obj.nome_pessoa_agressora == "João Silva"
+        assert obj.motivacao_ocorrencia == "racismo"
+        assert obj.genero_pessoa_agressora == "homem_cis"
+
+    def test_serializer_invalido_quando_tem_info_false(self):
+        intercorrencia = Intercorrencia.objects.create(
+            data_ocorrencia=timezone.now(),
+            user_username="diretor2",
+            unidade_codigo_eol="222222",
+            dre_codigo_eol="333333",
+            tem_info_agressor_ou_vitima="nao",
+        )
+
+        serializer = IntercorrenciaInfoAgressorSerializer(
+            instance=intercorrencia, data=self.valid_data
+        )
+        assert not serializer.is_valid()
+        assert "detail" in serializer.errors
+        assert "tem_info_agressor_vitima" not in serializer.errors
+
+    @pytest.mark.parametrize(
+        "campo",
+        [
+            "nome_pessoa_agressora",
+            "motivacao_ocorrencia",
+            "cep",
+            "logradouro",
+            "bairro",
+            "cidade",
+            "estado",
+        ],
+    )
+    def test_campo_obrigatorio_nao_informado(self, campo):
+        data = self.valid_data.copy()
+        data.pop(campo)
+        serializer = IntercorrenciaInfoAgressorSerializer(
+            instance=self.intercorrencia, data=data
+        )
+        assert not serializer.is_valid()
+        assert campo in serializer.errors
+        assert serializer.errors[campo][0] in [
+            "Este campo é obrigatório.",
+            "Este campo não pode estar em branco.",
+        ]
+
+    @pytest.mark.parametrize(
+        "campo",
+        [
+            "nome_pessoa_agressora",
+            "interacao_ambiente_escolar",
+            "logradouro",
+            "bairro",
+            "cidade",
+        ],
+    )
+    def test_campo_nao_pode_ser_branco(self, campo):
+        data = self.valid_data.copy()
+        data[campo] = ""
+        serializer = IntercorrenciaInfoAgressorSerializer(
+            instance=self.intercorrencia, data=data
+        )
+        assert not serializer.is_valid()
+        assert campo in serializer.errors
+        assert serializer.errors[campo][0] == "Este campo não pode estar em branco."
+
+    def test_campo_complemento_pode_ser_vazio(self):
+        data = self.valid_data.copy()
+        data["complemento"] = ""
+        serializer = IntercorrenciaInfoAgressorSerializer(
+            instance=self.intercorrencia, data=data
+        )
+        assert serializer.is_valid(), serializer.errors
+
+    def test_serializer_erro_formato_detail(self):
+        intercorrencia = Intercorrencia.objects.create(
+            data_ocorrencia=timezone.now(),
+            user_username="diretor3",
+            unidade_codigo_eol="555555",
+            dre_codigo_eol="666666",
+            tem_info_agressor_ou_vitima="nao",
+        )
+
+        serializer = IntercorrenciaInfoAgressorSerializer(
+            instance=intercorrencia, data=self.valid_data
+        )
+        assert not serializer.is_valid()
+        assert "detail" in serializer.errors
+        assert serializer.errors["detail"][0].startswith(
+            "Não é possível preencher informações de agressor/vítima"
+        )
