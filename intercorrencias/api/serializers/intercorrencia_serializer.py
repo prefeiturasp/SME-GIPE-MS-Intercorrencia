@@ -1,13 +1,20 @@
 from rest_framework import serializers
 
 from intercorrencias.services import unidades_service
+from intercorrencias.models.envolvido import Envolvido
 from intercorrencias.models.declarante import Declarante
 from intercorrencias.models.intercorrencia import Intercorrencia
 from intercorrencias.models.tipos_ocorrencia import TipoOcorrencia
-from intercorrencias.api.serializers.declarante_serializer import DeclaranteSerializer
 from intercorrencias.api.serializers.envolvido_serializer import EnvolvidoSerializer
-from intercorrencias.models.envolvido import Envolvido
+from intercorrencias.api.serializers.declarante_serializer import DeclaranteSerializer
 from intercorrencias.api.serializers.tipo_ocorrencia_serializer import TipoOcorrenciaSerializer
+from intercorrencias.choices.info_agressor_choices import (
+    MotivoOcorrencia,
+    GrupoEtnicoRacial,
+    Genero,
+    FrequenciaEscolar,
+    EtapaEscolar
+)
 
 
 class IntercorrenciaSerializer(serializers.ModelSerializer):
@@ -215,7 +222,51 @@ class IntercorrenciaNaoFurtoRouboSerializer(IntercorrenciaSerializer):
                 "Esta intercorrência é de furto/roubo/invasão/depredação e deve usar o serializer correspondente."
             )
         return attrs
+    
 
+class IntercorrenciaInfoAgressorSerializer(serializers.ModelSerializer):
+    """Serializer para informações do agressor/vítima - Diretor"""
+
+    nome_pessoa_agressora = serializers.CharField(required=True, allow_blank=False)
+    idade_pessoa_agressora = serializers.IntegerField(required=True)
+    motivacao_ocorrencia = serializers.ChoiceField(choices=MotivoOcorrencia.choices, required=True)
+    genero_pessoa_agressora = serializers.ChoiceField(choices=Genero.choices, required=True)
+    grupo_etnico_racial = serializers.ChoiceField(choices=GrupoEtnicoRacial.choices, required=True)
+    etapa_escolar = serializers.ChoiceField(choices=EtapaEscolar.choices, required=True)
+    frequencia_escolar = serializers.ChoiceField(choices=FrequenciaEscolar.choices, required=True)
+    interacao_ambiente_escolar = serializers.CharField(required=True, allow_blank=False)
+    redes_protecao_acompanhamento = serializers.CharField(required=True, allow_blank=False)
+    notificado_conselho_tutelar = serializers.BooleanField(required=True)
+    acompanhado_naapa = serializers.BooleanField(required=True)
+    cep = serializers.CharField(required=True, allow_blank=False)
+    logradouro = serializers.CharField(required=True, allow_blank=False)
+    numero_residencia = serializers.CharField(required=True, allow_blank=False)
+    complemento = serializers.CharField(required=False, allow_blank=True)
+    bairro = serializers.CharField(required=True, allow_blank=False)
+    cidade = serializers.CharField(required=True, allow_blank=False)
+    estado = serializers.CharField(required=True, allow_blank=False)
+
+    class Meta:
+        model = Intercorrencia
+        fields = (
+            "uuid", "nome_pessoa_agressora", "idade_pessoa_agressora",
+            "motivacao_ocorrencia", "genero_pessoa_agressora",
+            "grupo_etnico_racial", "etapa_escolar", "frequencia_escolar",
+            "interacao_ambiente_escolar", "redes_protecao_acompanhamento",
+            "notificado_conselho_tutelar", "acompanhado_naapa",
+            "cep", "logradouro", "numero_residencia", "complemento",
+            "bairro", "cidade", "estado"
+        )
+        read_only_fields = ("uuid",)
+
+    def validate(self, attrs):
+        instance = self.instance
+
+        if instance and getattr(instance, "tem_info_agressor_ou_vitima", None) == "nao":
+            raise serializers.ValidationError({
+                'detail': "Não é possível preencher informações de agressor/vítima quando 'tem_info_agressor_ou_vitima' é False."
+            })
+        return attrs
 
 
 class IntercorrenciaDiretorCompletoSerializer(serializers.ModelSerializer):
