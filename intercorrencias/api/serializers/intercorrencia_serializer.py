@@ -317,5 +317,12 @@ class IntercorrenciaDiretorCompletoSerializer(serializers.ModelSerializer):
             "tipos_ocorrencia", "descricao_ocorrencia",
             "smart_sampa_situacao", "smart_sampa_situacao_display",
             "declarante_detalhes", "comunicacao_seguranca_publica", "protocolo_acionado",
+            "nome_pessoa_agressora", "idade_pessoa_agressora",
+            "motivacao_ocorrencia", "genero_pessoa_agressora",
+            "grupo_etnico_racial", "etapa_escolar", "frequencia_escolar",
+            "interacao_ambiente_escolar", "redes_protecao_acompanhamento",
+            "notificado_conselho_tutelar", "acompanhado_naapa",
+            "cep", "logradouro", "numero_residencia", "complemento",
+            "bairro", "cidade", "estado"
         )
         read_only_fields = ("id", "uuid", "user_username", "criado_em", "atualizado_em")
