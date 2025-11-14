@@ -13,7 +13,8 @@ from intercorrencias.api.serializers.intercorrencia_serializer import (
     IntercorrenciaSecaoInicialSerializer,
     IntercorrenciaFurtoRouboSerializer,
     IntercorrenciaSecaoFinalSerializer,
-    IntercorrenciaNaoFurtoRouboSerializer
+    IntercorrenciaNaoFurtoRouboSerializer,
+    IntercorrenciaInfoAgressorSerializer
 )
 from intercorrencias.models.intercorrencia import Intercorrencia
 from intercorrencias.models.tipos_ocorrencia import TipoOcorrencia
@@ -532,3 +533,142 @@ class TestIntercorrenciaNaoFurtoRouboSerializer:
             serializer.is_valid(raise_exception=True)
 
         assert "detail" in exc.value.detail
+
+
+@pytest.mark.django_db
+class TestIntercorrenciaInfoAgressorSerializer:
+
+    @pytest.fixture(autouse=True)
+    def setup_method(self, request_factory):
+        self.request = request_factory.post("/fake-url/")
+        self.request.user = MagicMock(unidade_codigo_eol="123456")
+        self.intercorrencia = Intercorrencia.objects.create(
+            data_ocorrencia=timezone.now(),
+            user_username="diretor1",
+            unidade_codigo_eol="123456",
+            dre_codigo_eol="654321",
+            tem_info_agressor_ou_vitima="sim",
+        )
+        self.valid_data = {
+            "unidade_codigo_eol": "123456",
+            "dre_codigo_eol": "654321",
+            "nome_pessoa_agressora": "João Silva",
+            "idade_pessoa_agressora": 17,
+            "motivacao_ocorrencia": "racismo",
+            "genero_pessoa_agressora": "homem_cis",
+            "grupo_etnico_racial": "preto",
+            "etapa_escolar": "ensino_medio",
+            "frequencia_escolar": "regularizada",
+            "interacao_ambiente_escolar": "Interage bem com os colegas.",
+            "redes_protecao_acompanhamento": "CREAS",
+            "notificado_conselho_tutelar": True,
+            "acompanhado_naapa": False,
+            "cep": "01001-000",
+            "logradouro": "Rua das Flores",
+            "numero_residencia": "123",
+            "complemento": "",
+            "bairro": "Centro",
+            "cidade": "São Paulo",
+            "estado": "São Paulo",
+        }
+
+    @patch("intercorrencias.services.unidades_service.get_unidade")
+    def test_serializer_valido(self, mock_get_unidade):
+        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
+        serializer = IntercorrenciaInfoAgressorSerializer(
+            instance=self.intercorrencia, data=self.valid_data, context={"request": self.request}
+        )
+        assert serializer.is_valid(), serializer.errors
+        obj = serializer.save()
+        assert obj.nome_pessoa_agressora == "João Silva"
+
+    @patch("intercorrencias.services.unidades_service.get_unidade")
+    def test_serializer_invalido_quando_tem_info_false(self, mock_get_unidade):
+        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
+        intercorrencia = Intercorrencia.objects.create(
+            data_ocorrencia=timezone.now(),
+            user_username="diretor2",
+            unidade_codigo_eol="123456",
+            dre_codigo_eol="654321",
+            tem_info_agressor_ou_vitima="nao",
+        )
+        serializer = IntercorrenciaInfoAgressorSerializer(
+            instance=intercorrencia, data=self.valid_data, context={"request": self.request}
+        )
+        assert not serializer.is_valid()
+        assert "detail" in serializer.errors
+        error_message = str(serializer.errors["detail"])
+        assert "Não é possível preencher informações de agressor/vítima" in error_message
+
+    @pytest.mark.parametrize(
+        "campo",
+        [
+            "nome_pessoa_agressora",
+            "motivacao_ocorrencia",
+            "cep",
+            "logradouro",
+            "bairro",
+            "cidade",
+            "estado",
+        ],
+    )
+    @patch("intercorrencias.services.unidades_service.get_unidade")
+    def test_campo_obrigatorio_nao_informado(self, mock_get_unidade, campo):
+        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
+        data = self.valid_data.copy()
+        data.pop(campo)
+        serializer = IntercorrenciaInfoAgressorSerializer(
+            instance=self.intercorrencia, data=data, context={"request": self.request}
+        )
+        assert not serializer.is_valid()
+        assert "detail" in serializer.errors
+        assert campo in serializer.errors["detail"]
+
+    @pytest.mark.parametrize(
+        "campo",
+        [
+            "nome_pessoa_agressora",
+            "interacao_ambiente_escolar",
+            "logradouro",
+            "bairro",
+            "cidade",
+        ],
+    )
+    @patch("intercorrencias.services.unidades_service.get_unidade")
+    def test_campo_nao_pode_ser_branco(self, mock_get_unidade, campo):
+        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
+        data = self.valid_data.copy()
+        data[campo] = ""
+        serializer = IntercorrenciaInfoAgressorSerializer(
+            instance=self.intercorrencia, data=data, context={"request": self.request}
+        )
+        assert not serializer.is_valid()
+        assert "detail" in serializer.errors
+        assert campo in serializer.errors["detail"]
+        assert "não pode estar em branco" in serializer.errors["detail"]
+
+    @patch("intercorrencias.services.unidades_service.get_unidade")
+    def test_campo_complemento_pode_ser_vazio(self, mock_get_unidade):
+        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
+        data = self.valid_data.copy()
+        data["complemento"] = ""
+        serializer = IntercorrenciaInfoAgressorSerializer(
+            instance=self.intercorrencia, data=data, context={"request": self.request}
+        )
+        assert serializer.is_valid(), serializer.errors
+
+    @patch("intercorrencias.services.unidades_service.get_unidade")
+    def test_serializer_erro_formato_detail(self, mock_get_unidade):
+        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
+        intercorrencia = Intercorrencia.objects.create(
+            data_ocorrencia=timezone.now(),
+            user_username="diretor3",
+            unidade_codigo_eol="123456",
+            dre_codigo_eol="654321",
+            tem_info_agressor_ou_vitima="nao",
+        )
+        serializer = IntercorrenciaInfoAgressorSerializer(
+            instance=intercorrencia, data=self.valid_data, context={"request": self.request}
+        )
+        assert not serializer.is_valid()
+        assert "detail" in serializer.errors
