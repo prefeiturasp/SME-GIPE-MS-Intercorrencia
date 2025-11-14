@@ -6,8 +6,9 @@ from intercorrencias.choices.info_agressor_choices import (
     GrupoEtnicoRacial,
     Genero,
     FrequenciaEscolar,
-    EtapaEscolar
+    EtapaEscolar,
 )
+
 
 class Intercorrencia(ModeloBase):
 
@@ -44,26 +45,28 @@ class Intercorrencia(ModeloBase):
 
     data_ocorrencia = models.DateTimeField(
         verbose_name="Data e Hora da Ocorrência",
-        help_text="Data e hora em que a intercorrência ocorreu"
+        help_text="Data e hora em que a intercorrência ocorreu",
     )
     user_username = models.CharField(
-        max_length=150, db_index=True,
+        max_length=150,
+        db_index=True,
         verbose_name="Username do Usuário",
         help_text="Username do usuário que está registrando a ocorrência",
     )
     unidade_codigo_eol = models.CharField(
-        max_length=6, db_index=True,
+        max_length=6,
+        db_index=True,
         verbose_name="Código EOL da Unidade",
         help_text="Código EOL da unidade onde ocorreu a intercorrência",
     )
     dre_codigo_eol = models.CharField(
-        max_length=6, db_index=True,
+        max_length=6,
+        db_index=True,
         verbose_name="Código EOL da DRE",
         help_text="Código EOL da DRE responsável pela unidade",
     )
     sobre_furto_roubo_invasao_depredacao = models.BooleanField(
-        "É sobre furto, roubo, invasão ou depredação?",
-        default=False
+        "É sobre furto, roubo, invasão ou depredação?", default=False
     )
     status = models.CharField(
         max_length=30,
@@ -128,16 +131,14 @@ class Intercorrencia(ModeloBase):
         blank=True,
     )
     idade_pessoa_agressora = models.PositiveIntegerField(
-        verbose_name="Qual a idade da pessoa agressora?",
-        blank=True,
-        null=True
+        verbose_name="Qual a idade da pessoa agressora?", blank=True, null=True
     )
     motivacao_ocorrencia = models.CharField(
         verbose_name="O que motivou a ocorrência?",
         max_length=23,
         choices=MotivoOcorrencia.choices,
         blank=True,
-   )
+    )
     genero_pessoa_agressora = models.CharField(
         max_length=18,
         choices=Genero.choices,
@@ -174,13 +175,13 @@ class Intercorrencia(ModeloBase):
         verbose_name="A ocorrência foi notificada ao Conselho Tutelar?",
         default=False,
         blank=True,
-        null=True
+        null=True,
     )
     acompanhado_naapa = models.BooleanField(
         verbose_name="A ocorrência foi acompanhada pelo NAAPA?",
         default=False,
         blank=True,
-        null=True
+        null=True,
     )
     cep = models.CharField(
         max_length=9,
@@ -225,13 +226,77 @@ class Intercorrencia(ModeloBase):
         blank=True,
     )
 
+    # ===========================
+    # CAMPOS DRE
+    # ===========================
+    acionamento_seguranca_publica = models.BooleanField(
+        verbose_name="Houve acionamento da Secretaria de Segurança Pública ou Forças de Segurança?",
+        default=False,
+        blank=True,
+        null=True,
+    )
+
+    interlocucao_sts = models.BooleanField(
+        verbose_name="Houve interlocução com a Supervisão Técnica de Saúde (STS)?",
+        default=False,
+        blank=True,
+        null=True,
+    )
+
+    info_complementar_sts = models.TextField(
+        verbose_name="Informação complementar da atuação conjunta entre DRE e STS",
+        blank=True,
+    )
+
+    interlocucao_cpca = models.BooleanField(
+        verbose_name="Houve interlocução com a Coordenação de Políticas para Criança e Adolescente (CPCA)?",
+        default=False,
+        blank=True,
+        null=True,
+    )
+    
+    info_complementar_cpca = models.TextField(
+        verbose_name="Informação complementar da atuação conjunta entre DRE e CPCA",
+        blank=True,
+    )
+
+    interlocucao_supervisao_escolar = models.BooleanField(
+        verbose_name="Houve interlocução com a Supervisão Escolar?",
+        default=False,
+        blank=True,
+        null=True, 
+    )
+
+    info_complementar_supervisao_escolar = models.TextField(
+        verbose_name="Informação complementar da atuação conjunta entre DRE e Supervisão Escolar",
+        blank=True,
+    )
+
+    interlocucao_naapa = models.BooleanField(
+        verbose_name="Houve interlocução com o Núcleo de Apoio e Acompanhamento para a Aprendizagem (NAAPA)?",
+        default=False,
+        blank=True,
+        null=True,
+    )
+
+    info_complementar_naapa = models.TextField(
+        verbose_name="Informação complementar da atuação conjunta entre DRE e NAAPA",
+        blank=True,
+    )
+
+
     class Meta:
         ordering = ("-criado_em",)
 
     def __str__(self) -> str:
         return f"{self.unidade_codigo_eol} @ {self.data_ocorrencia:%d/%m/%Y %H:%M}"
-    
+
     @property
     def pode_ser_editado_por_diretor(self):
         """Verifica se ainda pode ser editado pelo diretor"""
-        return self.status == 'em_preenchimento_diretor'
+        return self.status == "em_preenchimento_diretor"
+
+    @property
+    def pode_ser_editado_por_dre(self):
+        """Verifica se pode ser editado pela DRE"""
+        return self.status in ["em_preenchimento_diretor", "em_preenchimento_assistente", "em_preenchimento_dre"]
