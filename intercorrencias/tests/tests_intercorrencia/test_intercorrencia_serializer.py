@@ -172,6 +172,36 @@ class TestIntercorrenciaDiretorCompletoSerializer:
 
         resultado = serializer.get_nome_dre(intercorrencia)
         assert resultado is None
+        
+    @patch("intercorrencias.services.unidades_service.get_unidade")
+    def test_get_motivacao_ocorrencia_display_diretor_completo(self, mock_get_unidade):
+        from intercorrencias.choices.info_agressor_choices import (
+            MotivoOcorrencia,
+        )
+        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
+        
+        intercorrencia = Intercorrencia.objects.create(
+            data_ocorrencia=timezone.now(),
+            user_username="user",
+            unidade_codigo_eol="123",
+            dre_codigo_eol="456",
+            sobre_furto_roubo_invasao_depredacao=True,
+            motivacao_ocorrencia=["racismo", "bullying"],
+        )
+        
+        serializer = IntercorrenciaDiretorCompletoSerializer()
+
+        display_values = serializer.get_motivacao_ocorrencia_display(intercorrencia)
+        
+        
+        display_values_tratados = [item['label'] for item in display_values]
+
+        expected_displays = [
+            MotivoOcorrencia(motivo).label
+            for motivo in intercorrencia.motivacao_ocorrencia
+        ]
+        
+        assert display_values_tratados == expected_displays
 
 
 @pytest.mark.django_db
@@ -548,13 +578,14 @@ class TestIntercorrenciaInfoAgressorSerializer:
             unidade_codigo_eol="123456",
             dre_codigo_eol="654321",
             tem_info_agressor_ou_vitima="sim",
+            motivacao_ocorrencia=["racismo", "bullying"],
         )
         self.valid_data = {
             "unidade_codigo_eol": "123456",
             "dre_codigo_eol": "654321",
             "nome_pessoa_agressora": "João Silva",
             "idade_pessoa_agressora": 17,
-            "motivacao_ocorrencia": "racismo",
+            "motivacao_ocorrencia": ["racismo", "bullying"],
             "genero_pessoa_agressora": "homem_cis",
             "grupo_etnico_racial": "preto",
             "etapa_escolar": "ensino_medio",
@@ -623,6 +654,126 @@ class TestIntercorrenciaInfoAgressorSerializer:
         assert not serializer.is_valid()
         assert "detail" in serializer.errors
         assert campo in serializer.errors["detail"]
+        
+    @patch("intercorrencias.services.unidades_service.get_unidade")
+    def test_campo_motivacao_ocorrencia_vazio(self, mock_get_unidade):
+        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
+        data = self.valid_data.copy()
+        data["motivacao_ocorrencia"] = []
+        serializer = IntercorrenciaInfoAgressorSerializer(
+            instance=self.intercorrencia, data=data, context={"request": self.request}
+        )
+        assert not serializer.is_valid()
+        assert "detail" in serializer.errors
+        assert "motivacao_ocorrencia" in serializer.errors["detail"]
+        assert "Esta lista não pode estar vazia." in serializer.errors["detail"]
+        
+    @patch("intercorrencias.services.unidades_service.get_unidade")
+    def test_campo_motivacao_ocorrencia_errado(self, mock_get_unidade):
+        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
+        data = self.valid_data.copy()
+        data["motivacao_ocorrencia"] = ["motivo_invalido"]
+        serializer = IntercorrenciaInfoAgressorSerializer(
+            instance=self.intercorrencia, data=data, context={"request": self.request}
+        )
+        assert not serializer.is_valid()
+        assert "detail" in serializer.errors
+        assert "motivacao_ocorrencia" in serializer.errors["detail"]
+        assert '"motivo_invalido" não é um escolha válida.' in str(serializer.errors["detail"])
+        
+    @patch("intercorrencias.services.unidades_service.get_unidade")
+    def test_get_motivacao_ocorrencia_display(self, mock_get_unidade):
+        from intercorrencias.choices.info_agressor_choices import (
+            MotivoOcorrencia,
+        )
+        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
+        serializer = IntercorrenciaInfoAgressorSerializer(
+            instance=self.intercorrencia, data=self.valid_data, context={"request": self.request}
+        )
+        assert serializer.is_valid(), serializer.errors
+        display_values = serializer.get_motivacao_ocorrencia_display(self.intercorrencia)
+        
+        
+        display_values_tratados = [item['label'] for item in display_values]
+
+        expected_displays = [
+            MotivoOcorrencia(motivo).label
+            for motivo in self.valid_data["motivacao_ocorrencia"]
+        ]
+        
+        assert display_values_tratados == expected_displays
+        
+        
+    @patch("intercorrencias.services.unidades_service.get_unidade")
+    def test_get_motivacao_ocorrencia_display_vazio(self, mock_get_unidade):
+        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
+        intercorrencia = Intercorrencia.objects.create(
+            data_ocorrencia=timezone.now(),
+            user_username="diretor3",
+            unidade_codigo_eol="123456",
+            dre_codigo_eol="654321",
+            tem_info_agressor_ou_vitima="sim",
+            motivacao_ocorrencia=[],
+        )
+        serializer = IntercorrenciaInfoAgressorSerializer(
+            instance=intercorrencia, data=self.valid_data, context={"request": self.request}
+        )
+        assert serializer.is_valid(), serializer.errors
+        display_values = serializer.get_motivacao_ocorrencia_display(intercorrencia)
+        
+        assert display_values == []
+        
+    @patch("intercorrencias.services.unidades_service.get_unidade")
+    def test_validate_motivacao_ocorrencia_none(self, mock_get_unidade):
+        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
+        data = self.valid_data.copy()
+        data["motivacao_ocorrencia"] = None
+        serializer = IntercorrenciaInfoAgressorSerializer(
+            instance=self.intercorrencia, data=data, context={"request": self.request}
+        )
+        assert not serializer.is_valid()
+        assert "detail" in serializer.errors
+        assert "motivacao_ocorrencia" in serializer.errors["detail"]
+        assert "Este campo não pode ser nulo." in serializer.errors["detail"]
+
+    def test_validate_motivacao_ocorrencia_vazio_direto(self):
+        """Testa validate_motivacao_ocorrencia diretamente com lista vazia"""
+        serializer = IntercorrenciaInfoAgressorSerializer()
+        
+        with pytest.raises(serializers.ValidationError) as exc_info:
+            serializer.validate_motivacao_ocorrencia([])
+        
+        assert "Selecione pelo menos uma motivação." in str(exc_info.value)
+
+    def test_validate_motivacao_ocorrencia_none_direto(self):
+        """Testa validate_motivacao_ocorrencia diretamente com None"""
+        serializer = IntercorrenciaInfoAgressorSerializer()
+        
+        with pytest.raises(serializers.ValidationError) as exc_info:
+            serializer.validate_motivacao_ocorrencia(None)
+        
+        assert "Selecione pelo menos uma motivação." in str(exc_info.value)
+
+    def test_validate_motivacao_ocorrencia_valor_invalido_direto(self):
+        """Testa validate_motivacao_ocorrencia diretamente com valor inválido"""
+        serializer = IntercorrenciaInfoAgressorSerializer()
+        
+        with pytest.raises(serializers.ValidationError) as exc_info:
+            serializer.validate_motivacao_ocorrencia(["motivo_inexistente"])
+        
+        assert "'motivo_inexistente' não é uma motivação válida." in str(exc_info.value)
+
+    def test_validate_motivacao_ocorrencia_remove_duplicatas(self):
+        """Testa que validate_motivacao_ocorrencia remove duplicatas"""
+        serializer = IntercorrenciaInfoAgressorSerializer()
+        
+        # Lista com duplicatas
+        result = serializer.validate_motivacao_ocorrencia(["racismo", "bullying", "racismo", "bullying"])
+        
+        # Deve remover duplicatas
+        assert len(result) == 2
+        assert "racismo" in result
+        assert "bullying" in result
 
     @pytest.mark.parametrize(
         "campo",
