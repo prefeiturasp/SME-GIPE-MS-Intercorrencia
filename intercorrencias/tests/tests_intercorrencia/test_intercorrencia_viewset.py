@@ -439,7 +439,7 @@ class TestIntercorrenciaDiretorViewSet:
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "Erro inesperado ao buscar categorias disponíveis" in str(response.data["detail"])
-        
+      
         
     def test_enviar_para_dre_sucesso(self, client, diretor_user, intercorrencia, tipos_ocorrencia):
         type(intercorrencia).pode_ser_editado_por_diretor = PropertyMock(return_value=True)
@@ -627,7 +627,4 @@ class TestIntercorrenciaDiretorViewSet:
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "Esta intercorrência não pode mais ser editada." in response.data["detail"]
-        
-    
-
 
