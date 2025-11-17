@@ -490,7 +490,7 @@ class TestIntercorrenciaDiretorViewSet:
         data = {
             "nome_pessoa_agressora": "João Silva",
             "idade_pessoa_agressora": 15,
-            "motivacao_ocorrencia": "bullying",
+            "motivacao_ocorrencia": ["bullying"],
             "genero_pessoa_agressora": "homem_cis",
             "grupo_etnico_racial": "branco",
             "etapa_escolar": "fundamental_alfabetizacao",
