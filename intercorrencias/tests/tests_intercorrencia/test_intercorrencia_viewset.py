@@ -439,6 +439,48 @@ class TestIntercorrenciaDiretorViewSet:
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "Erro inesperado ao buscar categorias disponíveis" in str(response.data["detail"])
+      
+        
+    def test_enviar_para_dre_sucesso(self, client, diretor_user, intercorrencia, tipos_ocorrencia):
+        type(intercorrencia).pode_ser_editado_por_diretor = PropertyMock(return_value=True)
+        data = {"unidade_codigo_eol": "200237", "dre_codigo_eol": "108500", "motivo_encerramento_ue": "Encerramento teste",}
+        url = f"/api-intercorrencias/v1/diretor/{intercorrencia.uuid}/enviar-para-dre/"
+        response = self._api_call(client, diretor_user, 'put', url, data)
+        assert response.status_code == status.HTTP_200_OK
+        
+        
+    def test_enviar_para_dre_nao_editavel(self, client, diretor_user, intercorrencia, declarante):
+        client.force_authenticate(user=diretor_user)
+        type(intercorrencia).pode_ser_editado_por_diretor = PropertyMock(return_value=False)
+        data = {
+            "unidade_codigo_eol": "200237",
+            "dre_codigo_eol": "108500",
+            "motivo_encerramento_ue": "Encerramento teste"
+        }
+        url = f"/api-intercorrencias/v1/diretor/{intercorrencia.uuid}/enviar-para-dre/"
+
+        with patch("intercorrencias.api.views.intercorrencias_viewset.IntercorrenciaDiretorViewSet.check_object_permissions", return_value=None):
+            response = client.put(url, data, format="json")
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "não pode mais ser editada" in response.data["detail"]
+        
+        
+    def test_envviar_para_dre_generic_exception(self, client, diretor_user, intercorrencia):
+        client.force_authenticate(user=diretor_user)
+        with patch(
+            "intercorrencias.api.views.intercorrencias_viewset.IntercorrenciaDiretorViewSet.get_object",
+            side_effect=Exception("Erro inesperado ao enviar para DRE"),
+        ):
+            url = f"/api-intercorrencias/v1/diretor/{intercorrencia.uuid}/enviar-para-dre/"
+            data = {
+                "unidade_codigo_eol": "200237",
+                "dre_codigo_eol": "108500",
+                "motivo_encerramento_ue": "Encerramento teste"
+            }
+            response = client.put(url, data, format="json")
+            assert response.status_code == status.HTTP_400_BAD_REQUEST
+            assert "Erro inesperado ao enviar para DRE" in str(response.data["detail"])
 
     def test_info_agressor_sucesso(self, client, diretor_user, intercorrencia):
         type(intercorrencia).pode_ser_editado_por_diretor = PropertyMock(return_value=True)
@@ -585,3 +627,4 @@ class TestIntercorrenciaDiretorViewSet:
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "Esta intercorrência não pode mais ser editada." in response.data["detail"]
+

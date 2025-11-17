@@ -371,6 +371,8 @@ class IntercorrenciaDiretorCompletoSerializer(serializers.ModelSerializer):
             "interacao_ambiente_escolar", "redes_protecao_acompanhamento",
             "notificado_conselho_tutelar", "acompanhado_naapa",
             "cep", "logradouro", "numero_residencia", "complemento",
-            "bairro", "cidade", "estado"
+            "bairro", "cidade", "estado",
+            "protocolo_da_intercorrencia", "motivo_encerramento_ue",
+            "finalizado_diretor_em", "finalizado_diretor_por"
         )
         read_only_fields = ("id", "uuid", "user_username", "criado_em", "atualizado_em")
