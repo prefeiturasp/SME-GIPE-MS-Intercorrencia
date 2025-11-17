@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.postgres.fields import ArrayField
 from .modelo_base import ModeloBase
 
 from intercorrencias.choices.info_agressor_choices import (
@@ -133,11 +134,12 @@ class Intercorrencia(ModeloBase):
     idade_pessoa_agressora = models.PositiveIntegerField(
         verbose_name="Qual a idade da pessoa agressora?", blank=True, null=True
     )
-    motivacao_ocorrencia = models.CharField(
+    motivacao_ocorrencia = ArrayField(
+        models.CharField(max_length=23, choices=MotivoOcorrencia.choices),
         verbose_name="O que motivou a ocorrência?",
-        max_length=23,
-        choices=MotivoOcorrencia.choices,
         blank=True,
+        default=list,  # Lista vazia como padrão
+        help_text="Selecione uma ou mais motivações"
     )
     genero_pessoa_agressora = models.CharField(
         max_length=18,
