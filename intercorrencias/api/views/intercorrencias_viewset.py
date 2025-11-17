@@ -241,3 +241,36 @@ class IntercorrenciaDiretorViewSet(viewsets.GenericViewSet, mixins.ListModelMixi
                 response.data["detail"] = detail[0]
 
         return response
+    
+    @action(detail=True, methods=['put'], url_path='enviar-para-dre')
+    def enviar_para_dre(self, request, uuid=None):
+        """PUT {uuid}/enviar-para-dre/ - Finaliza e envia para DRE"""
+        try:
+            instance = self.get_object()
+           
+            if not instance.pode_ser_editado_por_diretor:
+                return Response(
+                    {"detail": MSG_INTERCORRENCIA_NAO_EDITAVEL},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Captura o motivo de encerramento se enviado no body
+            motivo_encerramento = request.data.get('motivo_encerramento_ue', '')
+            
+            # Gera protocolo único
+            
+            if instance and not instance.protocolo_da_intercorrencia:   
+                instance.protocolo_da_intercorrencia = Intercorrencia.gerar_protocolo()
+                
+                
+            instance.motivo_encerramento_ue = motivo_encerramento
+            instance.status = 'enviado_para_dre'
+            instance.finalizado_diretor_em = timezone.now()
+            instance.finalizado_diretor_por = request.user.username
+            instance.save()
+           
+            serializer = IntercorrenciaDiretorCompletoSerializer(instance)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        
+        except Exception as exc:
+            return self.handle_exception(exc)
