@@ -15,10 +15,12 @@ class Intercorrencia(ModeloBase):
 
     STATUS_CHOICES = [
         ("em_preenchimento_diretor", "Em preenchimento - Diretor"),
+        ("enviado_para_dre", "Enviado para DRE"),
     ]
 
     STATUS_EXTRA_LABELS = {
         "em_preenchimento_diretor": "Incompleta",
+        "enviado_para_dre": "Em andamento",
     }
 
     SMART_SAMPA_CHOICES = [
@@ -227,6 +229,28 @@ class Intercorrencia(ModeloBase):
         help_text="Nome do estado por extenso (ex: São Paulo, Rio de Janeiro)",
         blank=True,
     )
+    
+    motivo_encerramento_ue=models.TextField(
+        verbose_name="Motivo do encerramento pela UE",
+        blank=True,
+    )
+    
+    protocolo_da_intercorrencia=models.CharField(
+        max_length=100,
+        verbose_name="Protocolo da Intercorrência",
+        blank=True,
+    )
+    
+    finalizado_diretor_em = models.DateTimeField(
+        verbose_name="Finalizado pelo Diretor em",
+        blank=True, null=True
+    )
+   
+    finalizado_diretor_por = models.CharField(
+        max_length=150,
+        verbose_name="Finalizado pelo Diretor por",
+        blank=True
+    )
 
     # ===========================
     # CAMPOS DRE
@@ -293,6 +317,26 @@ class Intercorrencia(ModeloBase):
     def __str__(self) -> str:
         return f"{self.unidade_codigo_eol} @ {self.data_ocorrencia:%d/%m/%Y %H:%M}"
 
+    @staticmethod
+    def gerar_protocolo():
+        """
+        Gera um protocolo único no formato: GIPE-2025/XXXXXXXXXXXXX
+        onde XXXXXXXXXXXXX é um timestamp + contador sequencial para garantir unicidade.
+        """
+        import time
+        from datetime import datetime
+        
+        ano_atual = datetime.now().year
+        timestamp = int(time.time() * 1000000)  # timestamp em microsegundos
+        
+        # Conta quantas intercorrências já foram criadas no banco para adicionar um contador
+        contador = Intercorrencia.objects.count() + 1
+        
+        # Gera o identificador único combinando timestamp e contador
+        identificador = f"{timestamp}{contador:05d}"
+        
+        return f"GIPE-{ano_atual}/{identificador}"
+
     @property
     def pode_ser_editado_por_diretor(self):
         """Verifica se ainda pode ser editado pelo diretor"""
@@ -301,4 +345,4 @@ class Intercorrencia(ModeloBase):
     @property
     def pode_ser_editado_por_dre(self):
         """Verifica se pode ser editado pela DRE"""
-        return self.status in ["em_preenchimento_diretor", "em_preenchimento_assistente", "em_preenchimento_dre"]
+        return self.status in ["em_preenchimento_diretor", "em_preenchimento_assistente", "enviado_para_dre", "em_preenchimento_dre"]
