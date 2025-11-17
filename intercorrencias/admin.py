@@ -4,11 +4,32 @@ from .models.declarante import Declarante
 from .models.envolvido import Envolvido
 from .models.intercorrencia import Intercorrencia
 from .models.tipos_ocorrencia import TipoOcorrencia
+from django import forms
 
+from intercorrencias.choices.info_agressor_choices import (
+    MotivoOcorrencia,
+    GrupoEtnicoRacial,
+    Genero,
+    FrequenciaEscolar,
+    EtapaEscolar,
+)
+
+
+class IntercorrenciaAdminForm(forms.ModelForm):
+    # sobrescreve o campo do ModelForm
+    motivacao_ocorrencia = forms.MultipleChoiceField(
+        choices=MotivoOcorrencia.choices,
+        widget=forms.CheckboxSelectMultiple,  # ou forms.SelectMultiple
+        required=False,
+        label="O que motivou a ocorrência?",
+        help_text="Selecione uma ou mais motivações."
+    )
 
 
 @admin.register(Intercorrencia)
 class IntercorrenciaAdmin(admin.ModelAdmin):
+    form = IntercorrenciaAdminForm
+
     list_display = (
         "user_username",
         "unidade_codigo_eol",
@@ -33,7 +54,7 @@ class IntercorrenciaAdmin(admin.ModelAdmin):
                 'fields': (
                     'status', 'user_username',
                     'data_ocorrencia', 'unidade_codigo_eol', 'dre_codigo_eol',
-                    'sobre_furto_roubo_invasao_depredacao'
+                    'sobre_furto_roubo_invasao_depredacao', "motivacao_ocorrencia",
                 )
             }),
             ('Seção Final (Diretor)', {
