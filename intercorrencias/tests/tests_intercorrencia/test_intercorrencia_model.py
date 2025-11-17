@@ -124,7 +124,7 @@ class TestIntercorrencia:
 
     def test_choices_info_agressor_validos(self, intercorrencia_factory):
         obj = intercorrencia_factory(
-            motivacao_ocorrencia=MotivoOcorrencia.RACISMO,
+            motivacao_ocorrencia=[MotivoOcorrencia.RACISMO],
             genero_pessoa_agressora=Genero.HOMEM_CIS,
             grupo_etnico_racial=GrupoEtnicoRacial.PARDO,
             etapa_escolar=EtapaEscolar.FUNDAMENTAL_ALFABETIZACAO,
@@ -133,7 +133,7 @@ class TestIntercorrencia:
         obj.full_clean()
         obj.save()
 
-        assert obj.motivacao_ocorrencia == MotivoOcorrencia.RACISMO
+        assert obj.motivacao_ocorrencia == [MotivoOcorrencia.RACISMO]
         assert obj.genero_pessoa_agressora == Genero.HOMEM_CIS
         assert obj.grupo_etnico_racial == GrupoEtnicoRacial.PARDO
         assert obj.etapa_escolar == EtapaEscolar.FUNDAMENTAL_ALFABETIZACAO
@@ -141,7 +141,7 @@ class TestIntercorrencia:
 
     def test_choices_info_agressor_invalidos(self, intercorrencia_factory):
         obj = intercorrencia_factory(
-            motivacao_ocorrencia="invalido",
+            motivacao_ocorrencia=["invalido"],
             genero_pessoa_agressora="errado",
             grupo_etnico_racial="xyz",
             etapa_escolar="errado",

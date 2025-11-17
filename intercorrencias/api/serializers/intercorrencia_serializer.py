@@ -229,7 +229,11 @@ class IntercorrenciaInfoAgressorSerializer(IntercorrenciaSerializer):
 
     nome_pessoa_agressora = serializers.CharField(required=True, allow_blank=False)
     idade_pessoa_agressora = serializers.IntegerField(required=True)
-    motivacao_ocorrencia = serializers.ChoiceField(choices=MotivoOcorrencia.choices, required=True)
+    motivacao_ocorrencia = serializers.ListField(
+        child=serializers.ChoiceField(choices=MotivoOcorrencia.choices),
+        allow_empty=False  # se quiser obrigar pelo menos 1 motivo
+    )
+    motivacao_ocorrencia_display = serializers.SerializerMethodField(read_only=True)
     genero_pessoa_agressora = serializers.ChoiceField(choices=Genero.choices, required=True)
     grupo_etnico_racial = serializers.ChoiceField(choices=GrupoEtnicoRacial.choices, required=True)
     etapa_escolar = serializers.ChoiceField(choices=EtapaEscolar.choices, required=True)
@@ -251,7 +255,7 @@ class IntercorrenciaInfoAgressorSerializer(IntercorrenciaSerializer):
         fields = (
             "uuid", "unidade_codigo_eol", "dre_codigo_eol",
             "nome_pessoa_agressora", "idade_pessoa_agressora",
-            "motivacao_ocorrencia", "genero_pessoa_agressora",
+            "motivacao_ocorrencia", "motivacao_ocorrencia_display", "genero_pessoa_agressora",
             "grupo_etnico_racial", "etapa_escolar", "frequencia_escolar",
             "interacao_ambiente_escolar", "redes_protecao_acompanhamento",
             "notificado_conselho_tutelar", "acompanhado_naapa",
@@ -259,6 +263,35 @@ class IntercorrenciaInfoAgressorSerializer(IntercorrenciaSerializer):
             "bairro", "cidade", "estado"
         )
         read_only_fields = ("uuid",)
+        
+    def get_motivacao_ocorrencia_display(self, obj):
+        """Retorna os labels das motivações selecionadas"""
+        if not obj.motivacao_ocorrencia:
+            return []
+        
+        choices_dict = dict(MotivoOcorrencia.choices)
+        return [
+            {
+                'value': motivo,
+                'label': choices_dict.get(motivo, motivo)
+            }
+            for motivo in obj.motivacao_ocorrencia
+        ]
+        
+    def validate_motivacao_ocorrencia(self, value):
+        """Valida as motivações selecionadas"""
+        if not value or len(value) == 0:
+            raise serializers.ValidationError("Selecione pelo menos uma motivação.")
+        
+        # Validar que todos os valores são válidos
+        valid_choices = [choice[0] for choice in MotivoOcorrencia.choices]
+        
+        for motivo in value:
+            if motivo not in valid_choices:
+                raise serializers.ValidationError(f"'{motivo}' não é uma motivação válida.")
+        
+        # Remover duplicatas
+        return list(set(value))
 
     def validate(self, attrs):
         attrs = super().validate(attrs)
@@ -284,6 +317,21 @@ class IntercorrenciaDiretorCompletoSerializer(serializers.ModelSerializer):
     nome_unidade = serializers.SerializerMethodField()
     nome_dre = serializers.SerializerMethodField()
     envolvido = EnvolvidoSerializer(read_only=True)
+    motivacao_ocorrencia_display = serializers.SerializerMethodField(read_only=True)
+    
+    def get_motivacao_ocorrencia_display(self, obj):
+        """Retorna os labels das motivações selecionadas"""
+        if not obj.motivacao_ocorrencia:
+            return []
+        
+        choices_dict = dict(MotivoOcorrencia.choices)
+        return [
+            {
+                'value': motivo,
+                'label': choices_dict.get(motivo, motivo)
+            }
+            for motivo in obj.motivacao_ocorrencia
+        ]
 
     def get_status_extra(self, obj):
         return obj.STATUS_EXTRA_LABELS.get(obj.status)
@@ -318,7 +366,7 @@ class IntercorrenciaDiretorCompletoSerializer(serializers.ModelSerializer):
             "smart_sampa_situacao", "smart_sampa_situacao_display",
             "declarante_detalhes", "comunicacao_seguranca_publica", "protocolo_acionado",
             "nome_pessoa_agressora", "idade_pessoa_agressora",
-            "motivacao_ocorrencia", "genero_pessoa_agressora",
+            "motivacao_ocorrencia_display", "genero_pessoa_agressora",
             "grupo_etnico_racial", "etapa_escolar", "frequencia_escolar",
             "interacao_ambiente_escolar", "redes_protecao_acompanhamento",
             "notificado_conselho_tutelar", "acompanhado_naapa",
