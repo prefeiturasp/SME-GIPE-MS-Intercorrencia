@@ -22,11 +22,13 @@ from intercorrencias.api.serializers.intercorrencia_serializer import (
     IntercorrenciaDiretorCompletoSerializer,
     IntercorrenciaFurtoRouboSerializer,
     IntercorrenciaNaoFurtoRouboSerializer,
-    IntercorrenciaSecaoFinalSerializer
+    IntercorrenciaSecaoFinalSerializer,
+    IntercorrenciaInfoAgressorSerializer
 )
 
 logger = logging.getLogger(__name__)
 MSG_INTERCORRENCIA_NAO_EDITAVEL = "Esta intercorrência não pode mais ser editada."
+
 
 class IntercorrenciaDiretorViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.RetrieveModelMixin):
     """
@@ -36,15 +38,15 @@ class IntercorrenciaDiretorViewSet(viewsets.GenericViewSet, mixins.ListModelMixi
         → Retorna a listagem completa de intercorrências visíveis ao usuário autenticado.
     GET /api-intercorrencias/v1/diretor/{uuid}/
         → Retorna os detalhes de uma intercorrência específica.
+    GET /api-intercorrencias/v1/diretor/categorias-disponiveis
     POST /api-intercorrencias/v1/diretor/secao-inicial/
         → Cria uma nova intercorrência (seção inicial).
     PUT /api-intercorrencias/v1/diretor/{uuid}/secao-inicial/
         → Atualiza os dados da seção inicial de uma intercorrência existente.
     PUT /api-intercorrencias/v1/diretor/{uuid}/furto-roubo/
-        → Atualiza a seção de furto, roubo, invasão ou depredação.
     PUT /api-intercorrencias/v1/diretor/{uuid}/nao-furto-roubo/
     PUT /api-intercorrencias/v1/diretor/{uuid}/secao-final/
-        → Atualiza a seção final.
+    PUT /api-intercorrencias/v1/diretor/{uuid}/info-agressor/
     """
 
     queryset = Intercorrencia.objects.all()
@@ -84,7 +86,8 @@ class IntercorrenciaDiretorViewSet(viewsets.GenericViewSet, mixins.ListModelMixi
             "secao_inicial_update": IntercorrenciaSecaoInicialSerializer,
             "furto_roubo": IntercorrenciaFurtoRouboSerializer,
             "nao_furto_roubo": IntercorrenciaNaoFurtoRouboSerializer,
-            "secao_final": IntercorrenciaSecaoFinalSerializer
+            "secao_final": IntercorrenciaSecaoFinalSerializer,
+            "info_agressor": IntercorrenciaInfoAgressorSerializer
         }
         return action_map.get(self.action, IntercorrenciaDiretorCompletoSerializer)
 
@@ -218,12 +221,41 @@ class IntercorrenciaDiretorViewSet(viewsets.GenericViewSet, mixins.ListModelMixi
 
         except Exception as exc:
             return self.handle_exception(exc)
-        
+
+    @action(detail=True, methods=["put"], url_path="info-agressor")
+    def info_agressor(self, request, uuid=None):
+        """PUT {uuid}/info-agressor/ - Preenche informações do agressor/vítima"""
+
+        try:
+            instance = self.get_object()
+
+            if hasattr(instance, "pode_ser_editado_por_diretor") and not instance.pode_ser_editado_por_diretor:
+                return Response(
+                    {"detail": MSG_INTERCORRENCIA_NAO_EDITAVEL},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            if instance and getattr(instance, "tem_info_agressor_ou_vitima", None) == "nao":
+                return Response(
+                    {"detail": "Só é possível preencher informações quando 'tem_info_agressor_ou_vitima' é verdadeiro."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            serializer = self.get_serializer(instance, data=request.data, partial=False)
+            serializer.is_valid(raise_exception=True)
+            serializer.save(atualizado_em=timezone.now())
+
+            response_serializer = IntercorrenciaInfoAgressorSerializer(instance)
+            return Response(response_serializer.data, status=status.HTTP_200_OK)
+
+        except Exception as exc:
+            return self.handle_exception(exc)
+
     @action(detail=False, methods=['get'], url_path='categorias-disponiveis')
     def categorias_disponiveis(self, request):
 
         try:
-            data= get_values_info_agressor_choices()
+            data = get_values_info_agressor_choices()
             return Response(data=data, status=status.HTTP_200_OK)
         
         except Exception as exc:
