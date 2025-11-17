@@ -627,4 +627,7 @@ class TestIntercorrenciaDiretorViewSet:
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "Esta intercorrência não pode mais ser editada." in response.data["detail"]
+        
+    
+
 
