@@ -439,3 +439,149 @@ class TestIntercorrenciaDiretorViewSet:
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "Erro inesperado ao buscar categorias disponíveis" in str(response.data["detail"])
+
+    def test_info_agressor_sucesso(self, client, diretor_user, intercorrencia):
+        type(intercorrencia).pode_ser_editado_por_diretor = PropertyMock(return_value=True)
+        intercorrencia.tem_info_agressor_ou_vitima = "sim"
+        intercorrencia.save()
+
+        data = {
+            "nome_pessoa_agressora": "João Silva",
+            "idade_pessoa_agressora": 15,
+            "motivacao_ocorrencia": ["bullying"],
+            "genero_pessoa_agressora": "homem_cis",
+            "grupo_etnico_racial": "branco",
+            "etapa_escolar": "fundamental_alfabetizacao",
+            "frequencia_escolar": "regularizada",
+            "interacao_ambiente_escolar": "participa normalmente",
+            "redes_protecao_acompanhamento": "orientação escolar",
+            "notificado_conselho_tutelar": True,
+            "acompanhado_naapa": False,
+            "cep": "12345678",
+            "logradouro": "Rua das Flores",
+            "numero_residencia": "123",
+            "complemento": "",
+            "bairro": "Centro",
+            "cidade": "São Paulo",
+            "estado": "SP",
+            "unidade_codigo_eol": "200237",
+            "dre_codigo_eol": "108500",
+        }
+
+        url = f"/api-intercorrencias/v1/diretor/{intercorrencia.uuid}/info-agressor/"
+        response = self._api_call(client, diretor_user, "put", url, data)
+
+        assert response.status_code == status.HTTP_200_OK
+
+    def test_info_agressor_bloqueado(self, client, diretor_user, intercorrencia):
+        type(intercorrencia).pode_ser_editado_por_diretor = PropertyMock(return_value=False)
+        intercorrencia.tem_info_agressor_ou_vitima = "sim"
+        intercorrencia.save()
+
+        data = {"motivo_ocorrencia": "bullying"}
+
+        url = f"/api-intercorrencias/v1/diretor/{intercorrencia.uuid}/info-agressor/"
+        response = self._api_call(client, diretor_user, "put", url, data)
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+    def test_info_agressor_regra_tem_info_agressor_ou_vitima(self, client, diretor_user, intercorrencia):
+        type(intercorrencia).pode_ser_editado_por_diretor = PropertyMock(return_value=True)
+        intercorrencia.tem_info_agressor_ou_vitima = "nao"
+        intercorrencia.save()
+
+        data = {"motivo_ocorrencia": "bullying"}
+
+        url = f"/api-intercorrencias/v1/diretor/{intercorrencia.uuid}/info-agressor/"
+        response = self._api_call(client, diretor_user, "put", url, data)
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "Só é possível preencher informações" in response.data["detail"]
+
+
+    def test_info_agressor_sem_unidade(self, client, diretor_user, intercorrencia):
+        diretor_user.unidade_codigo_eol = None
+        diretor_user.save()
+
+        data = {"motivo_ocorrencia": "bullying"}
+
+        url = f"/api-intercorrencias/v1/diretor/{intercorrencia.uuid}/info-agressor/"
+        response = self._api_call(client, diretor_user, "put", url, data)
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+    def test_info_agressor_serializer_exception(self, client, diretor_user, intercorrencia):
+        client.force_authenticate(user=diretor_user)
+        type(intercorrencia).pode_ser_editado_por_diretor = PropertyMock(return_value=True)
+        intercorrencia.tem_info_agressor_ou_vitima = "sim"
+        intercorrencia.save()
+
+        with patch(
+            "intercorrencias.api.views.intercorrencias_viewset.IntercorrenciaInfoAgressorSerializer"
+        ) as MockSerializer:
+            mock_instance = Mock()
+            mock_instance.is_valid.side_effect = Exception("Erro no serializer info/agressor")
+            MockSerializer.return_value = mock_instance
+
+            data = {"motivo_ocorrencia": "bullying"}
+            url = f"/api-intercorrencias/v1/diretor/{intercorrencia.uuid}/info-agressor/"
+
+            response = client.put(url, data, format="json")
+
+            assert response.status_code == status.HTTP_400_BAD_REQUEST
+            assert "Erro no serializer info/agressor" in response.data["detail"]
+            MockSerializer.assert_called()
+
+
+    def test_info_agressor_generic_exception(self, client, diretor_user, intercorrencia):
+        client.force_authenticate(user=diretor_user)
+
+        with patch(
+            "intercorrencias.api.views.intercorrencias_viewset.IntercorrenciaDiretorViewSet.get_object",
+            side_effect=Exception("Erro inesperado info/agressor"),
+        ):
+            data = {"motivo_ocorrencia": "bullying"}
+            url = f"/api-intercorrencias/v1/diretor/{intercorrencia.uuid}/info-agressor/"
+
+            response = client.put(url, data, format="json")
+
+            assert response.status_code == status.HTTP_400_BAD_REQUEST
+            assert "Erro inesperado info/agressor" in response.data["detail"]
+    
+    def test_info_agressor_nao_editavel(self, client, diretor_user, intercorrencia):
+        type(intercorrencia).pode_ser_editado_por_diretor = PropertyMock(return_value=False)
+        intercorrencia.tem_info_agressor_ou_vitima = "sim"
+        intercorrencia.save()
+
+        data = {
+            "nome_pessoa_agressora": "João Silva",
+            "idade_pessoa_agressora": 15,
+            "motivacao_ocorrencia": "bullying",
+            "genero_pessoa_agressora": "homem_cis",
+            "grupo_etnico_racial": "branco",
+            "etapa_escolar": "fundamental_alfabetizacao",
+            "frequencia_escolar": "regularizada",
+            "interacao_ambiente_escolar": "participa normalmente",
+            "redes_protecao_acompanhamento": "orientação escolar",
+            "notificado_conselho_tutelar": True,
+            "acompanhado_naapa": False,
+            "cep": "12345678",
+            "logradouro": "Rua das Flores",
+            "numero_residencia": "123",
+            "complemento": "",
+            "bairro": "Centro",
+            "cidade": "São Paulo",
+            "estado": "SP",
+            "unidade_codigo_eol": "200237",
+            "dre_codigo_eol": "108500",
+        }
+
+        url = f"/api-intercorrencias/v1/diretor/{intercorrencia.uuid}/info-agressor/"
+
+        with patch("intercorrencias.api.views.intercorrencias_viewset.IntercorrenciaDiretorViewSet.check_object_permissions", return_value=None):
+            response = self._api_call(client, diretor_user, "put", url, data)
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "Esta intercorrência não pode mais ser editada." in response.data["detail"]
