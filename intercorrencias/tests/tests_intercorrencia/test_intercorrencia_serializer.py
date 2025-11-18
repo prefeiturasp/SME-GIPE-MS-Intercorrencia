@@ -2,6 +2,7 @@ import pytest
 from uuid import uuid4
 from django.utils import timezone
 from unittest.mock import patch, MagicMock
+from rest_framework import serializers
 from rest_framework.test import APIRequestFactory
 from rest_framework.exceptions import ValidationError
 
@@ -11,9 +12,16 @@ from intercorrencias.api.serializers.intercorrencia_serializer import (
     IntercorrenciaDiretorCompletoSerializer,
     IntercorrenciaSecaoInicialSerializer,
     IntercorrenciaFurtoRouboSerializer,
+    IntercorrenciaSecaoFinalSerializer,
+    IntercorrenciaNaoFurtoRouboSerializer
 )
 from intercorrencias.models.intercorrencia import Intercorrencia
 from intercorrencias.models.tipos_ocorrencia import TipoOcorrencia
+from intercorrencias.models.declarante import Declarante
+from intercorrencias.models.intercorrencia import Intercorrencia
+from intercorrencias.models.tipos_ocorrencia import TipoOcorrencia
+from intercorrencias.models.envolvido import Envolvido
+from intercorrencias.services import unidades_service
 
 
 @pytest.fixture
@@ -122,7 +130,10 @@ class TestIntercorrenciaDiretorCompletoSerializer:
         serializer = IntercorrenciaDiretorCompletoSerializer()
         assert serializer.get_status_extra(intercorrencia) == "Concluído"
 
-    def test_serializer_fields(self):
+    @patch("intercorrencias.api.serializers.intercorrencia_serializer.unidades_service.get_unidade")
+    def test_serializer_fields(self, mock_get_unidade):
+        mock_get_unidade.return_value = {"nome": "Unidade Teste"}
+
         intercorrencia = Intercorrencia.objects.create(
             data_ocorrencia=timezone.now(),
             user_username="user",
@@ -134,6 +145,32 @@ class TestIntercorrenciaDiretorCompletoSerializer:
         data = serializer.data
         assert "status_display" in data
         assert "status_extra" in data
+        assert data["nome_unidade"] == "Unidade Teste"
+        assert data["nome_dre"] == "Unidade Teste" 
+
+    @patch("intercorrencias.api.serializers.intercorrencia_serializer.unidades_service.get_unidade")
+    def test_get_nome_unidade_quando_servico_lanca_erro(self, mock_get_unidade):
+        mock_get_unidade.side_effect = unidades_service.ExternalServiceError("Erro externo")
+
+        intercorrencia = Intercorrencia(
+            unidade_codigo_eol="123"
+        )
+        serializer = IntercorrenciaDiretorCompletoSerializer()
+
+        resultado = serializer.get_nome_unidade(intercorrencia)
+        assert resultado is None
+
+    @patch("intercorrencias.api.serializers.intercorrencia_serializer.unidades_service.get_unidade")
+    def test_get_nome_dre_quando_servico_lanca_erro(self, mock_get_unidade):
+        mock_get_unidade.side_effect = unidades_service.ExternalServiceError("Erro externo")
+
+        intercorrencia = Intercorrencia(
+            dre_codigo_eol="456"
+        )
+        serializer = IntercorrenciaDiretorCompletoSerializer()
+
+        resultado = serializer.get_nome_dre(intercorrencia)
+        assert resultado is None
 
 
 @pytest.mark.django_db
@@ -183,6 +220,8 @@ class TestIntercorrenciaFurtoRouboSerializer:
             "tipos_ocorrencia": [str(tipo.uuid)],
             "descricao_ocorrencia": "Roubo de equipamentos",
             "smart_sampa_situacao": "sim_com_dano",
+            "envolvido": "Apenas um estudante",
+            "tem_info_agressor_ou_vitima": "Não"
         }
         serializer = IntercorrenciaFurtoRouboSerializer(
             instance=intercorrencia, data=data, partial=True
@@ -202,6 +241,8 @@ class TestIntercorrenciaFurtoRouboSerializer:
             "tipos_ocorrencia": [str(tipo.uuid)],
             "descricao_ocorrencia": "Roubo de equipamentos",
             "smart_sampa_situacao": "sim_com_dano",
+            "envolvido": "Apenas um estudante",
+            "tem_info_agressor_ou_vitima": "Não"
         }
         serializer = IntercorrenciaFurtoRouboSerializer(
             instance=intercorrencia, data=data, partial=True
@@ -281,6 +322,8 @@ class TestIntercorrenciaFurtoRouboSerializer:
             "tipos_ocorrencia": [],
             "descricao_ocorrencia": "Roubo de equipamentos",
             "smart_sampa_situacao": "sim_com_dano",
+            "envolvido": "Apenas um estudante",
+            "tem_info_agressor_ou_vitima": "Não" 
         }
 
         serializer = IntercorrenciaFurtoRouboSerializer(
@@ -291,3 +334,201 @@ class TestIntercorrenciaFurtoRouboSerializer:
             serializer.is_valid(raise_exception=True)
 
         assert "Este campo é obrigatório" in str(exc.value)
+
+
+@pytest.mark.django_db
+class TestIntercorrenciaSecaoFinalSerializer:
+    """Testes do serializer da seção final (Diretor)"""
+
+    @pytest.fixture
+    def declarante_obj(self):
+        return Declarante.objects.create(declarante="teste")
+
+    @pytest.fixture
+    def intercorrencia_obj(self):
+        return Intercorrencia.objects.create(
+            data_ocorrencia=timezone.now(),
+            user_username="diretor1",
+            unidade_codigo_eol="123",
+            dre_codigo_eol="456",
+        )
+
+    @patch("intercorrencias.services.unidades_service.get_unidade")
+    def test_validate_success(self, mock_get, intercorrencia_obj, declarante_obj, auth_request):
+        mock_get.return_value = {
+            "codigo_eol": "123",
+            "dre_codigo_eol": "456"
+        }
+
+        data = {
+            "declarante": str(declarante_obj.uuid),
+            "comunicacao_seguranca_publica": Intercorrencia.SEGURANCA_PUBLICA_CHOICES[0][0],
+            "protocolo_acionado": Intercorrencia.PROTOCOLO_CHOICES[0][0],
+            "unidade_codigo_eol": "123",
+            "dre_codigo_eol": "456",
+        }
+
+        serializer = IntercorrenciaSecaoFinalSerializer(
+            instance=intercorrencia_obj,
+            data=data,
+            context={"request": auth_request}
+        )
+
+        assert serializer.is_valid(), serializer.errors
+        result = serializer.save()
+        assert result.declarante == declarante_obj
+
+    @patch("intercorrencias.services.unidades_service.get_unidade")
+    def test_is_valid_error_format_missing_fields(self, mock_get, intercorrencia_obj, auth_request):
+        mock_get.return_value = {
+            "codigo_eol": "123",
+            "dre_codigo_eol": "456"
+        }
+
+        data = {
+            "declarante": "",
+            "comunicacao_seguranca_publica": "",
+            "protocolo_acionado": "",
+            "unidade_codigo_eol": "123",
+            "dre_codigo_eol": "456",
+        }
+
+        serializer = IntercorrenciaSecaoFinalSerializer(
+            instance=intercorrencia_obj,
+            data=data,
+            context={"request": auth_request}
+        )
+
+        is_valid = serializer.is_valid()
+        assert not is_valid
+        assert "detail" in serializer.errors
+
+    @patch("intercorrencias.services.unidades_service.get_unidade")
+    def test_is_valid_raise_exception(self, intercorrencia_obj, auth_request):
+        data = {
+            "declarante": None,
+            "comunicacao_seguranca_publica": None,
+            "protocolo_acionado": None,
+        }
+        serializer = IntercorrenciaSecaoFinalSerializer(
+            instance=intercorrencia_obj, data=data, context={"request": auth_request}
+        )
+        with pytest.raises(ValidationError) as exc:
+            serializer.is_valid(raise_exception=True)
+        assert "detail" in exc.value.detail
+
+    @patch("intercorrencias.services.unidades_service.get_unidade")
+    def test_is_valid_error_already_has_detail_key(self, mock_get, intercorrencia_obj, declarante_obj, auth_request):
+        mock_get.return_value = {
+            "codigo_eol": "123",
+            "dre_codigo_eol": "999"
+        }
+        
+        data = {
+            "declarante": str(declarante_obj.uuid),
+            "comunicacao_seguranca_publica": Intercorrencia.SEGURANCA_PUBLICA_CHOICES[0][0],
+            "protocolo_acionado": Intercorrencia.PROTOCOLO_CHOICES[0][0],
+            "unidade_codigo_eol": "123",
+            "dre_codigo_eol": "456",
+        }
+        
+        serializer = IntercorrenciaSecaoFinalSerializer(
+            instance=intercorrencia_obj,
+            data=data,
+            context={"request": auth_request}
+        )
+        
+        is_valid = serializer.is_valid(raise_exception=False)
+        
+        assert not is_valid
+        assert "detail" in serializer.errors
+        assert "DRE informada não corresponde" in str(serializer.errors["detail"])
+
+
+@pytest.mark.django_db
+class TestIntercorrenciaNaoFurtoRouboSerializer:
+    """Testes do serializer de intercorrências NÃO furto/roubo."""
+
+    def criar_dados_basicos(self, sobre_furto_roubo=False):
+        """Cria os objetos necessários para os testes."""
+        tipo = TipoOcorrencia.objects.create(nome="Briga entre alunos", ativo=True)
+        envolvido = Envolvido.objects.create(perfil_dos_envolvidos="Estudante", ativo=True)
+
+        intercorrencia = Intercorrencia.objects.create(
+            data_ocorrencia=timezone.now(),
+            sobre_furto_roubo_invasao_depredacao=sobre_furto_roubo,
+            unidade_codigo_eol="U12345",
+            dre_codigo_eol="D123",
+            user_username="diretor_teste",
+        )
+
+        return tipo, envolvido, intercorrencia
+
+    def test_valida_dados_corretos(self):
+        tipo, envolvido, intercorrencia = self.criar_dados_basicos(sobre_furto_roubo=False)
+
+        data = {
+            "tipos_ocorrencia": [str(tipo.uuid)],
+            "descricao_ocorrencia": "Aluno se machucou durante recreio",
+            "envolvido": envolvido.uuid,
+            "tem_info_agressor_ou_vitima": "nao",
+        }
+
+        serializer = IntercorrenciaNaoFurtoRouboSerializer(instance=intercorrencia, data=data)
+        assert serializer.is_valid(), serializer.errors
+
+        instancia_salva = serializer.save()
+        assert instancia_salva.descricao_ocorrencia == data["descricao_ocorrencia"]
+
+    def test_rejeita_quando_for_furto_roubo(self):
+        tipo, envolvido, intercorrencia = self.criar_dados_basicos(sobre_furto_roubo=True)
+
+        data = {
+            "tipos_ocorrencia": [str(tipo.uuid)],
+            "descricao_ocorrencia": "Roubo de material",
+            "envolvido": envolvido.uuid,
+            "tem_info_agressor_ou_vitima": "nao",
+        }
+
+        serializer = IntercorrenciaNaoFurtoRouboSerializer(instance=intercorrencia, data=data)
+        assert not serializer.is_valid()
+        assert "furto/roubo" in str(serializer.errors).lower()
+
+    def test_rejeita_quando_tipos_ocorrencia_vazio(self):
+        _, envolvido, intercorrencia = self.criar_dados_basicos(sobre_furto_roubo=False)
+
+        data = {
+            "tipos_ocorrencia": [],
+            "descricao_ocorrencia": "Ocorrência sem tipo",
+            "envolvido": envolvido.uuid,
+            "tem_info_agressor_ou_vitima": "sim",
+        }
+
+        serializer = IntercorrenciaNaoFurtoRouboSerializer(instance=intercorrencia, data=data)
+        assert not serializer.is_valid()
+        assert "tipos_ocorrencia" in serializer.errors["detail"]
+
+    def test_rejeita_quando_envolvido_invalido(self):
+        tipo, _, intercorrencia = self.criar_dados_basicos(sobre_furto_roubo=False)
+
+        data = {
+            "tipos_ocorrencia": [str(tipo.uuid)],
+            "descricao_ocorrencia": "Teste com envolvido inválido",
+            "envolvido": 9999,
+            "tem_info_agressor_ou_vitima": "sim",
+        }
+
+        serializer = IntercorrenciaNaoFurtoRouboSerializer(instance=intercorrencia, data=data)
+        assert not serializer.is_valid()
+        assert "envolvido" in serializer.errors.get("detail", "")
+
+    def test_is_valid_raise_exception_quando_invalido(self):
+        serializer = IntercorrenciaNaoFurtoRouboSerializer(
+            instance=Intercorrencia(sobre_furto_roubo_invasao_depredacao=False),
+            data={} 
+        )
+
+        with pytest.raises(serializers.ValidationError) as exc:
+            serializer.is_valid(raise_exception=True)
+
+        assert "detail" in exc.value.detail
