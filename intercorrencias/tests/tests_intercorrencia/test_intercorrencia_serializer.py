@@ -14,7 +14,8 @@ from intercorrencias.api.serializers.intercorrencia_serializer import (
     IntercorrenciaFurtoRouboSerializer,
     IntercorrenciaSecaoFinalSerializer,
     IntercorrenciaNaoFurtoRouboSerializer,
-    IntercorrenciaInfoAgressorSerializer
+    IntercorrenciaInfoAgressorSerializer,
+    IntercorrenciaConclusaoDaUeSerializer
 )
 from intercorrencias.models.intercorrencia import Intercorrencia
 from intercorrencias.models.tipos_ocorrencia import TipoOcorrencia
@@ -823,3 +824,351 @@ class TestIntercorrenciaInfoAgressorSerializer:
         )
         assert not serializer.is_valid()
         assert "detail" in serializer.errors
+        
+        
+@pytest.mark.django_db
+class TestIntercorrenciaConclusaoDaUeSerializer:
+    """Testes do serializer de conclusão da intercorrência (Diretor)"""
+    
+    @pytest.fixture(autouse=True)
+    def setup_method(self, request_factory):
+        self.request = request_factory.post("/fake-url/")
+        self.request.user = MagicMock(unidade_codigo_eol="123456")
+        self.intercorrencia = Intercorrencia.objects.create(
+            data_ocorrencia=timezone.now(),
+            user_username="diretor1",
+            unidade_codigo_eol="123456",
+            dre_codigo_eol="654321",
+        )
+        self.valid_data = {
+            "unidade_codigo_eol": "123456",
+            "dre_codigo_eol": "654321",
+            "motivo_encerramento_ue": "Este é o motivo do encerramento da UE"
+        }
+        
+    @patch("intercorrencias.services.unidades_service.get_unidade")
+    def test_serializer_conclusao_ue_valido(self, mock_get_unidade):
+        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
+        serializer = IntercorrenciaConclusaoDaUeSerializer(
+            instance=self.intercorrencia, data=self.valid_data, context={"request": self.request}
+        )
+        assert serializer.is_valid(), serializer.errors
+        obj = serializer.save()
+        assert obj.motivo_encerramento_ue == "Este é o motivo do encerramento da UE"
+
+
+    @patch("intercorrencias.services.unidades_service.get_unidade")
+    def test_validate_dre_incorreta(self, mock_get, intercorrencia_data, request):
+        mock_get.return_value = {"codigo_eol": "123", "dre_codigo_eol": "999"}
+
+        serializer = IntercorrenciaConclusaoDaUeSerializer(
+            data=intercorrencia_data, context={"request": request}
+        )
+        with pytest.raises(ValidationError):
+            serializer.is_valid(raise_exception=True)   
+            
+    @patch("intercorrencias.services.unidades_service.get_unidade")
+    def test_campo_obrigatorio_nao_informado(self, mock_get_unidade):
+        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
+        data = self.valid_data.copy()
+        data.pop("motivo_encerramento_ue")
+        serializer = IntercorrenciaConclusaoDaUeSerializer(
+            instance=self.intercorrencia, data=data, context={"request": self.request}
+        )
+        assert not serializer.is_valid()
+        assert "detail" in serializer.errors
+        assert "motivo_encerramento_ue" in serializer.errors["detail"]
+        
+    @patch("intercorrencias.api.serializers.intercorrencia_serializer.unidades_service.get_unidade")
+    def test_get_nome_unidade_quando_servico_lanca_erro(self, mock_get_unidade):
+        mock_get_unidade.side_effect = unidades_service.ExternalServiceError("Erro externo")
+
+        intercorrencia = Intercorrencia(
+            unidade_codigo_eol="123"
+        )
+        serializer = IntercorrenciaConclusaoDaUeSerializer()
+
+        resultado = serializer.get_nome_unidade(intercorrencia)
+        assert resultado is None
+
+    @patch("intercorrencias.api.serializers.intercorrencia_serializer.unidades_service.get_unidade")
+    def test_get_nome_dre_quando_servico_lanca_erro(self, mock_get_unidade):
+        mock_get_unidade.side_effect = unidades_service.ExternalServiceError("Erro externo")
+
+        intercorrencia = Intercorrencia(
+            dre_codigo_eol="456"
+        )
+        serializer = IntercorrenciaConclusaoDaUeSerializer()
+
+        resultado = serializer.get_nome_dre(intercorrencia)
+        assert resultado is None
+
+    @patch("intercorrencias.services.unidades_service.get_unidade")
+    def test_get_responsavel_nome_com_usuario_valido(self, mock_get_unidade):
+        """Testa get_responsavel_nome quando usuário tem o atributo 'name'"""
+        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
+        
+        # Configura o mock do usuário com o atributo 'name'
+        self.request.user.name = "João da Silva"
+        self.request.user.unidade_codigo_eol = "123456"
+        
+        serializer = IntercorrenciaConclusaoDaUeSerializer(
+            instance=self.intercorrencia, 
+            context={"request": self.request}
+        )
+        
+        resultado = serializer.get_responsavel_nome(self.intercorrencia)
+        assert resultado == "João da Silva"
+
+    def test_get_responsavel_nome_sem_request_no_context(self):
+        """Testa get_responsavel_nome quando não há request no context"""
+        serializer = IntercorrenciaConclusaoDaUeSerializer(
+            instance=self.intercorrencia,
+            context={}
+        )
+        
+        resultado = serializer.get_responsavel_nome(self.intercorrencia)
+        assert resultado is None
+
+    def test_get_responsavel_nome_request_sem_user(self):
+        """Testa get_responsavel_nome quando request não tem user"""
+        request_sem_user = MagicMock()
+        delattr(request_sem_user, 'user')
+        
+        serializer = IntercorrenciaConclusaoDaUeSerializer(
+            instance=self.intercorrencia,
+            context={"request": request_sem_user}
+        )
+        
+        resultado = serializer.get_responsavel_nome(self.intercorrencia)
+        assert resultado is None
+
+    @patch("intercorrencias.services.unidades_service.get_unidade")
+    def test_get_responsavel_nome_user_sem_atributo_name(self, mock_get_unidade):
+        """Testa get_responsavel_nome quando user não tem atributo 'name'"""
+        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
+        
+        # Configura o mock do usuário SEM o atributo 'name'
+        self.request.user = MagicMock(unidade_codigo_eol="123456")
+        # Remove explicitamente o atributo 'name'
+        self.request.user.name = None
+        
+        serializer = IntercorrenciaConclusaoDaUeSerializer(
+            instance=self.intercorrencia,
+            context={"request": self.request}
+        )
+        
+        resultado = serializer.get_responsavel_nome(self.intercorrencia)
+        assert resultado is None
+
+    @patch("intercorrencias.services.unidades_service.get_unidade")
+    def test_get_responsavel_cpf_com_cpf_valido(self, mock_get_unidade):
+        """Testa get_responsavel_cpf com CPF válido de 11 dígitos"""
+        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
+        
+        self.request.user = MagicMock(
+            unidade_codigo_eol="123456",
+            cpf="12345678901"
+        )
+        
+        serializer = IntercorrenciaConclusaoDaUeSerializer(
+            instance=self.intercorrencia,
+            context={"request": self.request}
+        )
+        
+        resultado = serializer.get_responsavel_cpf(self.intercorrencia)
+        assert resultado == "123.456.789-01"
+
+    @patch("intercorrencias.services.unidades_service.get_unidade")
+    def test_get_responsavel_cpf_invalido(self, mock_get_unidade):
+        """Testa get_responsavel_cpf com CPF inválido (não numérico ou tamanho incorreto)"""
+        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
+        
+        self.request.user = MagicMock(
+            unidade_codigo_eol="123456",
+            cpf="123.456.789-01"  # CPF já formatado (não numérico)
+        )
+        
+        serializer = IntercorrenciaConclusaoDaUeSerializer(
+            instance=self.intercorrencia,
+            context={"request": self.request}
+        )
+        
+        resultado = serializer.get_responsavel_cpf(self.intercorrencia)
+        assert resultado == "123.456.789-01"  # Retorna sem formatar
+
+    @patch("intercorrencias.services.unidades_service.get_unidade")
+    def test_get_responsavel_cpf_sem_cpf(self, mock_get_unidade):
+        """Testa get_responsavel_cpf quando user não tem CPF"""
+        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
+        
+        self.request.user = MagicMock(unidade_codigo_eol="123456")
+        self.request.user.cpf = None
+        
+        serializer = IntercorrenciaConclusaoDaUeSerializer(
+            instance=self.intercorrencia,
+            context={"request": self.request}
+        )
+        
+        resultado = serializer.get_responsavel_cpf(self.intercorrencia)
+        assert resultado is None
+        
+    def test_get_responsavel_cpf_sem_request_no_context(self):
+        """Testa get_responsavel_cpf quando não há request no context"""
+        serializer = IntercorrenciaConclusaoDaUeSerializer(
+            instance=self.intercorrencia,
+            context={}
+        )
+        
+        resultado = serializer.get_responsavel_cpf(self.intercorrencia)
+        assert resultado is None
+        
+
+    @patch("intercorrencias.services.unidades_service.get_unidade")
+    def test_get_responsavel_email_com_email_valido(self, mock_get_unidade):
+        """Testa get_responsavel_email com email válido"""
+        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
+        
+        self.request.user = MagicMock(
+            unidade_codigo_eol="123456",
+            email="joao.silva@sme.prefeitura.sp.gov.br"
+        )
+        
+        serializer = IntercorrenciaConclusaoDaUeSerializer(
+            instance=self.intercorrencia,
+            context={"request": self.request}
+        )
+        
+        resultado = serializer.get_responsavel_email(self.intercorrencia)
+        assert resultado == "joao.silva@sme.prefeitura.sp.gov.br"
+
+    @patch("intercorrencias.services.unidades_service.get_unidade")
+    def test_get_responsavel_email_sem_email(self, mock_get_unidade):
+        """Testa get_responsavel_email quando user não tem email"""
+        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
+        
+        self.request.user = MagicMock(unidade_codigo_eol="123456")
+        self.request.user.email = None
+        
+        serializer = IntercorrenciaConclusaoDaUeSerializer(
+            instance=self.intercorrencia,
+            context={"request": self.request}
+        )
+        
+        resultado = serializer.get_responsavel_email(self.intercorrencia)
+        assert resultado is None
+        
+    def test_get_responsavel_email_sem_request_no_context(self):
+        """Testa get_responsavel_email quando não há request no context"""
+        serializer = IntercorrenciaConclusaoDaUeSerializer(
+            instance=self.intercorrencia,
+            context={}
+        )
+        
+        resultado = serializer.get_responsavel_email(self.intercorrencia)
+        assert resultado is None
+
+    @patch("intercorrencias.services.unidades_service.get_unidade")
+    def test_get_perfil_acesso_diretor(self, mock_get_unidade):
+        """Testa get_perfil_acesso para perfil Diretor"""
+        from config.settings import CODIGO_PERFIL_DIRETOR
+        
+        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
+        
+        self.request.user = MagicMock(
+            unidade_codigo_eol="123456",
+            cargo_codigo=CODIGO_PERFIL_DIRETOR
+        )
+        
+        serializer = IntercorrenciaConclusaoDaUeSerializer(
+            instance=self.intercorrencia,
+            context={"request": self.request}
+        )
+        
+        resultado = serializer.get_perfil_acesso(self.intercorrencia)
+        assert resultado == "Diretor(a) Pedagógico"
+
+    @patch("intercorrencias.services.unidades_service.get_unidade")
+    def test_get_perfil_acesso_assistente_direcao(self, mock_get_unidade):
+        """Testa get_perfil_acesso para perfil Assistente de Direção"""
+        from config.settings import CODIGO_PERFIL_ASSISTENTE_DIRECAO
+        
+        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
+        
+        self.request.user = MagicMock(
+            unidade_codigo_eol="123456",
+            cargo_codigo=CODIGO_PERFIL_ASSISTENTE_DIRECAO
+        )
+        
+        serializer = IntercorrenciaConclusaoDaUeSerializer(
+            instance=self.intercorrencia,
+            context={"request": self.request}
+        )
+        
+        resultado = serializer.get_perfil_acesso(self.intercorrencia)
+        assert resultado == "Assistente de Direção"
+
+    @patch("intercorrencias.services.unidades_service.get_unidade")
+    def test_get_perfil_acesso_dre(self, mock_get_unidade):
+        """Testa get_perfil_acesso para perfil DRE"""
+        from config.settings import CODIGO_PERFIL_DRE
+        
+        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
+        
+        self.request.user = MagicMock(
+            unidade_codigo_eol="123456",
+            cargo_codigo=CODIGO_PERFIL_DRE
+        )
+        
+        serializer = IntercorrenciaConclusaoDaUeSerializer(
+            instance=self.intercorrencia,
+            context={"request": self.request}
+        )
+        
+        resultado = serializer.get_perfil_acesso(self.intercorrencia)
+        assert resultado == "Ponto Focal DRE"
+
+    @patch("intercorrencias.services.unidades_service.get_unidade")
+    def test_get_perfil_acesso_codigo_nao_definido(self, mock_get_unidade):
+        """Testa get_perfil_acesso para código de perfil não mapeado"""
+        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
+        
+        self.request.user = MagicMock(
+            unidade_codigo_eol="123456",
+            cargo_codigo=99999  # Código não mapeado
+        )
+        
+        serializer = IntercorrenciaConclusaoDaUeSerializer(
+            instance=self.intercorrencia,
+            context={"request": self.request}
+        )
+        
+        resultado = serializer.get_perfil_acesso(self.intercorrencia)
+        assert resultado == "Não definido"
+
+    @patch("intercorrencias.services.unidades_service.get_unidade")
+    def test_get_perfil_acesso_sem_cargo_codigo(self, mock_get_unidade):
+        """Testa get_perfil_acesso quando user não tem cargo_codigo"""
+        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
+        
+        self.request.user = MagicMock(unidade_codigo_eol="123456")
+        self.request.user.cargo_codigo = None
+        
+        serializer = IntercorrenciaConclusaoDaUeSerializer(
+            instance=self.intercorrencia,
+            context={"request": self.request}
+        )
+        
+        resultado = serializer.get_perfil_acesso(self.intercorrencia)
+        assert resultado == "Não definido"
+        
+        
+    def test_get_perfil_acesso_sem_request_no_context(self):
+        """Testa get_perfil_acesso quando não há request no context"""
+        serializer = IntercorrenciaConclusaoDaUeSerializer(
+            instance=self.intercorrencia,
+            context={}
+        )
+        
+        resultado = serializer.get_perfil_acesso(self.intercorrencia)
+        assert resultado is None

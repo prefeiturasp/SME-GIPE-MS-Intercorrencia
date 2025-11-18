@@ -39,7 +39,7 @@ class IntercorrenciaAdmin(admin.ModelAdmin):
     )
     list_filter = ("user_username", "unidade_codigo_eol", "dre_codigo_eol", "sobre_furto_roubo_invasao_depredacao")
     search_fields = ("unidade_codigo_eol", "user_username", "dre_codigo_eol")
-    readonly_fields = ("uuid", "criado_em", "atualizado_em")
+    readonly_fields = ("uuid", "criado_em", "atualizado_em", "protocolo_da_intercorrencia")
     ordering = ("-criado_em",)
 
     def get_tipos_ocorrencia(self, obj):
@@ -55,6 +55,8 @@ class IntercorrenciaAdmin(admin.ModelAdmin):
                     'status', 'user_username',
                     'data_ocorrencia', 'unidade_codigo_eol', 'dre_codigo_eol',
                     'sobre_furto_roubo_invasao_depredacao', "motivacao_ocorrencia",
+                    'motivo_encerramento_ue', "protocolo_da_intercorrencia",
+                    'finalizado_diretor_em', "finalizado_diretor_por",
                 )
             }),
             ('Seção Final (Diretor)', {

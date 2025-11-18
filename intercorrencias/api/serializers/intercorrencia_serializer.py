@@ -1,5 +1,11 @@
 from rest_framework import serializers
 
+from config.settings import (
+    CODIGO_PERFIL_DIRETOR,
+    CODIGO_PERFIL_ASSISTENTE_DIRECAO,
+    CODIGO_PERFIL_DRE,
+    CODIGO_PERFIL_GIPE,
+)
 from intercorrencias.services import unidades_service
 from intercorrencias.models.envolvido import Envolvido
 from intercorrencias.models.declarante import Declarante
@@ -7,19 +13,21 @@ from intercorrencias.models.intercorrencia import Intercorrencia
 from intercorrencias.models.tipos_ocorrencia import TipoOcorrencia
 from intercorrencias.api.serializers.envolvido_serializer import EnvolvidoSerializer
 from intercorrencias.api.serializers.declarante_serializer import DeclaranteSerializer
-from intercorrencias.api.serializers.tipo_ocorrencia_serializer import TipoOcorrenciaSerializer
+from intercorrencias.api.serializers.tipo_ocorrencia_serializer import (
+    TipoOcorrenciaSerializer,
+)
 from intercorrencias.choices.info_agressor_choices import (
     MotivoOcorrencia,
     GrupoEtnicoRacial,
     Genero,
     FrequenciaEscolar,
-    EtapaEscolar
+    EtapaEscolar,
 )
 
 
 class IntercorrenciaSerializer(serializers.ModelSerializer):
-    
-    status_display = serializers.CharField(source='get_status_display', read_only=True)
+
+    status_display = serializers.CharField(source="get_status_display", read_only=True)
     status_extra = serializers.SerializerMethodField()
 
     def get_status_extra(self, obj):
@@ -47,20 +55,28 @@ class IntercorrenciaSerializer(serializers.ModelSerializer):
 
         dre_da_unidade = u.get("dre_codigo_eol") or u.get("dre", {}).get("codigo_eol")
         if codigo_dre and dre_da_unidade and (codigo_dre != dre_da_unidade):
-            raise serializers.ValidationError({"detail": "DRE informada não corresponde à DRE da unidade."})
+            raise serializers.ValidationError(
+                {"detail": "DRE informada não corresponde à DRE da unidade."}
+            )
 
         user_unidade = getattr(request.user, "unidade_codigo_eol", None)
         if not user_unidade or user_unidade not in (codigo_unidade, codigo_dre):
-            raise serializers.ValidationError({"detail": "A unidade não pertence ao usuário autenticado."})
+            raise serializers.ValidationError(
+                {"detail": "A unidade não pertence ao usuário autenticado."}
+            )
 
         return attrs
-    
+
     def is_valid(self, raise_exception=False):
-        
+
         valid = super().is_valid(raise_exception=False)
         if not valid:
             first_field, first_error_list = next(iter(self.errors.items()))
-            message = first_error_list[0] if isinstance(first_error_list, list) else str(first_error_list)
+            message = (
+                first_error_list[0]
+                if isinstance(first_error_list, list)
+                else str(first_error_list)
+            )
 
             if isinstance(self._errors, dict) and "detail" in self._errors:
                 error_dict = self._errors
@@ -81,8 +97,13 @@ class IntercorrenciaSecaoInicialSerializer(IntercorrenciaSerializer):
     class Meta:
         model = Intercorrencia
         fields = (
-            "uuid", "data_ocorrencia", "unidade_codigo_eol", "dre_codigo_eol",
-            "sobre_furto_roubo_invasao_depredacao", "status_display", "status_extra"
+            "uuid",
+            "data_ocorrencia",
+            "unidade_codigo_eol",
+            "dre_codigo_eol",
+            "sobre_furto_roubo_invasao_depredacao",
+            "status_display",
+            "status_extra",
         )
         read_only_fields = ("uuid", "status_display")
 
@@ -98,42 +119,47 @@ class IntercorrenciaFurtoRouboSerializer(IntercorrenciaSerializer):
         slug_field="uuid",
         queryset=TipoOcorrencia.objects.all(),
         required=True,
-        write_only=True
+        write_only=True,
     )
     tipos_ocorrencia_detalhes = TipoOcorrenciaSerializer(
-        many=True,
-        read_only=True,
-        source="tipos_ocorrencia"
+        many=True, read_only=True, source="tipos_ocorrencia"
     )
     descricao_ocorrencia = serializers.CharField(required=True, allow_blank=False)
     smart_sampa_situacao = serializers.ChoiceField(
-        required=True, 
-        allow_blank=False, 
-        choices=Intercorrencia.SMART_SAMPA_CHOICES
+        required=True, allow_blank=False, choices=Intercorrencia.SMART_SAMPA_CHOICES
     )
 
     class Meta:
         model = Intercorrencia
         fields = (
-            "uuid", "tipos_ocorrencia", "tipos_ocorrencia_detalhes", "descricao_ocorrencia", "smart_sampa_situacao",
-            "status_display", "status_extra"
+            "uuid",
+            "tipos_ocorrencia",
+            "tipos_ocorrencia_detalhes",
+            "descricao_ocorrencia",
+            "smart_sampa_situacao",
+            "status_display",
+            "status_extra",
         )
         read_only_fields = ("uuid",)
 
     def validate_tipos_ocorrencia(self, value):
         if not value:
-            raise serializers.ValidationError("Este campo é obrigatório e não pode estar vazio.")
+            raise serializers.ValidationError(
+                "Este campo é obrigatório e não pode estar vazio."
+            )
         return value
 
     def validate(self, attrs):
         instance = self.instance
         if instance and not instance.sobre_furto_roubo_invasao_depredacao:
-            raise serializers.ValidationError({"detail": 
-                "Esta intercorrência não é sobre furto/roubo/invasão/depredação."
-            })
+            raise serializers.ValidationError(
+                {
+                    "detail": "Esta intercorrência não é sobre furto/roubo/invasão/depredação."
+                }
+            )
         return attrs
-    
-    
+
+
 class IntercorrenciaSecaoFinalSerializer(IntercorrenciaSerializer):
     """Serializer para a seção final - Diretor"""
 
@@ -141,19 +167,14 @@ class IntercorrenciaSecaoFinalSerializer(IntercorrenciaSerializer):
         slug_field="uuid",
         queryset=Declarante.objects.all(),
         required=True,
-        write_only=True
+        write_only=True,
     )
-    declarante_detalhes = DeclaranteSerializer(
-        read_only=True,
-        source="declarante"
-    )
+    declarante_detalhes = DeclaranteSerializer(read_only=True, source="declarante")
     comunicacao_seguranca_publica = serializers.ChoiceField(
-        choices=Intercorrencia.SEGURANCA_PUBLICA_CHOICES,
-        required=True
+        choices=Intercorrencia.SEGURANCA_PUBLICA_CHOICES, required=True
     )
     protocolo_acionado = serializers.ChoiceField(
-        choices=Intercorrencia.PROTOCOLO_CHOICES,
-        required=True
+        choices=Intercorrencia.PROTOCOLO_CHOICES, required=True
     )
 
     class Meta:
@@ -171,7 +192,7 @@ class IntercorrenciaSecaoFinalSerializer(IntercorrenciaSerializer):
         )
         read_only_fields = ("uuid", "status_display")
 
-    
+
 class IntercorrenciaNaoFurtoRouboSerializer(IntercorrenciaSerializer):
     """Serializer para intercorrências que NÃO são furto/roubo/invasão/depredação."""
 
@@ -180,39 +201,43 @@ class IntercorrenciaNaoFurtoRouboSerializer(IntercorrenciaSerializer):
         slug_field="uuid",
         queryset=TipoOcorrencia.objects.all(),
         required=True,
-        write_only=True
+        write_only=True,
     )
     tipos_ocorrencia_detalhes = TipoOcorrenciaSerializer(
-        many=True,
-        read_only=True,
-        source="tipos_ocorrencia"
+        many=True, read_only=True, source="tipos_ocorrencia"
     )
     descricao_ocorrencia = serializers.CharField(required=True, allow_blank=False)
     envolvido = serializers.SlugRelatedField(
         slug_field="uuid",
         queryset=Envolvido.objects.all(),
         required=True,
-        write_only=True
+        write_only=True,
     )
-    envolvido_detalhes = EnvolvidoSerializer(
-        read_only=True,
-        source="envolvido"
-    )
+    envolvido_detalhes = EnvolvidoSerializer(read_only=True, source="envolvido")
     tem_info_agressor_ou_vitima = serializers.ChoiceField(
-        choices=Intercorrencia.INFORMACOES_AGRESSOR_VITIMA_CHOICES,
-        required=True
+        choices=Intercorrencia.INFORMACOES_AGRESSOR_VITIMA_CHOICES, required=True
     )
+
     class Meta:
         model = Intercorrencia
         fields = (
-            "uuid", "tipos_ocorrencia", "tipos_ocorrencia_detalhes", "descricao_ocorrencia", "envolvido", "envolvido_detalhes", "tem_info_agressor_ou_vitima",
-            "status_display", "status_extra"
+            "uuid",
+            "tipos_ocorrencia",
+            "tipos_ocorrencia_detalhes",
+            "descricao_ocorrencia",
+            "envolvido",
+            "envolvido_detalhes",
+            "tem_info_agressor_ou_vitima",
+            "status_display",
+            "status_extra",
         )
         read_only_fields = ("uuid",)
 
     def validate_tipos_ocorrencia(self, value):
         if not value:
-            raise serializers.ValidationError("Este campo é obrigatório e não pode estar vazio.")
+            raise serializers.ValidationError(
+                "Este campo é obrigatório e não pode estar vazio."
+            )
         return value
 
     def validate(self, attrs):
@@ -222,7 +247,7 @@ class IntercorrenciaNaoFurtoRouboSerializer(IntercorrenciaSerializer):
                 "Esta intercorrência é de furto/roubo/invasão/depredação e deve usar o serializer correspondente."
             )
         return attrs
-    
+
 
 class IntercorrenciaInfoAgressorSerializer(IntercorrenciaSerializer):
     """Serializer para informações do agressor/vítima - Diretor"""
@@ -231,15 +256,23 @@ class IntercorrenciaInfoAgressorSerializer(IntercorrenciaSerializer):
     idade_pessoa_agressora = serializers.IntegerField(required=True)
     motivacao_ocorrencia = serializers.ListField(
         child=serializers.ChoiceField(choices=MotivoOcorrencia.choices),
-        allow_empty=False  # se quiser obrigar pelo menos 1 motivo
+        allow_empty=False,  # se quiser obrigar pelo menos 1 motivo
     )
     motivacao_ocorrencia_display = serializers.SerializerMethodField(read_only=True)
-    genero_pessoa_agressora = serializers.ChoiceField(choices=Genero.choices, required=True)
-    grupo_etnico_racial = serializers.ChoiceField(choices=GrupoEtnicoRacial.choices, required=True)
+    genero_pessoa_agressora = serializers.ChoiceField(
+        choices=Genero.choices, required=True
+    )
+    grupo_etnico_racial = serializers.ChoiceField(
+        choices=GrupoEtnicoRacial.choices, required=True
+    )
     etapa_escolar = serializers.ChoiceField(choices=EtapaEscolar.choices, required=True)
-    frequencia_escolar = serializers.ChoiceField(choices=FrequenciaEscolar.choices, required=True)
+    frequencia_escolar = serializers.ChoiceField(
+        choices=FrequenciaEscolar.choices, required=True
+    )
     interacao_ambiente_escolar = serializers.CharField(required=True, allow_blank=False)
-    redes_protecao_acompanhamento = serializers.CharField(required=True, allow_blank=False)
+    redes_protecao_acompanhamento = serializers.CharField(
+        required=True, allow_blank=False
+    )
     notificado_conselho_tutelar = serializers.BooleanField(required=True)
     acompanhado_naapa = serializers.BooleanField(required=True)
     cep = serializers.CharField(required=True, allow_blank=False)
@@ -253,43 +286,56 @@ class IntercorrenciaInfoAgressorSerializer(IntercorrenciaSerializer):
     class Meta:
         model = Intercorrencia
         fields = (
-            "uuid", "unidade_codigo_eol", "dre_codigo_eol",
-            "nome_pessoa_agressora", "idade_pessoa_agressora",
-            "motivacao_ocorrencia", "motivacao_ocorrencia_display", "genero_pessoa_agressora",
-            "grupo_etnico_racial", "etapa_escolar", "frequencia_escolar",
-            "interacao_ambiente_escolar", "redes_protecao_acompanhamento",
-            "notificado_conselho_tutelar", "acompanhado_naapa",
-            "cep", "logradouro", "numero_residencia", "complemento",
-            "bairro", "cidade", "estado"
+            "uuid",
+            "unidade_codigo_eol",
+            "dre_codigo_eol",
+            "nome_pessoa_agressora",
+            "idade_pessoa_agressora",
+            "motivacao_ocorrencia",
+            "motivacao_ocorrencia_display",
+            "genero_pessoa_agressora",
+            "grupo_etnico_racial",
+            "etapa_escolar",
+            "frequencia_escolar",
+            "interacao_ambiente_escolar",
+            "redes_protecao_acompanhamento",
+            "notificado_conselho_tutelar",
+            "acompanhado_naapa",
+            "cep",
+            "logradouro",
+            "numero_residencia",
+            "complemento",
+            "bairro",
+            "cidade",
+            "estado",
         )
         read_only_fields = ("uuid",)
-        
+
     def get_motivacao_ocorrencia_display(self, obj):
         """Retorna os labels das motivações selecionadas"""
         if not obj.motivacao_ocorrencia:
             return []
-        
+
         choices_dict = dict(MotivoOcorrencia.choices)
         return [
-            {
-                'value': motivo,
-                'label': choices_dict.get(motivo, motivo)
-            }
+            {"value": motivo, "label": choices_dict.get(motivo, motivo)}
             for motivo in obj.motivacao_ocorrencia
         ]
-        
+
     def validate_motivacao_ocorrencia(self, value):
         """Valida as motivações selecionadas"""
         if not value or len(value) == 0:
             raise serializers.ValidationError("Selecione pelo menos uma motivação.")
-        
+
         # Validar que todos os valores são válidos
         valid_choices = [choice[0] for choice in MotivoOcorrencia.choices]
-        
+
         for motivo in value:
             if motivo not in valid_choices:
-                raise serializers.ValidationError(f"'{motivo}' não é uma motivação válida.")
-        
+                raise serializers.ValidationError(
+                    f"'{motivo}' não é uma motivação válida."
+                )
+
         # Remover duplicatas
         return list(set(value))
 
@@ -298,19 +344,115 @@ class IntercorrenciaInfoAgressorSerializer(IntercorrenciaSerializer):
         instance = self.instance
 
         if instance and getattr(instance, "tem_info_agressor_ou_vitima", None) == "nao":
-            raise serializers.ValidationError({
-                'detail': "Não é possível preencher informações de agressor/vítima quando 'tem_info_agressor_ou_vitima' é False."
-            })
+            raise serializers.ValidationError(
+                {
+                    "detail": "Não é possível preencher informações de agressor/vítima quando 'tem_info_agressor_ou_vitima' é False."
+                }
+            )
         return attrs
+    
+class IntercorrenciaConclusaoDaUeSerializer(IntercorrenciaSerializer):
+    """Serializer para conclusão da UE - Diretor"""
+    
+    motivo_encerramento_ue = serializers.CharField(required=True, allow_blank=False)
+    nome_unidade = serializers.SerializerMethodField()
+    nome_dre = serializers.SerializerMethodField()
+    responsavel_nome = serializers.SerializerMethodField()
+    responsavel_cpf = serializers.SerializerMethodField()
+    responsavel_email = serializers.SerializerMethodField()
+    perfil_acesso = serializers.SerializerMethodField()
+    
+    
+    def get_nome_unidade(self, obj):
+        """Obtém o nome da unidade via serviço externo."""
+        try:
+            unidade = unidades_service.get_unidade(obj.unidade_codigo_eol)
+            return unidade.get("nome")
+        except unidades_service.ExternalServiceError:
+            return None
+
+    def get_nome_dre(self, obj):
+        """Obtém o nome da DRE via serviço externo."""
+        try:
+            dre = unidades_service.get_unidade(obj.dre_codigo_eol)
+            return dre.get("nome")
+        except unidades_service.ExternalServiceError:
+            return None
+    
+    def get_responsavel_nome(self, obj):
+        """Obtém o nome do usuário responsável do contexto da requisição"""
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            return getattr(request.user, 'name', None)
+        return None
+    
+    def get_responsavel_cpf(self, obj):
+        """Obtém o CPF do usuário responsável do contexto da requisição"""
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            
+            cpf = getattr(request.user, 'cpf', None)
+            if cpf and cpf.isdigit() and len(cpf) == 11:
+                # Formata CPF: 123.456.789-01
+                return f"{cpf[:3]}.{cpf[3:6]}.{cpf[6:9]}-{cpf[9:]}"
+            return cpf
+        return None
+    
+    def get_responsavel_email(self, obj):
+        """Obtém o email do usuário responsável do contexto da requisição"""
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            return getattr(request.user, 'email', None)
+        return None
+    
+    def get_perfil_acesso(self, obj):
+        """Obtém o perfil de acesso do usuário"""
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            cargo_codigo = getattr(request.user, 'cargo_codigo', None)
+            # Mapeia códigos de cargo para nomes legíveis
+            perfis = {
+                str(CODIGO_PERFIL_DIRETOR): "Diretor(a) Pedagógico",
+                str(CODIGO_PERFIL_ASSISTENTE_DIRECAO): "Assistente de Direção",
+                str(CODIGO_PERFIL_DRE): "Ponto Focal DRE",
+                str(CODIGO_PERFIL_GIPE): "Ponto Focal DRE",
+            }
+            return perfis.get(str(cargo_codigo), "Não definido")
+        return None
+
+    
+    class Meta:
+        model = Intercorrencia
+        fields = (
+            "uuid",
+            "responsavel_nome",
+            "responsavel_cpf",
+            "responsavel_email",
+            "perfil_acesso",
+            "unidade_codigo_eol",
+            "dre_codigo_eol",
+            "nome_unidade",
+            "nome_dre",
+            "finalizado_diretor_em",
+            "finalizado_diretor_por",
+            "motivo_encerramento_ue",
+            "protocolo_da_intercorrencia",
+            "status_display",
+            "status_extra",
+        )
+        read_only_fields = ("uuid",)
+        
+    def validate(self, attrs):
+        return super().validate(attrs)    
 
 
 class IntercorrenciaDiretorCompletoSerializer(serializers.ModelSerializer):
     """Serializer simplificado para listagem do Diretor"""
 
-    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    status_display = serializers.CharField(source="get_status_display", read_only=True)
     status_extra = serializers.SerializerMethodField()
     smart_sampa_situacao_display = serializers.CharField(
-        source='get_smart_sampa_situacao_display', read_only=True
+        source="get_smart_sampa_situacao_display", read_only=True
     )
     tipos_ocorrencia = TipoOcorrenciaSerializer(many=True)
     declarante_detalhes = DeclaranteSerializer(source="declarante", read_only=True)
@@ -318,18 +460,15 @@ class IntercorrenciaDiretorCompletoSerializer(serializers.ModelSerializer):
     nome_dre = serializers.SerializerMethodField()
     envolvido = EnvolvidoSerializer(read_only=True)
     motivacao_ocorrencia_display = serializers.SerializerMethodField(read_only=True)
-    
+
     def get_motivacao_ocorrencia_display(self, obj):
         """Retorna os labels das motivações selecionadas"""
         if not obj.motivacao_ocorrencia:
             return []
-        
+
         choices_dict = dict(MotivoOcorrencia.choices)
         return [
-            {
-                'value': motivo,
-                'label': choices_dict.get(motivo, motivo)
-            }
+            {"value": motivo, "label": choices_dict.get(motivo, motivo)}
             for motivo in obj.motivacao_ocorrencia
         ]
 
@@ -351,28 +490,56 @@ class IntercorrenciaDiretorCompletoSerializer(serializers.ModelSerializer):
             return dre.get("nome")
         except unidades_service.ExternalServiceError:
             return None
-    
 
     class Meta:
         model = Intercorrencia
         fields = (
-            "id", "uuid", "status", "status_display", "status_extra",
-            "criado_em", "atualizado_em",
-            "data_ocorrencia", "unidade_codigo_eol", "dre_codigo_eol",
-            "nome_unidade", "nome_dre", "user_username",
-            "envolvido", "tem_info_agressor_ou_vitima",
+            "id",
+            "uuid",
+            "status",
+            "status_display",
+            "status_extra",
+            "criado_em",
+            "atualizado_em",
+            "data_ocorrencia",
+            "unidade_codigo_eol",
+            "dre_codigo_eol",
+            "nome_unidade",
+            "nome_dre",
+            "user_username",
+            "envolvido",
+            "tem_info_agressor_ou_vitima",
             "sobre_furto_roubo_invasao_depredacao",
-            "tipos_ocorrencia", "descricao_ocorrencia",
-            "smart_sampa_situacao", "smart_sampa_situacao_display",
-            "declarante_detalhes", "comunicacao_seguranca_publica", "protocolo_acionado",
-            "nome_pessoa_agressora", "idade_pessoa_agressora",
-            "motivacao_ocorrencia_display", "genero_pessoa_agressora",
-            "grupo_etnico_racial", "etapa_escolar", "frequencia_escolar",
-            "interacao_ambiente_escolar", "redes_protecao_acompanhamento",
-            "notificado_conselho_tutelar", "acompanhado_naapa",
-            "cep", "logradouro", "numero_residencia", "complemento",
-            "bairro", "cidade", "estado",
-            "protocolo_da_intercorrencia", "motivo_encerramento_ue",
-            "finalizado_diretor_em", "finalizado_diretor_por"
+            "tipos_ocorrencia",
+            "descricao_ocorrencia",
+            "smart_sampa_situacao",
+            "smart_sampa_situacao_display",
+            "declarante_detalhes",
+            "comunicacao_seguranca_publica",
+            "protocolo_acionado",
+            "nome_pessoa_agressora",
+            "idade_pessoa_agressora",
+            "motivacao_ocorrencia_display",
+            "genero_pessoa_agressora",
+            "grupo_etnico_racial",
+            "etapa_escolar",
+            "frequencia_escolar",
+            "interacao_ambiente_escolar",
+            "redes_protecao_acompanhamento",
+            "notificado_conselho_tutelar",
+            "acompanhado_naapa",
+            "cep",
+            "logradouro",
+            "numero_residencia",
+            "complemento",
+            "bairro",
+            "cidade",
+            "estado",
+            "protocolo_da_intercorrencia",
+            "motivo_encerramento_ue",
+            "finalizado_diretor_em",
+            "finalizado_diretor_por",
         )
         read_only_fields = ("id", "uuid", "user_username", "criado_em", "atualizado_em")
+
+
