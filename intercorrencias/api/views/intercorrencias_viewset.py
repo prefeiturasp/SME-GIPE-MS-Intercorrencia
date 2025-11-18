@@ -23,7 +23,8 @@ from intercorrencias.api.serializers.intercorrencia_serializer import (
     IntercorrenciaFurtoRouboSerializer,
     IntercorrenciaNaoFurtoRouboSerializer,
     IntercorrenciaSecaoFinalSerializer,
-    IntercorrenciaInfoAgressorSerializer
+    IntercorrenciaInfoAgressorSerializer,
+    IntercorrenciaConclusaoDaUeSerializer
 )
 
 logger = logging.getLogger(__name__)
@@ -47,6 +48,7 @@ class IntercorrenciaDiretorViewSet(viewsets.GenericViewSet, mixins.ListModelMixi
     PUT /api-intercorrencias/v1/diretor/{uuid}/nao-furto-roubo/
     PUT /api-intercorrencias/v1/diretor/{uuid}/secao-final/
     PUT /api-intercorrencias/v1/diretor/{uuid}/info-agressor/
+    PUT /api-intercorrencias/v1/diretor/{uuid}/enviar-para-dre/
     """
 
     queryset = Intercorrencia.objects.all()
@@ -87,7 +89,8 @@ class IntercorrenciaDiretorViewSet(viewsets.GenericViewSet, mixins.ListModelMixi
             "furto_roubo": IntercorrenciaFurtoRouboSerializer,
             "nao_furto_roubo": IntercorrenciaNaoFurtoRouboSerializer,
             "secao_final": IntercorrenciaSecaoFinalSerializer,
-            "info_agressor": IntercorrenciaInfoAgressorSerializer
+            "info_agressor": IntercorrenciaInfoAgressorSerializer,
+            "enviar_para_dre": IntercorrenciaConclusaoDaUeSerializer,
         }
         return action_map.get(self.action, IntercorrenciaDiretorCompletoSerializer)
 
@@ -250,6 +253,44 @@ class IntercorrenciaDiretorViewSet(viewsets.GenericViewSet, mixins.ListModelMixi
 
         except Exception as exc:
             return self.handle_exception(exc)
+        
+    @action(detail=True, methods=['put'], url_path='enviar-para-dre')
+    def enviar_para_dre(self, request, uuid=None):
+        """PUT {uuid}/enviar-para-dre/ - Finaliza e envia para DRE"""
+        try:
+            instance = self.get_object()
+           
+            if hasattr(instance, "pode_ser_editado_por_diretor") and not instance.pode_ser_editado_por_diretor:
+                return Response(
+                    {"detail": MSG_INTERCORRENCIA_NAO_EDITAVEL},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            
+            serializer = self.get_serializer(
+                instance,
+                data=request.data,
+                partial=False,
+                context={"request": request},
+            )
+            
+            obj_to_update = {
+                "status": "enviado_para_dre",
+                "finalizado_diretor_em": timezone.now(),
+                "finalizado_diretor_por": request.user.username,
+                "atualizado_em": timezone.now()
+            }   
+            
+            if not instance.protocolo_da_intercorrencia:
+                obj_to_update["protocolo_da_intercorrencia"] = Intercorrencia.gerar_protocolo()         
+            
+            serializer.is_valid(raise_exception=True)
+            serializer.save(**obj_to_update)
+           
+            serializer = IntercorrenciaConclusaoDaUeSerializer(instance, context={"request": request})
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        
+        except Exception as exc:
+            return self.handle_exception(exc)
 
     @action(detail=False, methods=['get'], url_path='categorias-disponiveis')
     def categorias_disponiveis(self, request):
@@ -274,35 +315,4 @@ class IntercorrenciaDiretorViewSet(viewsets.GenericViewSet, mixins.ListModelMixi
 
         return response
     
-    @action(detail=True, methods=['put'], url_path='enviar-para-dre')
-    def enviar_para_dre(self, request, uuid=None):
-        """PUT {uuid}/enviar-para-dre/ - Finaliza e envia para DRE"""
-        try:
-            instance = self.get_object()
-           
-            if not instance.pode_ser_editado_por_diretor:
-                return Response(
-                    {"detail": MSG_INTERCORRENCIA_NAO_EDITAVEL},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            
-            # Captura o motivo de encerramento se enviado no body
-            motivo_encerramento = request.data.get('motivo_encerramento_ue', '')
-            
-            # Gera protocolo único
-            
-            if instance and not instance.protocolo_da_intercorrencia:   
-                instance.protocolo_da_intercorrencia = Intercorrencia.gerar_protocolo()
-                
-                
-            instance.motivo_encerramento_ue = motivo_encerramento
-            instance.status = 'enviado_para_dre'
-            instance.finalizado_diretor_em = timezone.now()
-            instance.finalizado_diretor_por = request.user.username
-            instance.save()
-           
-            serializer = IntercorrenciaDiretorCompletoSerializer(instance)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        
-        except Exception as exc:
-            return self.handle_exception(exc)
+    
