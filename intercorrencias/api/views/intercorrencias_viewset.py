@@ -155,13 +155,6 @@ class IntercorrenciaDiretorViewSet(viewsets.GenericViewSet, mixins.ListModelMixi
 
         try:
             instance = self.get_object()
-
-            if hasattr(instance, "pode_ser_editado_por_diretor") and not instance.pode_ser_editado_por_diretor:
-                return Response(
-                    {"detail": MSG_INTERCORRENCIA_NAO_EDITAVEL},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
             serializer = self.get_serializer(
                 instance, data=request.data, partial=False, context={"request": request}
             )
@@ -180,12 +173,6 @@ class IntercorrenciaDiretorViewSet(viewsets.GenericViewSet, mixins.ListModelMixi
         try:
             instance = self.get_object()
 
-            if hasattr(instance, "pode_ser_editado_por_diretor") and not instance.pode_ser_editado_por_diretor:
-                return Response(
-                    {"detail": MSG_INTERCORRENCIA_NAO_EDITAVEL},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
             serializer = self.get_serializer(
                 instance, data=request.data, partial=False, context={"request": request}
             )
@@ -203,12 +190,6 @@ class IntercorrenciaDiretorViewSet(viewsets.GenericViewSet, mixins.ListModelMixi
 
         try:
             instance = self.get_object()
-
-            if hasattr(instance, "pode_ser_editado_por_diretor") and not instance.pode_ser_editado_por_diretor:
-                return Response(
-                    {"detail": MSG_INTERCORRENCIA_NAO_EDITAVEL},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
 
             serializer = self.get_serializer(
                 instance,
@@ -231,14 +212,7 @@ class IntercorrenciaDiretorViewSet(viewsets.GenericViewSet, mixins.ListModelMixi
 
         try:
             instance = self.get_object()
-
-            if hasattr(instance, "pode_ser_editado_por_diretor") and not instance.pode_ser_editado_por_diretor:
-                return Response(
-                    {"detail": MSG_INTERCORRENCIA_NAO_EDITAVEL},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-
-            if instance and getattr(instance, "tem_info_agressor_ou_vitima", None) == "nao":
+            if getattr(instance, "tem_info_agressor_ou_vitima", None) == "nao":
                 return Response(
                     {"detail": "Só é possível preencher informações quando 'tem_info_agressor_ou_vitima' é verdadeiro."},
                     status=status.HTTP_400_BAD_REQUEST
@@ -253,19 +227,24 @@ class IntercorrenciaDiretorViewSet(viewsets.GenericViewSet, mixins.ListModelMixi
 
         except Exception as exc:
             return self.handle_exception(exc)
+
+    @action(detail=False, methods=['get'], url_path='categorias-disponiveis')
+    def categorias_disponiveis(self, request):
+
+        try:
+            data = get_values_info_agressor_choices()
+            return Response(data=data, status=status.HTTP_200_OK)
+        
+        except Exception as exc:
+            return self.handle_exception(exc)
         
     @action(detail=True, methods=['put'], url_path='enviar-para-dre')
     def enviar_para_dre(self, request, uuid=None):
         """PUT {uuid}/enviar-para-dre/ - Finaliza e envia para DRE"""
+        
         try:
             instance = self.get_object()
-           
-            if hasattr(instance, "pode_ser_editado_por_diretor") and not instance.pode_ser_editado_por_diretor:
-                return Response(
-                    {"detail": MSG_INTERCORRENCIA_NAO_EDITAVEL},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            
+
             serializer = self.get_serializer(
                 instance,
                 data=request.data,
@@ -292,16 +271,6 @@ class IntercorrenciaDiretorViewSet(viewsets.GenericViewSet, mixins.ListModelMixi
         except Exception as exc:
             return self.handle_exception(exc)
 
-    @action(detail=False, methods=['get'], url_path='categorias-disponiveis')
-    def categorias_disponiveis(self, request):
-
-        try:
-            data = get_values_info_agressor_choices()
-            return Response(data=data, status=status.HTTP_200_OK)
-        
-        except Exception as exc:
-            return self.handle_exception(exc)
-
     def handle_exception(self, exc):
         response = exception_handler(exc, self.get_exception_handler_context())
 
@@ -314,5 +283,3 @@ class IntercorrenciaDiretorViewSet(viewsets.GenericViewSet, mixins.ListModelMixi
                 response.data["detail"] = detail[0]
 
         return response
-    
-    

@@ -101,14 +101,11 @@ class IntercorrenciaPermission(BasePermission):
             logger.info("[PERMISSION] DRE %s leitura permitida", request.user.username)
             return True
         
-        if getattr(obj, "status", "") == "em_preenchimento_diretor":
-            logger.info("[PERMISSION] DRE %s tentando acessar intercorrência em preenchimento", request.user.username)
-            return False
- 
         if request.method in ["PUT", "PATCH"]:
-            permitido = getattr(obj, "pode_ser_editado_por_dre", False)
-            logger.info("[PERMISSION] DRE %s pode editar? %s", request.user.username, permitido)
-            return permitido
+            flag_dre = getattr(obj, "pode_ser_editado_por_dre", False)
+            flag_diretor = getattr(obj, "pode_ser_editado_por_diretor", False)
+
+            return flag_dre or flag_diretor
 
         return False
  
@@ -117,14 +114,13 @@ class IntercorrenciaPermission(BasePermission):
         if request.method in SAFE_METHODS:
             logger.info("[PERMISSION] GIPE %s leitura permitida", request.user.username)
             return True
- 
-        if getattr(obj, "status", "") in ["em_preenchimento_diretor", "enviado_para_dre", "em_analise_dre"]:
-            logger.info("[PERMISSION] GIPE %s tentando acessar intercorrência ainda em análise", request.user.username)
-            return False
- 
+        
         if request.method in ["PUT", "PATCH"]:
-            permitido = getattr(obj, "pode_ser_editado_por_gipe", False)
-            logger.info("[PERMISSION] GIPE %s pode editar? %s", request.user.username, permitido)
-            return permitido
+
+            flag_gipe = getattr(obj, "pode_ser_editado_por_gipe", False)
+            flag_dre = getattr(obj, "pode_ser_editado_por_dre", False)
+            flag_diretor = getattr(obj, "pode_ser_editado_por_diretor", False)
+
+            return flag_gipe or flag_dre or flag_diretor
 
         return False

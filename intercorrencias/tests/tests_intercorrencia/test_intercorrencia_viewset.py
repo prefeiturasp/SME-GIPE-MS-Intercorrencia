@@ -225,15 +225,22 @@ class TestIntercorrenciaDiretorViewSet:
 
     def test_nao_furto_roubo_nao_editavel_retorna_400(self, client, diretor_user, intercorrencia, tipos_ocorrencia, envolvido):
         client.force_authenticate(user=diretor_user)
+        intercorrencia.sobre_furto_roubo_invasao_depredacao = False
+        intercorrencia.save()
+        
         type(intercorrencia).pode_ser_editado_por_diretor = PropertyMock(return_value=False)
-        data = {"unidade_codigo_eol": "200237", "dre_codigo_eol": "108500", "tipos_ocorrencia": [str(t.uuid) for t in tipos_ocorrencia], "descricao_ocorrencia": "Teste", "tem_info_agressor_ou_vitima": "sim", "envolvido": str(envolvido[0].uuid)}
+
+        data = {"unidade_codigo_eol": "200237", "dre_codigo_eol": "108500",
+                "tipos_ocorrencia": [str(t.uuid) for t in tipos_ocorrencia],
+                "descricao_ocorrencia": "Teste", "tem_info_agressor_ou_vitima": "sim",
+                "envolvido": str(envolvido[0].uuid)}
 
         url = f"/api-intercorrencias/v1/diretor/{intercorrencia.uuid}/nao-furto-roubo/"
-
-        with patch("intercorrencias.api.views.intercorrencias_viewset.IntercorrenciaDiretorViewSet.check_object_permissions", return_value=None):
-            response = client.put(url, data, format="json")
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "não pode mais ser editada" in response.data["detail"]
+        
+        response = self._api_call(client, diretor_user, 'put', url, data)
+        
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert "não tem permissão" in str(response.data["detail"]).lower()
 
     def test_secoes_update_raise_permission_denied_sem_unidade(self, diretor_user, intercorrencia):
         diretor_user.unidade_codigo_eol = None
@@ -256,6 +263,7 @@ class TestIntercorrenciaDiretorViewSet:
     def test_furto_roubo_nao_editavel_retorna_400(self, client, diretor_user, intercorrencia, tipos_ocorrencia):
         client.force_authenticate(user=diretor_user)
         type(intercorrencia).pode_ser_editado_por_diretor = PropertyMock(return_value=False)
+        
         data = {
             "unidade_codigo_eol": "200237",
             "dre_codigo_eol": "108500",
@@ -265,10 +273,10 @@ class TestIntercorrenciaDiretorViewSet:
         }
         url = f"/api-intercorrencias/v1/diretor/{intercorrencia.uuid}/furto-roubo/"
 
-        with patch("intercorrencias.api.views.intercorrencias_viewset.IntercorrenciaDiretorViewSet.check_object_permissions", return_value=None):
-            response = client.put(url, data, format="json")
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "não pode mais ser editada" in response.data["detail"]
+        response = self._api_call(client, diretor_user, 'put', url, data)
+        
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert "não tem permissão" in str(response.data["detail"]).lower()
 
     def test_handle_exception_generic(self, diretor_user):
         viewset = IntercorrenciaDiretorViewSet()
@@ -341,6 +349,7 @@ class TestIntercorrenciaDiretorViewSet:
     def test_secao_final_intercorrencia_nao_editavel(self, client, diretor_user, intercorrencia, declarante):
         client.force_authenticate(user=diretor_user)
         type(intercorrencia).pode_ser_editado_por_diretor = PropertyMock(return_value=False)
+        
         data = {
             "unidade_codigo_eol": "200237",
             "dre_codigo_eol": "108500",
@@ -350,11 +359,10 @@ class TestIntercorrenciaDiretorViewSet:
         }
         url = f"/api-intercorrencias/v1/diretor/{intercorrencia.uuid}/secao-final/"
 
-        with patch("intercorrencias.api.views.intercorrencias_viewset.IntercorrenciaDiretorViewSet.check_object_permissions", return_value=None):
-            response = client.put(url, data, format="json")
-
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "não pode mais ser editada" in response.data["detail"]
+        response = self._api_call(client, diretor_user, 'put', url, data)
+        
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert "não tem permissão" in str(response.data["detail"]).lower()
 
     def test_secao_final_sem_unidade(self, client, diretor_user, intercorrencia, declarante):
         diretor_user.unidade_codigo_eol = None
@@ -439,7 +447,6 @@ class TestIntercorrenciaDiretorViewSet:
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "Erro inesperado ao buscar categorias disponíveis" in str(response.data["detail"])
-      
         
     def test_enviar_para_dre_sucesso(self, client, diretor_user, intercorrencia, tipos_ocorrencia):
         type(intercorrencia).pode_ser_editado_por_diretor = PropertyMock(return_value=True)
@@ -448,23 +455,21 @@ class TestIntercorrenciaDiretorViewSet:
         response = self._api_call(client, diretor_user, 'put', url, data)
         assert response.status_code == status.HTTP_200_OK
         
-        
     def test_enviar_para_dre_nao_editavel(self, client, diretor_user, intercorrencia, declarante):
         client.force_authenticate(user=diretor_user)
         type(intercorrencia).pode_ser_editado_por_diretor = PropertyMock(return_value=False)
+        
         data = {
             "unidade_codigo_eol": "200237",
             "dre_codigo_eol": "108500",
             "motivo_encerramento_ue": "Encerramento teste"
         }
         url = f"/api-intercorrencias/v1/diretor/{intercorrencia.uuid}/enviar-para-dre/"
-
-        with patch("intercorrencias.api.views.intercorrencias_viewset.IntercorrenciaDiretorViewSet.check_object_permissions", return_value=None):
-            response = client.put(url, data, format="json")
-
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "não pode mais ser editada" in response.data["detail"]
         
+        response = self._api_call(client, diretor_user, 'put', url, data)
+        
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert "não tem permissão" in str(response.data["detail"]).lower()
         
     def test_envviar_para_dre_generic_exception(self, client, diretor_user, intercorrencia):
         client.force_authenticate(user=diretor_user)
@@ -527,7 +532,6 @@ class TestIntercorrenciaDiretorViewSet:
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-
     def test_info_agressor_regra_tem_info_agressor_ou_vitima(self, client, diretor_user, intercorrencia):
         type(intercorrencia).pode_ser_editado_por_diretor = PropertyMock(return_value=True)
         intercorrencia.tem_info_agressor_ou_vitima = "nao"
@@ -541,7 +545,6 @@ class TestIntercorrenciaDiretorViewSet:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "Só é possível preencher informações" in response.data["detail"]
 
-
     def test_info_agressor_sem_unidade(self, client, diretor_user, intercorrencia):
         diretor_user.unidade_codigo_eol = None
         diretor_user.save()
@@ -552,7 +555,6 @@ class TestIntercorrenciaDiretorViewSet:
         response = self._api_call(client, diretor_user, "put", url, data)
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
-
 
     def test_info_agressor_serializer_exception(self, client, diretor_user, intercorrencia):
         client.force_authenticate(user=diretor_user)
@@ -576,7 +578,6 @@ class TestIntercorrenciaDiretorViewSet:
             assert "Erro no serializer info/agressor" in response.data["detail"]
             MockSerializer.assert_called()
 
-
     def test_info_agressor_generic_exception(self, client, diretor_user, intercorrencia):
         client.force_authenticate(user=diretor_user)
 
@@ -593,9 +594,11 @@ class TestIntercorrenciaDiretorViewSet:
             assert "Erro inesperado info/agressor" in response.data["detail"]
     
     def test_info_agressor_nao_editavel(self, client, diretor_user, intercorrencia):
-        type(intercorrencia).pode_ser_editado_por_diretor = PropertyMock(return_value=False)
+        client.force_authenticate(user=diretor_user)
         intercorrencia.tem_info_agressor_ou_vitima = "sim"
         intercorrencia.save()
+        
+        type(intercorrencia).pode_ser_editado_por_diretor = PropertyMock(return_value=False)
 
         data = {
             "nome_pessoa_agressora": "João Silva",
@@ -621,10 +624,7 @@ class TestIntercorrenciaDiretorViewSet:
         }
 
         url = f"/api-intercorrencias/v1/diretor/{intercorrencia.uuid}/info-agressor/"
+        response = self._api_call(client, diretor_user, "put", url, data)
 
-        with patch("intercorrencias.api.views.intercorrencias_viewset.IntercorrenciaDiretorViewSet.check_object_permissions", return_value=None):
-            response = self._api_call(client, diretor_user, "put", url, data)
-
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "Esta intercorrência não pode mais ser editada." in response.data["detail"]
-
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert "não tem permissão" in str(response.data["detail"]).lower()
