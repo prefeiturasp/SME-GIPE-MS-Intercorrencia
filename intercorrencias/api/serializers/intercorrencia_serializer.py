@@ -79,7 +79,7 @@ class IntercorrenciaSerializer(serializers.ModelSerializer):
         codigo_unidade = attrs.get("unidade_codigo_eol")
         codigo_dre = attrs.get("dre_codigo_eol")
         request = self.context.get("request")
-
+        
         try:
             u = unidades_service.get_unidade(codigo_unidade)
         except unidades_service.ExternalServiceError as e:
@@ -781,3 +781,28 @@ class IntercorrenciaUpdateDiretorCompletoSerializer(IntercorrenciaSerializer):
 
         return instance    
 
+
+# ===========================
+# SERIALIZERS DA DRE
+# ===========================
+
+class IntercorrenciaDreSerializer(IntercorrenciaSerializer):
+    """Serializer completo para DRE - preenche campos próprios"""
+    
+    class Meta:
+        model = Intercorrencia
+        fields = (
+            # Básicos (read-only para DRE)
+            "id", "uuid", "unidade_codigo_eol", "dre_codigo_eol",
+            
+            # Campos próprios da DRE (editáveis)
+            "acionamento_seguranca_publica", "interlocucao_sts", "info_complementar_sts",
+            "interlocucao_cpca", "info_complementar_cpca", "interlocucao_supervisao_escolar", 
+            "info_complementar_supervisao_escolar", "interlocucao_naapa", "info_complementar_naapa",
+
+        )
+        
+    def validate(self, attrs):
+        return super().validate(attrs)
+        
+        
