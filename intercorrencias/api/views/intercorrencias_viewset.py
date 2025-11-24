@@ -20,6 +20,7 @@ from intercorrencias.choices.info_agressor_choices import get_values_info_agress
 from intercorrencias.api.serializers.intercorrencia_serializer import (
     IntercorrenciaSecaoInicialSerializer,
     IntercorrenciaDiretorCompletoSerializer,
+    IntercorrenciaUpdateDiretorCompletoSerializer,
     IntercorrenciaFurtoRouboSerializer,
     IntercorrenciaNaoFurtoRouboSerializer,
     IntercorrenciaSecaoFinalSerializer,
@@ -91,8 +92,38 @@ class IntercorrenciaDiretorViewSet(viewsets.GenericViewSet, mixins.ListModelMixi
             "secao_final": IntercorrenciaSecaoFinalSerializer,
             "info_agressor": IntercorrenciaInfoAgressorSerializer,
             "enviar_para_dre": IntercorrenciaConclusaoDaUeSerializer,
+            "update": IntercorrenciaUpdateDiretorCompletoSerializer,
+            "partial_update": IntercorrenciaUpdateDiretorCompletoSerializer,
         }
         return action_map.get(self.action, IntercorrenciaDiretorCompletoSerializer)
+    
+    def update(self, request, uuid=None):
+        """PUT {uuid}/ - Atualiza intercorrência completa"""
+
+        try:
+            instance = self.get_object()
+            
+            if not instance.pode_ser_editado_por_diretor:
+                return Response(
+                    {"detail": MSG_INTERCORRENCIA_NAO_EDITAVEL},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            serializer = self.get_serializer(
+                instance, 
+                data=request.data, 
+                partial=True,
+                context={"request": request}
+            )
+            serializer.is_valid(raise_exception=True)
+            serializer.save(atualizado_em=timezone.now())
+            
+            # Retorna com o serializer completo para mostrar todos os dados
+            response_serializer = IntercorrenciaDiretorCompletoSerializer(instance)
+            return Response(response_serializer.data, status=status.HTTP_200_OK)
+        
+        except Exception as exc:
+            return self.handle_exception(exc)
 
     @action(detail=False, methods=["post"], url_path="secao-inicial")
     def secao_inicial_create(self, request):
@@ -227,17 +258,7 @@ class IntercorrenciaDiretorViewSet(viewsets.GenericViewSet, mixins.ListModelMixi
 
         except Exception as exc:
             return self.handle_exception(exc)
-
-    @action(detail=False, methods=['get'], url_path='categorias-disponiveis')
-    def categorias_disponiveis(self, request):
-
-        try:
-            data = get_values_info_agressor_choices()
-            return Response(data=data, status=status.HTTP_200_OK)
-        
-        except Exception as exc:
-            return self.handle_exception(exc)
-        
+       
     @action(detail=True, methods=['put'], url_path='enviar-para-dre')
     def enviar_para_dre(self, request, uuid=None):
         """PUT {uuid}/enviar-para-dre/ - Finaliza e envia para DRE"""
@@ -267,6 +288,16 @@ class IntercorrenciaDiretorViewSet(viewsets.GenericViewSet, mixins.ListModelMixi
            
             serializer = IntercorrenciaConclusaoDaUeSerializer(instance, context={"request": request})
             return Response(serializer.data, status=status.HTTP_200_OK)
+        
+        except Exception as exc:
+            return self.handle_exception(exc)
+        
+    @action(detail=False, methods=['get'], url_path='categorias-disponiveis')
+    def categorias_disponiveis(self, request):
+
+        try:
+            data = get_values_info_agressor_choices()
+            return Response(data=data, status=status.HTTP_200_OK)
         
         except Exception as exc:
             return self.handle_exception(exc)

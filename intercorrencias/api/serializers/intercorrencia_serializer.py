@@ -24,6 +24,9 @@ from intercorrencias.choices.info_agressor_choices import (
     EtapaEscolar,
 )
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 class IntercorrenciaSerializer(serializers.ModelSerializer):
 
@@ -32,6 +35,38 @@ class IntercorrenciaSerializer(serializers.ModelSerializer):
 
     def get_status_extra(self, obj):
         return obj.STATUS_EXTRA_LABELS.get(obj.status)
+    
+    def _get_campos_agressor_vitima(self):
+        """Retorna a lista de campos relacionados a informações de agressor/vítima"""
+        return [
+            "nome_pessoa_agressora",
+            "idade_pessoa_agressora",
+            "motivacao_ocorrencia",
+            "genero_pessoa_agressora",
+            "grupo_etnico_racial",
+            "etapa_escolar",
+            "frequencia_escolar",
+            "interacao_ambiente_escolar",
+            "redes_protecao_acompanhamento",
+            "notificado_conselho_tutelar",
+            "acompanhado_naapa",
+            "cep",
+            "logradouro",
+            "numero_residencia",
+            "complemento",
+            "bairro",
+            "cidade",
+            "estado",
+        ]
+
+    def _limpar_campos_agressor_vitima(self, instance, campos):
+        """Limpa os campos de agressor/vítima na instância"""
+        for campo in campos:
+            if campo in ["idade_pessoa_agressora", "notificado_conselho_tutelar", "acompanhado_naapa"]:
+                setattr(instance, campo, None)
+            else:
+                setattr(instance, campo, [] if campo == "motivacao_ocorrencia" else "")
+        instance.save(update_fields=campos)
 
     def validate(self, attrs):
         """
@@ -158,6 +193,38 @@ class IntercorrenciaFurtoRouboSerializer(IntercorrenciaSerializer):
                 }
             )
         return attrs
+    
+    def update(self, instance, validated_data):
+        """
+        Garante que campos não aplicáveis sejam limpos quando é furto/roubo.
+        Segue padrão de 2 etapas:
+        - ETAPA 1: Remove campos não aplicáveis do validated_data ANTES do update
+        - ETAPA 2: Limpa campos na instância APÓS o update
+        """
+        
+        # ETAPA 1: Remove campos não aplicáveis do validated_data ANTES do update
+        # Furto/roubo não possui envolvido nem informações de agressor/vítima
+        validated_data.pop("envolvido", None)
+        validated_data.pop("tem_info_agressor_ou_vitima", None)
+        
+        campos_agressor_vitima = self._get_campos_agressor_vitima()
+        
+        # Remove também todos os campos de agressor/vítima
+        for campo in campos_agressor_vitima:
+            validated_data.pop(campo, None)
+        
+        # Atualiza a instância com os dados validados
+        instance = super().update(instance, validated_data)
+        
+        # ETAPA 2: Limpa campos na instância APÓS o update
+        instance.envolvido = None
+        instance.tem_info_agressor_ou_vitima = ""
+        instance.save(update_fields=["envolvido", "tem_info_agressor_ou_vitima"])
+        
+        # Limpa todos os campos de agressor/vítima
+        self._limpar_campos_agressor_vitima(instance, campos_agressor_vitima)
+
+        return instance 
 
 
 class IntercorrenciaSecaoFinalSerializer(IntercorrenciaSerializer):
@@ -247,6 +314,40 @@ class IntercorrenciaNaoFurtoRouboSerializer(IntercorrenciaSerializer):
                 "Esta intercorrência é de furto/roubo/invasão/depredação e deve usar o serializer correspondente."
             )
         return attrs
+    
+    def update(self, instance, validated_data):
+        """
+        Garante que campos não aplicáveis sejam limpos quando NÃO é furto/roubo.
+        Segue padrão de 2 etapas:
+        - ETAPA 1: Remove campos não aplicáveis do validated_data ANTES do update
+        - ETAPA 2: Limpa campos na instância APÓS o update
+        """
+        
+        # # ETAPA 1: Remove campos não aplicáveis do validated_data ANTES do update
+        # # Não-furto/roubo não possui smart_sampa_situacao
+        validated_data.pop("smart_sampa_situacao", None)
+        
+        tem_info_agressor_ou_vitima = validated_data.get(
+            "tem_info_agressor_ou_vitima", instance.tem_info_agressor_ou_vitima
+        )
+        
+        campos_agressor_vitima = self._get_campos_agressor_vitima()
+        
+        if tem_info_agressor_ou_vitima != "sim":
+            for campo in campos_agressor_vitima:
+                validated_data.pop(campo, None)
+            
+        # Atualiza a instância com os dados validados
+        instance = super().update(instance, validated_data)
+        
+        # ETAPA 2: Limpa campos na instância APÓS o update
+        instance.smart_sampa_situacao = ""
+        instance.save(update_fields=["smart_sampa_situacao"])
+        
+        if tem_info_agressor_ou_vitima != "sim":
+            self._limpar_campos_agressor_vitima(instance, campos_agressor_vitima)
+
+        return instance    
 
 
 class IntercorrenciaInfoAgressorSerializer(IntercorrenciaSerializer):
@@ -542,4 +643,141 @@ class IntercorrenciaDiretorCompletoSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ("id", "uuid", "user_username", "criado_em", "atualizado_em")
 
+
+class IntercorrenciaUpdateDiretorCompletoSerializer(IntercorrenciaSerializer):
+    """
+    Serializer para atualização completa de uma intercorrência.
+    Aceita todos os campos e aplica regras de limpeza baseadas no tipo.
+    """
+
+    tipos_ocorrencia = serializers.SlugRelatedField(
+        many=True,
+        slug_field="uuid",
+        queryset=TipoOcorrencia.objects.all(),
+        required=False,
+        write_only=True,
+    )
+
+    descricao_ocorrencia = serializers.CharField(required=False, allow_blank=True)
+    smart_sampa_situacao = serializers.ChoiceField(
+        required=False, allow_blank=True, choices=Intercorrencia.SMART_SAMPA_CHOICES
+    )
+    envolvido = serializers.SlugRelatedField(
+        slug_field="uuid",
+        queryset=Envolvido.objects.all(),
+        required=False,
+        allow_null=True,
+        write_only=True,
+    )
+
+    tem_info_agressor_ou_vitima = serializers.ChoiceField(
+        choices=Intercorrencia.INFORMACOES_AGRESSOR_VITIMA_CHOICES,
+        required=False,
+        allow_blank=True,
+    )
+    declarante = serializers.SlugRelatedField(
+        slug_field="uuid",
+        queryset=Declarante.objects.all(),
+        required=False,
+        allow_null=True,
+        write_only=True,
+    )
+
+    comunicacao_seguranca_publica = serializers.ChoiceField(
+        choices=Intercorrencia.SEGURANCA_PUBLICA_CHOICES,
+        required=False,
+        allow_blank=True,
+    )
+    protocolo_acionado = serializers.ChoiceField(
+        choices=Intercorrencia.PROTOCOLO_CHOICES, required=False, allow_blank=True
+    )
+
+    class Meta:
+        model = Intercorrencia
+        fields = (
+            "uuid",
+            "data_ocorrencia",
+            "unidade_codigo_eol",
+            "dre_codigo_eol",
+            "sobre_furto_roubo_invasao_depredacao",
+            "tipos_ocorrencia",
+            "descricao_ocorrencia",
+            "smart_sampa_situacao",
+            "envolvido",
+            "tem_info_agressor_ou_vitima",
+            "declarante",
+            "comunicacao_seguranca_publica",
+            "protocolo_acionado",
+            "nome_pessoa_agressora",
+            "idade_pessoa_agressora",
+            "motivacao_ocorrencia",
+            "genero_pessoa_agressora",
+            "grupo_etnico_racial",
+            "etapa_escolar",
+            "frequencia_escolar",
+            "interacao_ambiente_escolar",
+            "redes_protecao_acompanhamento",
+            "notificado_conselho_tutelar",
+            "acompanhado_naapa",
+            "cep",
+            "logradouro",
+            "numero_residencia",
+            "complemento",
+            "bairro",
+            "cidade",
+            "estado",
+        )
+        read_only_fields = ("uuid", "status_display")
+
+    def update(self, instance, validated_data):
+        """
+        Aplica regras de limpeza baseadas no tipo de intercorrência:
+        - Se É furto/roubo: limpa envolvido e tem_info_agressor_ou_vitima
+        - Se NÃO É furto/roubo: limpa smart_sampa_situacao
+        - Se tem_info != "sim": limpa campos de agressor/vítima
+        """
+        # Verifica se é sobre furto/roubo (pode estar em validated_data ou já na instância)
+        sobre_furto_roubo = validated_data.get(
+            "sobre_furto_roubo_invasao_depredacao",
+            instance.sobre_furto_roubo_invasao_depredacao,
+        )
+
+        campos_agressor_vitima = self._get_campos_agressor_vitima()
+
+        # ETAPA 1: Remove campos não aplicáveis do validated_data ANTES do update
+        if sobre_furto_roubo:
+            validated_data.pop("envolvido", None)
+            validated_data.pop("tem_info_agressor_ou_vitima", None)
+            
+            # Remove também campos agressor/vítima pois não se aplicam a furto/roubo
+            for campo in campos_agressor_vitima:
+                validated_data.pop(campo, None)
+        else:
+            validated_data.pop("smart_sampa_situacao", None)
+            
+        tem_info_agressor_ou_vitima = validated_data.get(
+            "tem_info_agressor_ou_vitima", instance.tem_info_agressor_ou_vitima
+        )
+
+        # Só verifica tem_info se NÃO for furto/roubo (já foi tratado acima)
+        if not sobre_furto_roubo and tem_info_agressor_ou_vitima != "sim":
+            for campo in campos_agressor_vitima:
+                validated_data.pop(campo, None)
+
+        # Atualiza a instância com os dados validados
+        instance = super().update(instance, validated_data)
+
+        # ETAPA 2: Após atualizar, garante que os campos foram limpos na instância
+        if sobre_furto_roubo:
+            instance.envolvido = None
+            instance.tem_info_agressor_ou_vitima = ""
+            instance.save(update_fields=["envolvido", "tem_info_agressor_ou_vitima"])
+        else:
+            instance.smart_sampa_situacao = ""
+            instance.save(update_fields=["smart_sampa_situacao"])
+
+        if tem_info_agressor_ou_vitima != "sim" or sobre_furto_roubo:
+            self._limpar_campos_agressor_vitima(instance, campos_agressor_vitima)
+
+        return instance    
 
