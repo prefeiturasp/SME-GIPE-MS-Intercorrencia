@@ -275,3 +275,42 @@ class TestIntercorrencia:
         obj.status = "concluida"
         assert obj.pode_ser_editado_por_dre is False
 
+    def test_campos_encerramento_dre(self, intercorrencia_factory):
+        dt = timezone.make_aware(datetime(2025, 2, 1, 15, 20))
+
+        obj = intercorrencia_factory(
+            motivo_encerramento_dre="Caso encerrado após análise técnica.",
+            finalizado_dre_em=dt,
+            finalizado_dre_por="usuario_dre"
+        )
+
+        obj.full_clean()
+        obj.save()
+
+        obj.refresh_from_db()
+
+        assert obj.motivo_encerramento_dre == "Caso encerrado após análise técnica."
+        assert obj.finalizado_dre_em == dt
+        assert obj.finalizado_dre_por == "usuario_dre"
+
+    def test_pode_ser_editado_por_gipe(self, intercorrencia_factory):
+        obj = intercorrencia_factory(status="em_preenchimento_diretor")
+        assert obj.pode_ser_editado_por_gipe is True
+
+        obj.status = "em_preenchimento_assistente"
+        assert obj.pode_ser_editado_por_gipe is True
+
+        obj.status = "em_preenchimento_dre"
+        assert obj.pode_ser_editado_por_gipe is True
+
+        obj.status = "em_preenchimento_gipe"
+        assert obj.pode_ser_editado_por_gipe is True
+
+        obj.status = "enviado_para_dre"
+        assert obj.pode_ser_editado_por_gipe is True
+
+        obj.status = "enviado_para_gipe"
+        assert obj.pode_ser_editado_por_gipe is True
+
+        obj.status = "concluida"
+        assert obj.pode_ser_editado_por_gipe is False
