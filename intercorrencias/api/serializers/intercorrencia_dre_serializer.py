@@ -16,11 +16,17 @@ class IntercorrenciaDreSerializer(IntercorrenciaSerializer):
     interlocucao_supervisao_escolar = serializers.BooleanField(required=True)
     interlocucao_naapa = serializers.BooleanField(required=True)
     
+    status_display = serializers.CharField(source="get_status_display", read_only=True)
+    status_extra = serializers.SerializerMethodField()
+    
+    def get_status_extra(self, obj):
+        return obj.STATUS_EXTRA_LABELS.get(obj.status)
+    
     class Meta:
         model = Intercorrencia
         fields = (
             # Básicos (read-only para DRE)
-            "id", "uuid", "unidade_codigo_eol", "dre_codigo_eol",
+            "id", "uuid", "unidade_codigo_eol", "dre_codigo_eol", "status", "status_display", "status_extra",
             
             # Campos próprios da DRE (editáveis)
             "acionamento_seguranca_publica", "interlocucao_sts", "info_complementar_sts",

@@ -707,21 +707,6 @@ class TestIntercorrenciaDiretorViewSetUpdate:
         assert response.status_code == status.HTTP_200_OK
         assert "Descrição atualizada" in response.data["descricao_ocorrencia"]
 
-    def test_update_intercorrencia_nao_editavel(self, client, diretor_user, intercorrencia_editavel):
-        """Testa que intercorrência não editável retorna erro 400"""
-        type(intercorrencia_editavel).pode_ser_editado_por_diretor = PropertyMock(return_value=False)
-
-        client.force_authenticate(user=diretor_user)
-        data = {"descricao_ocorrencia": "Tentativa de atualização"}
-
-        url = f"/api-intercorrencias/v1/diretor/{intercorrencia_editavel.uuid}/"
-        
-        with patch("intercorrencias.api.views.intercorrencias_viewset.IntercorrenciaDiretorViewSet.check_object_permissions", return_value=None):
-            response = client.put(url, data, format="json")
-
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "não pode mais ser editada" in response.data["detail"]
-
     def test_update_limpa_campos_furto_roubo(self, client, diretor_user, create_intercorrencia, envolvido):
         """Testa que campos de envolvido são limpos quando sobre_furto_roubo=True"""
         intercorrencia = create_intercorrencia(furto_roubo=False, tem_info="sim")

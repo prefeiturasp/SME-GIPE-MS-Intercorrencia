@@ -40,6 +40,17 @@ class IntercorrenciaPermission(BasePermission):
  
     def has_object_permission(self, request, view, obj):
  
+        # Se for update ou partial_update genérico, verifica qual ViewSet está chamando
+        if getattr(view, 'action', None) in ['update', 'partial_update']:
+            view_class_name = view.__class__.__name__
+            
+            # Apenas pula validação se for IntercorrenciaDiretorViewSet para a UE conseguir atualizar a intercorrência mesmo depois de enviada para DRE
+            if view_class_name == 'IntercorrenciaDiretorViewSet':
+                logger.info("[PERMISSION] Update genérico de IntercorrenciaDiretorViewSet - pulando validação de objeto para %s", request.user.username)
+                return True
+            
+            # Para IntercorrenciaDreViewSet, continua com as validações normais
+ 
         if request.user is None or not getattr(request.user, "is_authenticated", False):
             logger.info("[PERMISSION] Usuário anônimo tentando acessar objeto %s", obj)
             return False

@@ -103,12 +103,6 @@ class IntercorrenciaDiretorViewSet(viewsets.GenericViewSet, mixins.ListModelMixi
         try:
             instance = self.get_object()
             
-            if not instance.pode_ser_editado_por_diretor:
-                return Response(
-                    {"detail": MSG_INTERCORRENCIA_NAO_EDITAVEL},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            
             serializer = self.get_serializer(
                 instance, 
                 data=request.data, 
