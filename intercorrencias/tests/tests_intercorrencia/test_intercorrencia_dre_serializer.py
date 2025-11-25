@@ -269,3 +269,11 @@ class TestIntercorrenciaDreSerializer:
         obj = serializer.save()
         assert obj.interlocucao_sts is True
         assert obj.info_complementar_sts == "Informacao sobre STS"
+
+
+    def test_get_status_extra_method_returns_expected_label(self):
+        intercorrencia = MagicMock(status="EM_PREENCHIMENTO")
+        intercorrencia.STATUS_EXTRA_LABELS = {"EM_PREENCHIMENTO": "Em andamento"}
+        serializer = IntercorrenciaDreSerializer()
+        result = serializer.get_status_extra(intercorrencia)
+        assert result == "Em andamento"
