@@ -8,7 +8,6 @@ from rest_framework.exceptions import ValidationError
 
 from intercorrencias.services.unidades_service import ExternalServiceError
 from intercorrencias.api.serializers.intercorrencia_serializer import (
-    IntercorrenciaDreSerializer,
     IntercorrenciaSerializer,
     IntercorrenciaDiretorCompletoSerializer,
     IntercorrenciaSecaoInicialSerializer,
@@ -1390,58 +1389,3 @@ class TestIntercorrenciaUpdateDiretorCompletoSerializer:
         assert instance.envolvido is None
         assert instance.tem_info_agressor_ou_vitima == ""
 
-
-@pytest.mark.django_db
-class TestIntercorrenciaDreSerializer:
-    """Testes do serializer de intercorrência para DRE"""
-    
-    
-    @pytest.fixture(autouse=True)
-    def setup_method(self, request_factory):
-        self.request = request_factory.post("/fake-url/")
-        self.request.user = MagicMock(unidade_codigo_eol="654321", dre_codigo_eol="654321")
-        self.intercorrencia = Intercorrencia.objects.create(
-            data_ocorrencia=timezone.now(),
-            user_username="diretor1",
-            unidade_codigo_eol="123456",
-            dre_codigo_eol="654321",
-            descricao_ocorrencia="Descrição inicial",
-        )
-        self.valid_data = {
-            "unidade_codigo_eol": '123456',
-            "dre_codigo_eol": '654321',
-            "acionamento_seguranca_publica": True,
-            "interlocucao_sts": True,
-            "info_complementar_sts": "Info STS",
-        }
-        
-    @patch("intercorrencias.api.serializers.intercorrencia_serializer.unidades_service.get_unidade")
-    def test_serializer_dre_valido(self, mock_get_unidade):
-        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
-        serializer = IntercorrenciaDreSerializer(
-            instance=self.intercorrencia, 
-            data=self.valid_data, 
-            context={"request": self.request},
-            partial=True
-        )
-        assert serializer.is_valid(), serializer.errors
-        obj = serializer.save()
-        assert obj.acionamento_seguranca_publica == True
-        assert obj.interlocucao_sts == True
-        
-    
-    @patch("intercorrencias.api.serializers.intercorrencia_serializer.unidades_service.get_unidade")
-    def test_dre_nao_pode_atualizar_unidade_de_outra_dre(self, mock_get_unidade):
-        """DRE não deve conseguir atualizar intercorrências de unidades de outra DRE"""
-        # Mock retorna unidade de DRE diferente
-        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "999999"}
-        serializer = IntercorrenciaDreSerializer(
-            instance=self.intercorrencia,
-            data=self.valid_data,
-            context={"request": self.request},
-            partial=True
-        )
-        assert not serializer.is_valid()
-        assert "detail" in serializer.errors
-        assert "DRE informada não corresponde à DRE da unidade." in str(serializer.errors["detail"])
-    
