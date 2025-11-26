@@ -1,8 +1,10 @@
-from rest_framework import serializers
-from intercorrencias.api.serializers.intercorrencia_serializer import IntercorrenciaSerializer
-from intercorrencias.models.intercorrencia import Intercorrencia
-
 import logging
+from rest_framework import serializers
+
+from intercorrencias.services import unidades_service
+from intercorrencias.models.intercorrencia import Intercorrencia
+from intercorrencias.api.serializers.intercorrencia_serializer import IntercorrenciaSerializer
+
 logger = logging.getLogger(__name__)
 
 
@@ -76,5 +78,66 @@ class IntercorrenciaDreSerializer(IntercorrenciaSerializer):
                 })
         
         return attrs
-        
-        
+
+
+class IntercorrenciaConclusaoDaDreSerializer(IntercorrenciaSerializer):
+    """Serializer para conclusão da DRE"""
+    
+    motivo_encerramento_dre = serializers.CharField(required=True, allow_blank=False)
+    nome_dre = serializers.SerializerMethodField()
+    responsavel_nome = serializers.SerializerMethodField()
+    responsavel_cpf = serializers.SerializerMethodField()
+    responsavel_email = serializers.SerializerMethodField()
+
+    def get_nome_dre(self, obj):
+        """Obtém o nome da DRE via serviço externo."""
+        try:
+            dre = unidades_service.get_unidade(obj.dre_codigo_eol)
+            return dre.get("nome")
+        except unidades_service.ExternalServiceError:
+            return None
+    
+    def get_responsavel_nome(self, obj):
+        """Obtém o nome do usuário responsável do contexto da requisição"""
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            return getattr(request.user, 'name', None)
+        return None
+    
+    def get_responsavel_cpf(self, obj):
+        """Obtém o CPF do usuário responsável do contexto da requisição"""
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            
+            cpf = getattr(request.user, 'cpf', None)
+            if cpf and cpf.isdigit() and len(cpf) == 11:
+                # Formata CPF: 123.456.789-01
+                return f"{cpf[:3]}.{cpf[3:6]}.{cpf[6:9]}-{cpf[9:]}"
+            return cpf
+        return None
+    
+    def get_responsavel_email(self, obj):
+        """Obtém o email do usuário responsável do contexto da requisição"""
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            return getattr(request.user, 'email', None)
+        return None
+    
+    class Meta:
+        model = Intercorrencia
+        fields = (
+            "uuid",
+            "unidade_codigo_eol",
+            "dre_codigo_eol",
+            "responsavel_cpf",
+            "responsavel_nome",
+            "responsavel_email",
+            "nome_dre",
+            "finalizado_dre_em",
+            "finalizado_dre_por",
+            "motivo_encerramento_dre",
+            "protocolo_da_intercorrencia",
+            "status_display",
+            "status_extra",
+        )
+        read_only_fields = ("uuid",)
