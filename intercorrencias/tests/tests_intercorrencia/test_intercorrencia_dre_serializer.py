@@ -1,10 +1,14 @@
 import pytest
-
 from django.utils import timezone
 from unittest.mock import patch, MagicMock
 from rest_framework.test import APIRequestFactory
-from intercorrencias.api.serializers.intercorrencia_dre_serializer import IntercorrenciaDreSerializer
+
+from intercorrencias.services import unidades_service
 from intercorrencias.models.intercorrencia import Intercorrencia
+from intercorrencias.api.serializers.intercorrencia_dre_serializer import (
+    IntercorrenciaDreSerializer,
+    IntercorrenciaConclusaoDaDreSerializer
+)
 
 
 @pytest.fixture
@@ -277,3 +281,166 @@ class TestIntercorrenciaDreSerializer:
         serializer = IntercorrenciaDreSerializer()
         result = serializer.get_status_extra(intercorrencia)
         assert result == "Em andamento"
+
+
+@pytest.mark.django_db
+class TestIntercorrenciaConclusaoDaDreSerializer:
+
+    @pytest.fixture(autouse=True)
+    def setup(self, request_factory_dre):
+        self.request = request_factory_dre.post("/fake-url/")
+
+        self.request.user = MagicMock()
+        self.request.user.name = "João da Silva"
+        self.request.user.cpf = "12345678901"
+        self.request.user.email = "joao.silva@teste.com"
+
+        self.intercorrencia = Intercorrencia.objects.create(
+            data_ocorrencia=timezone.now(),
+            user_username="diretor1",
+            unidade_codigo_eol="123456",
+            dre_codigo_eol="654321",
+            descricao_ocorrencia="Descrição inicial",
+            motivo_encerramento_dre="Encerrado por teste",
+        )
+
+    @patch("intercorrencias.api.serializers.intercorrencia_dre_serializer.unidades_service.get_unidade")
+    def test_get_nome_dre_sucesso(self, mock_get_unidade):
+        mock_get_unidade.return_value = {"nome": "DRE Norte"}
+
+        serializer = IntercorrenciaConclusaoDaDreSerializer(
+            instance=self.intercorrencia,
+            context={"request": self.request}
+        )
+
+        assert serializer.data["nome_dre"] == "DRE Norte"
+
+    @patch("intercorrencias.api.serializers.intercorrencia_dre_serializer.unidades_service.get_unidade")
+    def test_get_nome_dre_quando_servico_falha(self, mock_get_unidade):
+        mock_get_unidade.side_effect = unidades_service.ExternalServiceError()
+
+        serializer = IntercorrenciaConclusaoDaDreSerializer(
+            instance=self.intercorrencia,
+            context={"request": self.request}
+        )
+
+        assert serializer.data["nome_dre"] is None
+
+    def test_get_responsavel_nome(self):
+        serializer = IntercorrenciaConclusaoDaDreSerializer(
+            instance=self.intercorrencia,
+            context={"request": self.request}
+        )
+
+        assert serializer.data["responsavel_nome"] == "João da Silva"
+
+    def test_get_responsavel_email(self):
+        serializer = IntercorrenciaConclusaoDaDreSerializer(
+            instance=self.intercorrencia,
+            context={"request": self.request}
+        )
+
+        assert serializer.data["responsavel_email"] == "joao.silva@teste.com"
+
+    def test_get_responsavel_cpf_com_formatacao(self):
+        serializer = IntercorrenciaConclusaoDaDreSerializer(
+            instance=self.intercorrencia,
+            context={"request": self.request}
+        )
+
+        assert serializer.data["responsavel_cpf"] == "123.456.789-01"
+
+    def test_get_responsavel_cpf_invalido(self):
+        self.request.user.cpf = "ABC123"
+
+        serializer = IntercorrenciaConclusaoDaDreSerializer(
+            instance=self.intercorrencia,
+            context={"request": self.request}
+        )
+
+        assert serializer.data["responsavel_cpf"] == "ABC123"
+
+    def test_get_responsavel_cpf_none(self):
+        self.request.user.cpf = None
+
+        serializer = IntercorrenciaConclusaoDaDreSerializer(
+            instance=self.intercorrencia,
+            context={"request": self.request}
+        )
+
+        assert serializer.data["responsavel_cpf"] is None
+
+    def test_metodos_sem_request_no_contexto(self):
+        serializer = IntercorrenciaConclusaoDaDreSerializer(
+            instance=self.intercorrencia,
+            context={}
+        )
+
+        assert serializer.get_responsavel_nome(self.intercorrencia) is None
+        assert serializer.get_responsavel_cpf(self.intercorrencia) is None
+        assert serializer.get_responsavel_email(self.intercorrencia) is None
+
+    @patch("intercorrencias.api.serializers.intercorrencia_dre_serializer.unidades_service.get_unidade")
+    def test_validacao_campo_motivo_encerramento_dre_obrigatorio_quando_vazio(self, mock_get_unidade):
+        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
+
+        data = {
+            "unidade_codigo_eol": "123456",
+            "dre_codigo_eol": "654321",
+            "motivo_encerramento_dre": ""
+        }
+
+        serializer = IntercorrenciaConclusaoDaDreSerializer(
+            instance=self.intercorrencia,
+            data=data,
+            context={"request": self.request},
+            partial=False
+        )
+
+        assert not serializer.is_valid()
+        assert "detail" in serializer.errors
+        assert str(serializer.errors["detail"]).strip() == "motivo_encerramento_dre: Este campo não pode estar em branco."
+
+    @patch("intercorrencias.api.serializers.intercorrencia_dre_serializer.unidades_service.get_unidade")
+    def test_validacao_campo_motivo_encerramento_dre_obrigatorio_quando_ausente(self, mock_get_unidade):
+        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
+
+        data = {
+            "unidade_codigo_eol": "123456",
+            "dre_codigo_eol": "654321",
+        }
+
+        serializer = IntercorrenciaConclusaoDaDreSerializer(
+            instance=self.intercorrencia,
+            data=data,
+            context={"request": self.request},
+            partial=False
+        )
+
+        assert not serializer.is_valid()
+        assert "detail" in serializer.errors
+        assert str(serializer.errors["detail"]).strip() == "motivo_encerramento_dre: Este campo é obrigatório."
+
+    @patch("intercorrencias.api.serializers.intercorrencia_dre_serializer.unidades_service.get_unidade")
+    def test_validacao_campo_motivo_encerramento_dre_valido(self, mock_get_unidade):
+        mock_get_unidade.return_value = {
+            "codigo_eol": "123456",
+            "dre_codigo_eol": "654321"
+        }
+
+        self.request.user.unidade_codigo_eol = "123456"
+
+        data = {
+            "unidade_codigo_eol": "123456",
+            "dre_codigo_eol": "654321",
+            "motivo_encerramento_dre": "Encerramento concluído com sucesso"
+        }
+
+        serializer = IntercorrenciaConclusaoDaDreSerializer(
+            instance=self.intercorrencia,
+            data=data,
+            context={"request": self.request},
+            partial=False
+        )
+
+        assert serializer.is_valid(), serializer.errors
