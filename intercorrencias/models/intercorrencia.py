@@ -16,11 +16,13 @@ class Intercorrencia(ModeloBase):
     STATUS_CHOICES = [
         ("em_preenchimento_diretor", "Em preenchimento - Diretor"),
         ("enviado_para_dre", "Enviado para DRE"),
+        ("enviado_para_gipe", "Enviado para GIPE"),
     ]
 
     STATUS_EXTRA_LABELS = {
         "em_preenchimento_diretor": "Incompleta",
         "enviado_para_dre": "Em andamento",
+        "enviado_para_gipe": "Em andamento",
     }
 
     SMART_SAMPA_CHOICES = [
@@ -229,87 +231,83 @@ class Intercorrencia(ModeloBase):
         help_text="Nome do estado por extenso (ex: São Paulo, Rio de Janeiro)",
         blank=True,
     )
-    
     motivo_encerramento_ue=models.TextField(
         verbose_name="Motivo do encerramento pela UE",
         blank=True,
     )
-    
     protocolo_da_intercorrencia=models.CharField(
         max_length=100,
         verbose_name="Protocolo da Intercorrência",
         blank=True,
     )
-    
     finalizado_diretor_em = models.DateTimeField(
         verbose_name="Finalizado pelo Diretor em",
         blank=True, null=True
     )
-   
     finalizado_diretor_por = models.CharField(
         max_length=150,
         verbose_name="Finalizado pelo Diretor por",
         blank=True
     )
-
-    # ===========================
-    # CAMPOS DRE
-    # ===========================
     acionamento_seguranca_publica = models.BooleanField(
         verbose_name="Houve acionamento da Secretaria de Segurança Pública ou Forças de Segurança?",
         default=False,
         blank=True,
         null=True,
     )
-
     interlocucao_sts = models.BooleanField(
         verbose_name="Houve interlocução com a Supervisão Técnica de Saúde (STS)?",
         default=False,
         blank=True,
         null=True,
     )
-
     info_complementar_sts = models.TextField(
         verbose_name="Informação complementar da atuação conjunta entre DRE e STS",
         blank=True,
     )
-
     interlocucao_cpca = models.BooleanField(
         verbose_name="Houve interlocução com a Coordenação de Políticas para Criança e Adolescente (CPCA)?",
         default=False,
         blank=True,
         null=True,
     )
-    
     info_complementar_cpca = models.TextField(
         verbose_name="Informação complementar da atuação conjunta entre DRE e CPCA",
         blank=True,
     )
-
     interlocucao_supervisao_escolar = models.BooleanField(
         verbose_name="Houve interlocução com a Supervisão Escolar?",
         default=False,
         blank=True,
         null=True, 
     )
-
     info_complementar_supervisao_escolar = models.TextField(
         verbose_name="Informação complementar da atuação conjunta entre DRE e Supervisão Escolar",
         blank=True,
     )
-
     interlocucao_naapa = models.BooleanField(
         verbose_name="Houve interlocução com o Núcleo de Apoio e Acompanhamento para a Aprendizagem (NAAPA)?",
         default=False,
         blank=True,
         null=True,
     )
-
     info_complementar_naapa = models.TextField(
         verbose_name="Informação complementar da atuação conjunta entre DRE e NAAPA",
         blank=True,
     )
-
+    motivo_encerramento_dre=models.TextField(
+        verbose_name="Motivo do encerramento DRE",
+        blank=True,
+    )
+    finalizado_dre_em = models.DateTimeField(
+        verbose_name="Finalizado DRE em",
+        blank=True, null=True
+    )
+    finalizado_dre_por = models.CharField(
+        max_length=150,
+        verbose_name="Finalizado DRE por",
+        blank=True
+    )
 
     class Meta:
         ordering = ("-criado_em",)
@@ -346,3 +344,8 @@ class Intercorrencia(ModeloBase):
     def pode_ser_editado_por_dre(self):
         """Verifica se pode ser editado pela DRE"""
         return self.status in ["em_preenchimento_diretor", "em_preenchimento_assistente", "enviado_para_dre", "em_preenchimento_dre"]
+    
+    @property
+    def pode_ser_editado_por_gipe(self):
+        """Verifica se pode ser editado pela GIPE"""
+        return self.status in ["em_preenchimento_diretor", "em_preenchimento_assistente", "em_preenchimento_dre", "em_preenchimento_gipe", "enviado_para_dre", "enviado_para_gipe"]
