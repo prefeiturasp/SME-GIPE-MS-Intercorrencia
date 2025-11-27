@@ -113,10 +113,11 @@ class IntercorrenciaPermission(BasePermission):
             return True
         
         if request.method in ["PUT", "PATCH"]:
+            flag_gipe = getattr(obj, "pode_ser_editado_por_gipe", False)
             flag_dre = getattr(obj, "pode_ser_editado_por_dre", False)
             flag_diretor = getattr(obj, "pode_ser_editado_por_diretor", False)
 
-            return flag_dre or flag_diretor
+            return flag_dre or flag_diretor or flag_gipe
 
         return False
  
