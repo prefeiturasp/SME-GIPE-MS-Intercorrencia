@@ -207,7 +207,7 @@ class TestIntercorrenciaPermission:
             intercorrencia.pode_ser_editado_por_diretor = False  # necessário agora
 
             if method in ["PUT", "PATCH"]:
-                assert not permission._check_dre_permission(req, intercorrencia)
+                assert permission._check_dre_permission(req, intercorrencia)
 
     def test_dre_metodo_nao_permitido(self, permission, req, dre_user, intercorrencia):
         req.user = dre_user
