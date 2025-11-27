@@ -57,6 +57,8 @@ class IntercorrenciaAdmin(admin.ModelAdmin):
                     'sobre_furto_roubo_invasao_depredacao', "motivacao_ocorrencia",
                     'motivo_encerramento_ue', "protocolo_da_intercorrencia",
                     'finalizado_diretor_em', "finalizado_diretor_por",
+                    'motivo_encerramento_dre',
+                    'finalizado_dre_em', 'finalizado_dre_por',
                 )
             }),
             ('Seção Final (Diretor)', {
