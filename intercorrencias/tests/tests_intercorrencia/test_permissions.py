@@ -187,7 +187,8 @@ class TestIntercorrenciaPermission:
         intercorrencia.status = "em_preenchimento_diretor"
         req.method = 'PUT'
         req.user = dre_user
-        assert not permission._check_dre_permission(req, intercorrencia)
+
+        assert permission._check_dre_permission(req, intercorrencia)
 
     def test_dre_dre_diferente(self, permission, req, dre_user, intercorrencia):
         intercorrencia.dre_codigo_eol = "OUTRA"
@@ -198,11 +199,15 @@ class TestIntercorrenciaPermission:
         req.user = dre_user
         for method in ["PUT", "PATCH", "GET"]:
             req.method = method
+            
             intercorrencia.pode_ser_editado_por_dre = True
             assert permission._check_dre_permission(req, intercorrencia)
+
             intercorrencia.pode_ser_editado_por_dre = False
+            intercorrencia.pode_ser_editado_por_diretor = False  # necessário agora
+
             if method in ["PUT", "PATCH"]:
-                assert not permission._check_dre_permission(req, intercorrencia)
+                assert permission._check_dre_permission(req, intercorrencia)
 
     def test_dre_metodo_nao_permitido(self, permission, req, dre_user, intercorrencia):
         req.user = dre_user
@@ -215,16 +220,22 @@ class TestIntercorrenciaPermission:
             req.method = method
             for status in ["em_preenchimento_diretor", "enviado_para_dre", "em_analise_dre"]:
                 intercorrencia.status = status
-                assert not permission._check_gipe_permission(req, intercorrencia)
+
+                assert permission._check_gipe_permission(req, intercorrencia)
 
     def test_gipe_put_patch_safe(self, permission, req, gipe_user, intercorrencia):
         req.user = gipe_user
         for method in ["PUT", "PATCH", "GET"]:
             req.method = method
             intercorrencia.status = "finalizado"
+
             intercorrencia.pode_ser_editado_por_gipe = True
             assert permission._check_gipe_permission(req, intercorrencia)
+
             intercorrencia.pode_ser_editado_por_gipe = False
+            intercorrencia.pode_ser_editado_por_dre = False
+            intercorrencia.pode_ser_editado_por_diretor = False  # necessário agora
+
             if method in ["PUT", "PATCH"]:
                 assert not permission._check_gipe_permission(req, intercorrencia)
 

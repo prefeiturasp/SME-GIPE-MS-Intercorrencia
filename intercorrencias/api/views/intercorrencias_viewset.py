@@ -16,16 +16,21 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from intercorrencias.models.intercorrencia import Intercorrencia
 from intercorrencias.permissions import IntercorrenciaPermission
+from intercorrencias.choices.info_agressor_choices import get_values_info_agressor_choices
 from intercorrencias.api.serializers.intercorrencia_serializer import (
     IntercorrenciaSecaoInicialSerializer,
     IntercorrenciaDiretorCompletoSerializer,
+    IntercorrenciaUpdateDiretorCompletoSerializer,
     IntercorrenciaFurtoRouboSerializer,
     IntercorrenciaNaoFurtoRouboSerializer,
-    IntercorrenciaSecaoFinalSerializer
+    IntercorrenciaSecaoFinalSerializer,
+    IntercorrenciaInfoAgressorSerializer,
+    IntercorrenciaConclusaoDaUeSerializer
 )
 
 logger = logging.getLogger(__name__)
 MSG_INTERCORRENCIA_NAO_EDITAVEL = "Esta intercorrência não pode mais ser editada."
+
 
 class IntercorrenciaDiretorViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.RetrieveModelMixin):
     """
@@ -35,15 +40,16 @@ class IntercorrenciaDiretorViewSet(viewsets.GenericViewSet, mixins.ListModelMixi
         → Retorna a listagem completa de intercorrências visíveis ao usuário autenticado.
     GET /api-intercorrencias/v1/diretor/{uuid}/
         → Retorna os detalhes de uma intercorrência específica.
+    GET /api-intercorrencias/v1/diretor/categorias-disponiveis
     POST /api-intercorrencias/v1/diretor/secao-inicial/
         → Cria uma nova intercorrência (seção inicial).
     PUT /api-intercorrencias/v1/diretor/{uuid}/secao-inicial/
         → Atualiza os dados da seção inicial de uma intercorrência existente.
     PUT /api-intercorrencias/v1/diretor/{uuid}/furto-roubo/
-        → Atualiza a seção de furto, roubo, invasão ou depredação.
     PUT /api-intercorrencias/v1/diretor/{uuid}/nao-furto-roubo/
     PUT /api-intercorrencias/v1/diretor/{uuid}/secao-final/
-        → Atualiza a seção final.
+    PUT /api-intercorrencias/v1/diretor/{uuid}/info-agressor/
+    PUT /api-intercorrencias/v1/diretor/{uuid}/enviar-para-dre/
     """
 
     queryset = Intercorrencia.objects.all()
@@ -83,9 +89,35 @@ class IntercorrenciaDiretorViewSet(viewsets.GenericViewSet, mixins.ListModelMixi
             "secao_inicial_update": IntercorrenciaSecaoInicialSerializer,
             "furto_roubo": IntercorrenciaFurtoRouboSerializer,
             "nao_furto_roubo": IntercorrenciaNaoFurtoRouboSerializer,
-            "secao_final": IntercorrenciaSecaoFinalSerializer
+            "secao_final": IntercorrenciaSecaoFinalSerializer,
+            "info_agressor": IntercorrenciaInfoAgressorSerializer,
+            "enviar_para_dre": IntercorrenciaConclusaoDaUeSerializer,
+            "update": IntercorrenciaUpdateDiretorCompletoSerializer,
+            "partial_update": IntercorrenciaUpdateDiretorCompletoSerializer,
         }
         return action_map.get(self.action, IntercorrenciaDiretorCompletoSerializer)
+    
+    def update(self, request, uuid=None):
+        """PUT {uuid}/ - Atualiza intercorrência completa"""
+
+        try:
+            instance = self.get_object()
+            
+            serializer = self.get_serializer(
+                instance, 
+                data=request.data, 
+                partial=True,
+                context={"request": request}
+            )
+            serializer.is_valid(raise_exception=True)
+            serializer.save(atualizado_em=timezone.now())
+            
+            # Retorna com o serializer completo para mostrar todos os dados
+            response_serializer = IntercorrenciaDiretorCompletoSerializer(instance)
+            return Response(response_serializer.data, status=status.HTTP_200_OK)
+        
+        except Exception as exc:
+            return self.handle_exception(exc)
 
     @action(detail=False, methods=["post"], url_path="secao-inicial")
     def secao_inicial_create(self, request):
@@ -148,13 +180,6 @@ class IntercorrenciaDiretorViewSet(viewsets.GenericViewSet, mixins.ListModelMixi
 
         try:
             instance = self.get_object()
-
-            if hasattr(instance, "pode_ser_editado_por_diretor") and not instance.pode_ser_editado_por_diretor:
-                return Response(
-                    {"detail": MSG_INTERCORRENCIA_NAO_EDITAVEL},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
             serializer = self.get_serializer(
                 instance, data=request.data, partial=False, context={"request": request}
             )
@@ -172,12 +197,6 @@ class IntercorrenciaDiretorViewSet(viewsets.GenericViewSet, mixins.ListModelMixi
 
         try:
             instance = self.get_object()
-
-            if hasattr(instance, "pode_ser_editado_por_diretor") and not instance.pode_ser_editado_por_diretor:
-                return Response(
-                    {"detail": MSG_INTERCORRENCIA_NAO_EDITAVEL},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
 
             serializer = self.get_serializer(
                 instance, data=request.data, partial=False, context={"request": request}
@@ -197,12 +216,6 @@ class IntercorrenciaDiretorViewSet(viewsets.GenericViewSet, mixins.ListModelMixi
         try:
             instance = self.get_object()
 
-            if hasattr(instance, "pode_ser_editado_por_diretor") and not instance.pode_ser_editado_por_diretor:
-                return Response(
-                    {"detail": MSG_INTERCORRENCIA_NAO_EDITAVEL},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
             serializer = self.get_serializer(
                 instance,
                 data=request.data,
@@ -215,6 +228,71 @@ class IntercorrenciaDiretorViewSet(viewsets.GenericViewSet, mixins.ListModelMixi
             response_serializer = IntercorrenciaSecaoFinalSerializer(instance)
             return Response(response_serializer.data, status=status.HTTP_200_OK)
 
+        except Exception as exc:
+            return self.handle_exception(exc)
+
+    @action(detail=True, methods=["put"], url_path="info-agressor")
+    def info_agressor(self, request, uuid=None):
+        """PUT {uuid}/info-agressor/ - Preenche informações do agressor/vítima"""
+
+        try:
+            instance = self.get_object()
+            if getattr(instance, "tem_info_agressor_ou_vitima", None) == "nao":
+                return Response(
+                    {"detail": "Só é possível preencher informações quando 'tem_info_agressor_ou_vitima' é verdadeiro."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            serializer = self.get_serializer(instance, data=request.data, partial=False)
+            serializer.is_valid(raise_exception=True)
+            serializer.save(atualizado_em=timezone.now())
+
+            response_serializer = IntercorrenciaInfoAgressorSerializer(instance)
+            return Response(response_serializer.data, status=status.HTTP_200_OK)
+
+        except Exception as exc:
+            return self.handle_exception(exc)
+       
+    @action(detail=True, methods=['put'], url_path='enviar-para-dre')
+    def enviar_para_dre(self, request, uuid=None):
+        """PUT {uuid}/enviar-para-dre/ - Finaliza e envia para DRE"""
+        
+        try:
+            instance = self.get_object()
+
+            serializer = self.get_serializer(
+                instance,
+                data=request.data,
+                partial=False,
+                context={"request": request},
+            )
+            
+            obj_to_update = {
+                "status": "enviado_para_dre",
+                "finalizado_diretor_em": timezone.now(),
+                "finalizado_diretor_por": request.user.username,
+                "atualizado_em": timezone.now()
+            }   
+            
+            if not instance.protocolo_da_intercorrencia:
+                obj_to_update["protocolo_da_intercorrencia"] = Intercorrencia.gerar_protocolo()         
+            
+            serializer.is_valid(raise_exception=True)
+            serializer.save(**obj_to_update)
+           
+            serializer = IntercorrenciaConclusaoDaUeSerializer(instance, context={"request": request})
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        
+        except Exception as exc:
+            return self.handle_exception(exc)
+        
+    @action(detail=False, methods=['get'], url_path='categorias-disponiveis')
+    def categorias_disponiveis(self, request):
+
+        try:
+            data = get_values_info_agressor_choices()
+            return Response(data=data, status=status.HTTP_200_OK)
+        
         except Exception as exc:
             return self.handle_exception(exc)
 

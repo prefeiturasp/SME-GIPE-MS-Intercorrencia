@@ -85,7 +85,8 @@ class TestIntercorrenciaAdmin:
         assert intercorrencia_admin.readonly_fields == (
             "uuid", 
             "criado_em", 
-            "atualizado_em"
+            "atualizado_em",
+            "protocolo_da_intercorrencia",
         )
         assert intercorrencia_admin.ordering == ("-criado_em",)
 
