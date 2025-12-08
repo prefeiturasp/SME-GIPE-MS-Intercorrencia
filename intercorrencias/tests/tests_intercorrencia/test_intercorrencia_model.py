@@ -14,6 +14,11 @@ from intercorrencias.choices.info_agressor_choices import (
     FrequenciaEscolar,
     EtapaEscolar,
 )
+from intercorrencias.choices.gipe_choices import (
+    EnvolveArmaOuAtaque,
+    AmeacaFoiRealizadaDeQualManeira,
+    CicloAprendizagem
+)
 
 
 @pytest.mark.django_db
@@ -314,3 +319,76 @@ class TestIntercorrencia:
 
         obj.status = "concluida"
         assert obj.pode_ser_editado_por_gipe is False
+
+    def test_campos_gipe_choices_validos(self, intercorrencia_factory):
+        obj = intercorrencia_factory(
+            envolve_arma_ataque=EnvolveArmaOuAtaque.SIM,
+            ameaca_realizada_qual_maneira=AmeacaFoiRealizadaDeQualManeira.VIRTUALMENTE,
+            qual_ciclo_aprendizagem=CicloAprendizagem.ALFABETIZACAO,
+        )
+        obj.full_clean()
+        obj.save()
+
+        assert obj.envolve_arma_ataque == EnvolveArmaOuAtaque.SIM
+        assert obj.ameaca_realizada_qual_maneira == AmeacaFoiRealizadaDeQualManeira.VIRTUALMENTE
+        assert obj.qual_ciclo_aprendizagem == CicloAprendizagem.ALFABETIZACAO
+
+    def test_campos_gipe_choices_invalidos(self, intercorrencia_factory):
+        obj = intercorrencia_factory(
+            envolve_arma_ataque="xxx",
+            ameaca_realizada_qual_maneira="yyy",
+            qual_ciclo_aprendizagem="zzz",
+        )
+        with pytest.raises(ValidationError):
+            obj.full_clean()
+
+    def test_campos_gipe_podem_ser_em_branco(self, intercorrencia_factory):
+        obj = intercorrencia_factory(
+            envolve_arma_ataque="",
+            ameaca_realizada_qual_maneira="",
+            qual_ciclo_aprendizagem="",
+            info_sobre_interacoes_virtuais_pessoa_agressora="",
+            encaminhamentos_gipe="",
+        )
+        obj.full_clean()
+
+        assert obj.envolve_arma_ataque == ""
+        assert obj.ameaca_realizada_qual_maneira == ""
+        assert obj.qual_ciclo_aprendizagem == ""
+        assert obj.info_sobre_interacoes_virtuais_pessoa_agressora == ""
+        assert obj.encaminhamentos_gipe == ""
+
+    def test_campos_gipe_max_length(self):
+        obj = Intercorrencia(
+            data_ocorrencia=timezone.now(),
+            user_username="usuario",
+            unidade_codigo_eol="123456",
+            dre_codigo_eol="654321",
+            envolve_arma_ataque="x" * 4,
+            ameaca_realizada_qual_maneira="x" * 16,
+            qual_ciclo_aprendizagem="x" * 18,
+        )
+
+        with pytest.raises(ValidationError) as exc:
+            obj.full_clean()
+
+        err = exc.value.error_dict
+        assert "envolve_arma_ataque" in err
+        assert "ameaca_realizada_qual_maneira" in err
+        assert "qual_ciclo_aprendizagem" in err
+
+    def test_campos_gipe_texto_opcionais(self, intercorrencia_factory):
+        obj = intercorrencia_factory(
+            info_sobre_interacoes_virtuais_pessoa_agressora=(
+                "Agressor mantém contatos frequentes por redes sociais."
+            ),
+            encaminhamentos_gipe=(
+                "Após análise, GIPE recomendou acompanhamento semanal."
+            ),
+        )
+
+        obj.full_clean()
+        obj.save()
+
+        assert "redes sociais" in obj.info_sobre_interacoes_virtuais_pessoa_agressora
+        assert "acompanhamento semanal" in obj.encaminhamentos_gipe
