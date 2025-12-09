@@ -1,13 +1,16 @@
 import pytest
 import secrets
 from unittest.mock import patch
+from django.utils import timezone
+
 from rest_framework import status
 from rest_framework.test import APIClient
-from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
+from rest_framework.exceptions import ValidationError
 
-from intercorrencias.api.views.intercorrencias_gipe_viewset import IntercorrenciaGipeViewSet
+from intercorrencias.models.intercorrencia import Intercorrencia
 from intercorrencias.choices.gipe_choices import get_values_gipe_choices
+from intercorrencias.api.views.intercorrencias_gipe_viewset import IntercorrenciaGipeViewSet
 
 
 @pytest.mark.django_db
@@ -32,6 +35,17 @@ class TestIntercorrenciaGipeViewSet:
     @pytest.fixture
     def user(self, create_user):
         return create_user("gipe", "0", "GIPE01")
+    
+    @pytest.fixture
+    def intercorrencia(self, user):
+        return Intercorrencia.objects.create(
+            unidade_codigo_eol="200237",
+            dre_codigo_eol=user.unidade_codigo_eol,
+            status="em_preenchimento_gipe",
+            data_ocorrencia=timezone.now(),
+            user_username=user.username,
+            motivo_encerramento_dre="Encerramento teste",
+        )
 
     def test_categorias_disponiveis_sucesso(self, client, user):
         client.force_authenticate(user=user)
@@ -109,3 +123,10 @@ class TestIntercorrenciaGipeViewSet:
 
         assert response.data["detail"] == "Apenas uma mensagem"
         assert response.status_code == 400
+
+    def test_retrieve_intercorrencia_sucesso(self, client, user, intercorrencia):
+        client.force_authenticate(user=user)
+        url = f"/api-intercorrencias/v1/gipe/{intercorrencia.uuid}/"
+        response = client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["uuid"] == str(intercorrencia.uuid)
