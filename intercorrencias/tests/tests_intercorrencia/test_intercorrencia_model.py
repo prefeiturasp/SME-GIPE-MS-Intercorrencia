@@ -392,3 +392,52 @@ class TestIntercorrencia:
 
         assert "redes sociais" in obj.info_sobre_interacoes_virtuais_pessoa_agressora
         assert "acompanhamento semanal" in obj.encaminhamentos_gipe
+
+    def test_campos_encerramento_gipe(self, intercorrencia_factory):
+        dt = timezone.make_aware(datetime(2025, 3, 10, 9, 45))
+
+        obj = intercorrencia_factory(
+            motivo_encerramento_gipe="Caso encerrado após análise da equipe GIPE.",
+            finalizado_gipe_em=dt,
+            finalizado_gipe_por="usuario_gipe"
+        )
+
+        obj.full_clean()
+        obj.save()
+        obj.refresh_from_db()
+
+        assert obj.motivo_encerramento_gipe == "Caso encerrado após análise da equipe GIPE."
+        assert obj.finalizado_gipe_em == dt
+        assert obj.finalizado_gipe_por == "usuario_gipe"
+
+    def test_campos_encerramento_gipe_podem_ser_em_branco(self, intercorrencia_factory):
+        obj = intercorrencia_factory(
+            motivo_encerramento_gipe="",
+            finalizado_gipe_em=None,
+            finalizado_gipe_por=""
+        )
+
+        obj.full_clean()
+        obj.save()
+        obj.refresh_from_db()
+
+        assert obj.motivo_encerramento_gipe == ""
+        assert obj.finalizado_gipe_em is None
+        assert obj.finalizado_gipe_por == ""
+
+    def test_status_finalizada(self, intercorrencia_factory):
+        obj = intercorrencia_factory(status="finalizada")
+        obj.full_clean()
+        assert obj.status == "finalizada"
+
+    def test_pode_ser_editado_por_diretor_com_status_finalizada(self, intercorrencia_factory):
+        obj = intercorrencia_factory(status="finalizada")
+        assert obj.pode_ser_editado_por_diretor is False
+
+    def test_pode_ser_editado_por_dre_com_status_finalizada(self, intercorrencia_factory):
+        obj = intercorrencia_factory(status="finalizada")
+        assert obj.pode_ser_editado_por_dre is False
+
+    def test_pode_ser_editado_por_gipe_com_status_finalizada(self, intercorrencia_factory):
+        obj = intercorrencia_factory(status="finalizada")
+        assert obj.pode_ser_editado_por_gipe is False
