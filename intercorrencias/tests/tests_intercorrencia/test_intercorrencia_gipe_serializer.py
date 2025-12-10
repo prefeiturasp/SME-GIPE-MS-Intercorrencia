@@ -1,10 +1,10 @@
 import uuid
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, Mock
 from django.utils import timezone
 from rest_framework.test import APIRequestFactory
 from intercorrencias.models import Intercorrencia, Envolvido, TipoOcorrencia
-from intercorrencias.api.serializers.intercorrencia_gipe_serializer import IntercorrenciaGipeSerializer
+from intercorrencias.api.serializers.intercorrencia_gipe_serializer import IntercorrenciaGipeSerializer, IntercorrenciaConclusaoGipeSerializer
 from intercorrencias.choices.gipe_choices import (
     EnvolveArmaOuAtaque,
     AmeacaFoiRealizadaDeQualManeira,
@@ -152,3 +152,73 @@ class TestIntercorrenciaGipeSerializer:
         serializer = IntercorrenciaGipeSerializer()
         result = serializer.get_status_extra(intercorrencia)
         assert result == "Em andamento"
+
+
+@pytest.mark.django_db
+class TestIntercorrenciaConclusaoGipeSerializer:
+
+    @pytest.fixture(autouse=True)
+    def setup(self, request_factory, mock_unidade):
+        self.request = request_factory.post("/fake/")
+        self.user = Mock()
+        self.user.name = "Nome Teste"
+        self.user.cpf = "12345678901"
+        self.user.email = "teste@email.com"
+        self.user.unidade_codigo_eol = "123"
+        self.user.dre_codigo_eol = "456"
+        self.request.user = self.user
+
+        self.intercorrencia = Intercorrencia.objects.create(
+            data_ocorrencia=timezone.now(),
+            user_username="diretor",
+            unidade_codigo_eol="123",
+            dre_codigo_eol="456",
+            descricao_ocorrencia="Teste Conclusão GIPE",
+        )
+
+        self.valid_data = {
+            "motivo_encerramento_gipe": "Motivo do encerramento",
+            "unidade_codigo_eol": "123",
+            "dre_codigo_eol": "456",
+        }
+
+    def test_serializer_valido(self):
+        serializer = IntercorrenciaConclusaoGipeSerializer(
+            data=self.valid_data, context={"request": self.request}
+        )
+        assert serializer.is_valid(), serializer.errors
+
+    def test_campos_responsavel(self):
+        serializer = IntercorrenciaConclusaoGipeSerializer(
+            instance=self.intercorrencia, context={"request": self.request}
+        )
+        data = serializer.data
+        assert data["responsavel_nome"] == "Nome Teste"
+        assert data["responsavel_cpf"] == "123.456.789-01"
+        assert data["responsavel_email"] == "teste@email.com"
+
+    def test_cpf_invalido_retorna_sem_formatacao(self):
+        self.request.user.cpf = "abc123"
+        serializer = IntercorrenciaConclusaoGipeSerializer(
+            instance=self.intercorrencia, context={"request": self.request}
+        )
+        data = serializer.data
+        assert data["responsavel_cpf"] == "abc123"
+
+    def test_motivo_encerramento_obrigatorio(self):
+        data = {"unidade_codigo_eol": "123", "dre_codigo_eol": "456"}
+        serializer = IntercorrenciaConclusaoGipeSerializer(
+            data=data, context={"request": self.request}
+        )
+        is_valid = serializer.is_valid()
+        errors = serializer.errors
+
+        assert not is_valid
+        assert "motivo_encerramento_gipe" in str(errors.get("detail", ""))
+
+    def test_responsavel_none_quando_sem_usuario(self):
+        serializer = IntercorrenciaConclusaoGipeSerializer(instance=self.intercorrencia, context={})
+        data = serializer.data
+        assert data["responsavel_nome"] is None
+        assert data["responsavel_cpf"] is None
+        assert data["responsavel_email"] is None
