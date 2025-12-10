@@ -23,12 +23,14 @@ class Intercorrencia(ModeloBase):
         ("em_preenchimento_diretor", "Em preenchimento - Diretor"),
         ("enviado_para_dre", "Enviado para DRE"),
         ("enviado_para_gipe", "Enviado para GIPE"),
+        ("finalizada", "Finalizada"),
     ]
 
     STATUS_EXTRA_LABELS = {
         "em_preenchimento_diretor": "Incompleta",
         "enviado_para_dre": "Em andamento",
         "enviado_para_gipe": "Em andamento",
+        "finalizada": "Finalizada",
     }
 
     SMART_SAMPA_CHOICES = [
@@ -339,6 +341,19 @@ class Intercorrencia(ModeloBase):
     encaminhamentos_gipe = models.TextField(
         verbose_name="São informações após a análise feita pelo GIPE.",
         blank=True,
+    )
+    motivo_encerramento_gipe=models.TextField(
+        verbose_name="Motivo do encerramento GIPE",
+        blank=True,
+    )
+    finalizado_gipe_em = models.DateTimeField(
+        verbose_name="Finalizado GIPE em",
+        blank=True, null=True
+    )
+    finalizado_gipe_por = models.CharField(
+        max_length=150,
+        verbose_name="Finalizado GIPE por",
+        blank=True
     )
 
     class Meta:
