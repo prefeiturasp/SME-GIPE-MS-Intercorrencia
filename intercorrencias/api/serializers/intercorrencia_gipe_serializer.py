@@ -79,3 +79,56 @@ class IntercorrenciaGipeSerializer(IntercorrenciaSerializer):
             "motivacao_ocorrencia", "tipos_ocorrencia", "tipos_ocorrencia_detalhes", "qual_ciclo_aprendizagem", 
             "info_sobre_interacoes_virtuais_pessoa_agressora", "encaminhamentos_gipe"
         )
+
+
+class IntercorrenciaConclusaoGipeSerializer(IntercorrenciaSerializer):
+    """Serializer para conclusão GIPE"""
+    
+    motivo_encerramento_gipe = serializers.CharField(required=True, allow_blank=False)
+    responsavel_nome = serializers.SerializerMethodField()
+    responsavel_cpf = serializers.SerializerMethodField()
+    responsavel_email = serializers.SerializerMethodField()
+    
+    def get_responsavel_nome(self, obj):
+        """Obtém o nome do usuário responsável do contexto da requisição"""
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            return getattr(request.user, 'name', None)
+        return None
+    
+    def get_responsavel_cpf(self, obj):
+        """Obtém o CPF do usuário responsável do contexto da requisição"""
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            
+            cpf = getattr(request.user, 'cpf', None)
+            if cpf and cpf.isdigit() and len(cpf) == 11:
+                # Formata CPF: 123.456.789-01
+                return f"{cpf[:3]}.{cpf[3:6]}.{cpf[6:9]}-{cpf[9:]}"
+            return cpf
+        return None
+    
+    def get_responsavel_email(self, obj):
+        """Obtém o email do usuário responsável do contexto da requisição"""
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            return getattr(request.user, 'email', None)
+        return None
+    
+    class Meta:
+        model = Intercorrencia
+        fields = (
+            "uuid",
+            "unidade_codigo_eol",
+            "dre_codigo_eol",
+            "responsavel_cpf",
+            "responsavel_nome",
+            "responsavel_email",
+            "finalizado_gipe_em",
+            "finalizado_gipe_por",
+            "motivo_encerramento_gipe",
+            "protocolo_da_intercorrencia",
+            "status_display",
+            "status_extra",
+        )
+        read_only_fields = ("uuid",)
