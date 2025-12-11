@@ -2,14 +2,11 @@ import pytest
 import secrets
 from unittest.mock import patch
 from django.utils import timezone
-
 from rest_framework import status
 from rest_framework.test import APIClient
-from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
 
 from intercorrencias.models.intercorrencia import Intercorrencia
-from intercorrencias.choices.gipe_choices import get_values_gipe_choices
 from intercorrencias.api.views.intercorrencias_gipe_viewset import IntercorrenciaGipeViewSet
 
 
@@ -47,9 +44,14 @@ class TestIntercorrenciaGipeViewSet:
             motivo_encerramento_dre="Encerramento teste",
         )
 
+    def _api_call_finalizar(self, client, user, intercorrencia, data):
+        client.force_authenticate(user=user)
+        url = f"/api-intercorrencias/v1/gipe/{intercorrencia.uuid}/finalizar/"
+        return client.put(url, data, format="json")
+
     def test_categorias_disponiveis_sucesso(self, client, user):
         client.force_authenticate(user=user)
-
+        from intercorrencias.choices.gipe_choices import get_values_gipe_choices
         expected_data = get_values_gipe_choices()
 
         with patch(
@@ -73,13 +75,62 @@ class TestIntercorrenciaGipeViewSet:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "Erro interno inesperado" in str(response.data["detail"])
 
+    def test_finalizar_sucesso(self, client, user, intercorrencia):
+        data = {
+            "unidade_codigo_eol": intercorrencia.unidade_codigo_eol,
+            "dre_codigo_eol": intercorrencia.dre_codigo_eol,
+            "motivo_encerramento_gipe": "Finalizado com sucesso"
+        }
+
+        with patch(
+            "intercorrencias.api.serializers.intercorrencia_serializer.unidades_service.get_unidade"
+        ) as mock_get_unidade:
+            mock_get_unidade.return_value = {"codigo_eol": "200237", "dre_codigo_eol": "GIPE01"}
+            
+            response = self._api_call_finalizar(client, user, intercorrencia, data)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["motivo_encerramento_gipe"] == "Finalizado com sucesso"
+
+        intercorrencia.refresh_from_db()
+        assert intercorrencia.status == "finalizada"
+        assert intercorrencia.finalizado_gipe_por == user.username
+
+    def test_finalizar_erro_validacao(self, client, user, intercorrencia):
+        data = {
+            "unidade_codigo_eol": intercorrencia.unidade_codigo_eol,
+            "dre_codigo_eol": intercorrencia.dre_codigo_eol,
+            "motivo_encerramento_gipe": ""  # campo inválido
+        }
+
+        with patch(
+            "intercorrencias.api.serializers.intercorrencia_serializer.unidades_service.get_unidade"
+        ) as mock_get_unidade:
+            mock_get_unidade.return_value = {"codigo_eol": "200237", "dre_codigo_eol": "GIPE01"}
+
+            response = self._api_call_finalizar(client, user, intercorrencia, data)
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "motivo_encerramento_gipe" in str(response.data["detail"])
+
+    def test_finalizar_exception_generica(self, client, user, intercorrencia):
+        data = {"motivo_encerramento_gipe": "teste"}
+
+        with patch.object(
+            IntercorrenciaGipeViewSet, "get_object", side_effect=Exception("Erro inesperado")
+        ):
+            response = self._api_call_finalizar(client, user, intercorrencia, data)
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "Erro inesperado" in str(response.data["detail"])
+
     def test_handle_exception_validation_error_lista(self, user):
         viewset = IntercorrenciaGipeViewSet()
         viewset.request = type("Request", (), {"user": user})()
-
+        
         exc = ValidationError({"detail": ["Mensagem única"]})
         response = viewset.handle_exception(exc)
-
+        
         assert response.data["detail"] == "Mensagem única"
 
     def test_handle_exception_validation_error_normal(self, user):
@@ -109,10 +160,12 @@ class TestIntercorrenciaGipeViewSet:
         viewset = IntercorrenciaGipeViewSet()
         viewset.request = type("Request", (), {"user": user})()
 
-        class FakeResponse(Response):
-            pass
+        class FakeResponse:
+            def __init__(self, data, status_code):
+                self.data = data
+                self.status_code = status_code
 
-        response_mock = FakeResponse({"detail": ["Apenas uma mensagem"]}, status=400)
+        response_mock = FakeResponse({"detail": ["Apenas uma mensagem"]}, 400)
 
         with patch(
             "intercorrencias.api.views.intercorrencias_gipe_viewset.exception_handler",
