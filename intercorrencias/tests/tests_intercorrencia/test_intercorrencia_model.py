@@ -440,4 +440,4 @@ class TestIntercorrencia:
 
     def test_pode_ser_editado_por_gipe_com_status_finalizada(self, intercorrencia_factory):
         obj = intercorrencia_factory(status="finalizada")
-        assert obj.pode_ser_editado_por_gipe is False
+        assert obj.pode_ser_editado_por_gipe is True

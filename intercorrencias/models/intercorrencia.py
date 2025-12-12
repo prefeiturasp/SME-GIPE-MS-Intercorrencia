@@ -395,4 +395,4 @@ class Intercorrencia(ModeloBase):
     @property
     def pode_ser_editado_por_gipe(self):
         """Verifica se pode ser editado pela GIPE"""
-        return self.status in ["em_preenchimento_diretor", "em_preenchimento_assistente", "em_preenchimento_dre", "em_preenchimento_gipe", "enviado_para_dre", "enviado_para_gipe"]
+        return self.status in ["em_preenchimento_diretor", "em_preenchimento_assistente", "em_preenchimento_dre", "em_preenchimento_gipe", "enviado_para_dre", "enviado_para_gipe", "finalizada"]
