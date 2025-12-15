@@ -7,6 +7,7 @@ from intercorrencias.api.views.tipo_ocorrencia import TipoOcorrenciaViewSet
 from intercorrencias.api.views.intercorrencias_viewset import IntercorrenciaDiretorViewSet
 from intercorrencias.api.views.verify_intercorrencia_viewset import VerifyIntercorrenciaViewSet
 from intercorrencias.api.views.intercorrencias_dre_viewset import IntercorrenciaDreViewSet
+from intercorrencias.api.views.intercorrencias_gipe_viewset import IntercorrenciaGipeViewSet
 
 
 router = DefaultRouter()
@@ -17,5 +18,6 @@ router.register(r"declarante", DeclaranteViewSet, basename="intercorrencia-decla
 router.register(r"envolvidos", EnvolvidoViewSet, basename="envolvido")
 router.register(r"verify-intercorrencia", VerifyIntercorrenciaViewSet, basename="verify-intercorrencia")
 router.register(r'dre', IntercorrenciaDreViewSet, basename='intercorrencia-dre')
+router.register(r'gipe', IntercorrenciaGipeViewSet, basename='intercorrencia-gipe')
 
 urlpatterns = [path("", include(router.urls))]

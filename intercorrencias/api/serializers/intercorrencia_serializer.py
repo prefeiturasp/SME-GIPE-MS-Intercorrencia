@@ -95,7 +95,8 @@ class IntercorrenciaSerializer(serializers.ModelSerializer):
             )
 
         user_unidade = getattr(request.user, "unidade_codigo_eol", None)
-        if not user_unidade or user_unidade not in (codigo_unidade, codigo_dre):
+        is_gipe_user = getattr(request.user, "cargo_codigo", None) == int(CODIGO_PERFIL_GIPE)
+        if not is_gipe_user and (not user_unidade or user_unidade not in (codigo_unidade, codigo_dre)):
             raise serializers.ValidationError(
                 {"detail": "A unidade não pertence ao usuário autenticado."}
             )
@@ -463,7 +464,6 @@ class IntercorrenciaConclusaoDaUeSerializer(IntercorrenciaSerializer):
     responsavel_email = serializers.SerializerMethodField()
     perfil_acesso = serializers.SerializerMethodField()
     
-    
     def get_nome_unidade(self, obj):
         """Obtém o nome da unidade via serviço externo."""
         try:
@@ -547,6 +547,16 @@ class IntercorrenciaConclusaoDaUeSerializer(IntercorrenciaSerializer):
         return super().validate(attrs)    
 
 
+class IntercorrenciaDiretorCompletoListSerializer(serializers.ListSerializer):
+    def to_representation(self, data):
+        if isinstance(data, list) or hasattr(data, '__iter__'):
+            codigos = {obj.unidade_codigo_eol for obj in data} | {obj.dre_codigo_eol for obj in data}
+            codigos = {str(c) for c in codigos if c}
+            self.child.context["cache_unidades"] = unidades_service.get_unidades_em_lote(codigos)
+
+        return super().to_representation(data)
+    
+
 class IntercorrenciaDiretorCompletoSerializer(serializers.ModelSerializer):
     """Serializer simplificado para listagem do Diretor"""
 
@@ -577,20 +587,12 @@ class IntercorrenciaDiretorCompletoSerializer(serializers.ModelSerializer):
         return obj.STATUS_EXTRA_LABELS.get(obj.status)
 
     def get_nome_unidade(self, obj):
-        """Obtém o nome da unidade via serviço externo."""
-        try:
-            unidade = unidades_service.get_unidade(obj.unidade_codigo_eol)
-            return unidade.get("nome")
-        except unidades_service.ExternalServiceError:
-            return None
+        cache = self.context.get("cache_unidades", {})
+        return cache.get(str(obj.unidade_codigo_eol), {}).get("nome")
 
     def get_nome_dre(self, obj):
-        """Obtém o nome da DRE via serviço externo."""
-        try:
-            dre = unidades_service.get_unidade(obj.dre_codigo_eol)
-            return dre.get("nome")
-        except unidades_service.ExternalServiceError:
-            return None
+        cache = self.context.get("cache_unidades", {})
+        return cache.get(str(obj.dre_codigo_eol), {}).get("nome")
 
     class Meta:
         model = Intercorrencia
@@ -642,6 +644,7 @@ class IntercorrenciaDiretorCompletoSerializer(serializers.ModelSerializer):
             "finalizado_diretor_por",
         )
         read_only_fields = ("id", "uuid", "user_username", "criado_em", "atualizado_em")
+        list_serializer_class = IntercorrenciaDiretorCompletoListSerializer
 
 
 class IntercorrenciaUpdateDiretorCompletoSerializer(IntercorrenciaSerializer):
@@ -779,6 +782,4 @@ class IntercorrenciaUpdateDiretorCompletoSerializer(IntercorrenciaSerializer):
         if tem_info_agressor_ou_vitima != "sim" or sobre_furto_roubo:
             self._limpar_campos_agressor_vitima(instance, campos_agressor_vitima)
 
-        return instance    
-
-
+        return instance

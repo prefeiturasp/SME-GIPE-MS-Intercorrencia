@@ -326,7 +326,8 @@ class TestIntercorrenciaConclusaoDaDreSerializer:
 
         assert serializer.data["nome_dre"] is None
 
-    def test_get_responsavel_nome(self):
+    @patch("intercorrencias.api.serializers.intercorrencia_dre_serializer.unidades_service.get_unidade")
+    def test_get_responsavel_nome(self, mock_get_unidade):
         serializer = IntercorrenciaConclusaoDaDreSerializer(
             instance=self.intercorrencia,
             context={"request": self.request}
@@ -334,7 +335,8 @@ class TestIntercorrenciaConclusaoDaDreSerializer:
 
         assert serializer.data["responsavel_nome"] == "João da Silva"
 
-    def test_get_responsavel_email(self):
+    @patch("intercorrencias.api.serializers.intercorrencia_dre_serializer.unidades_service.get_unidade")
+    def test_get_responsavel_email(self, mock_get_unidade):
         serializer = IntercorrenciaConclusaoDaDreSerializer(
             instance=self.intercorrencia,
             context={"request": self.request}
@@ -342,7 +344,8 @@ class TestIntercorrenciaConclusaoDaDreSerializer:
 
         assert serializer.data["responsavel_email"] == "joao.silva@teste.com"
 
-    def test_get_responsavel_cpf_com_formatacao(self):
+    @patch("intercorrencias.api.serializers.intercorrencia_dre_serializer.unidades_service.get_unidade")
+    def test_get_responsavel_cpf_com_formatacao(self, mock_get_unidade):
         serializer = IntercorrenciaConclusaoDaDreSerializer(
             instance=self.intercorrencia,
             context={"request": self.request}
@@ -350,7 +353,8 @@ class TestIntercorrenciaConclusaoDaDreSerializer:
 
         assert serializer.data["responsavel_cpf"] == "123.456.789-01"
 
-    def test_get_responsavel_cpf_invalido(self):
+    @patch("intercorrencias.api.serializers.intercorrencia_dre_serializer.unidades_service.get_unidade")
+    def test_get_responsavel_cpf_invalido(self, mock_get_unidade):
         self.request.user.cpf = "ABC123"
 
         serializer = IntercorrenciaConclusaoDaDreSerializer(
@@ -360,7 +364,8 @@ class TestIntercorrenciaConclusaoDaDreSerializer:
 
         assert serializer.data["responsavel_cpf"] == "ABC123"
 
-    def test_get_responsavel_cpf_none(self):
+    @patch("intercorrencias.api.serializers.intercorrencia_dre_serializer.unidades_service.get_unidade")
+    def test_get_responsavel_cpf_none(self, mock_get_unidade):
         self.request.user.cpf = None
 
         serializer = IntercorrenciaConclusaoDaDreSerializer(
@@ -370,7 +375,8 @@ class TestIntercorrenciaConclusaoDaDreSerializer:
 
         assert serializer.data["responsavel_cpf"] is None
 
-    def test_metodos_sem_request_no_contexto(self):
+    @patch("intercorrencias.api.serializers.intercorrencia_dre_serializer.unidades_service.get_unidade")
+    def test_metodos_sem_request_no_contexto(self, mock_get_unidade):
         serializer = IntercorrenciaConclusaoDaDreSerializer(
             instance=self.intercorrencia,
             context={}

@@ -88,7 +88,7 @@ class TestIntercorrenciaSerializerBase:
     @patch("intercorrencias.services.unidades_service.get_unidade")
     def test_validate_unidade_nao_pertence_usuario(self, mock_get, intercorrencia_data, request_factory):
         request = request_factory.post("/fake-url/")
-        request.user = MagicMock(unidade_codigo_eol="999")
+        request.user = MagicMock(unidade_codigo_eol="999", cargo_codigo=1)
         mock_get.return_value = {"codigo_eol": "123", "dre_codigo_eol": "456"}
 
         serializer = self.IntercorrenciaSerializerTest(
@@ -121,6 +121,33 @@ class TestIntercorrenciaSerializerBase:
         result = serializer.get_status_extra(intercorrencia)
         assert result == "Em andamento"
 
+    @patch("intercorrencias.services.unidades_service.get_unidade")
+    def test_validate_gipe_pode_nao_pertencer_a_unidade(self, mock_get, intercorrencia_data, request_factory):
+        request = request_factory.post("/fake-url/")
+        request.user = MagicMock(cargo_codigo=0, unidade_codigo_eol="999")
+
+        mock_get.return_value = {"codigo_eol": "123", "dre_codigo_eol": "456"}
+
+        serializer = self.IntercorrenciaSerializerTest(
+            data=intercorrencia_data, context={"request": request}
+        )
+
+        assert serializer.is_valid(), serializer.errors
+
+    @patch("intercorrencias.services.unidades_service.get_unidade")
+    def test_validate_unidade_ou_dre_nao_pertence_usuario(self, mock_get, intercorrencia_data, request_factory):
+        request = request_factory.post("/fake-url/")
+        request.user = MagicMock(cargo_codigo=1, unidade_codigo_eol="000")
+
+        mock_get.return_value = {"codigo_eol": "123", "dre_codigo_eol": "456"}
+
+        serializer = self.IntercorrenciaSerializerTest(
+            data=intercorrencia_data, context={"request": request}
+        )
+
+        with pytest.raises(ValidationError):
+            serializer.is_valid(raise_exception=True)
+
 
 @pytest.mark.django_db
 class TestIntercorrenciaDiretorCompletoSerializer:
@@ -143,12 +170,15 @@ class TestIntercorrenciaDiretorCompletoSerializer:
             dre_codigo_eol="456",
             sobre_furto_roubo_invasao_depredacao=True,
         )
-        serializer = IntercorrenciaDiretorCompletoSerializer(intercorrencia)
+
+        cache = {"123": {"nome": "Unidade Teste"}, "456": {"nome": "Unidade Teste"}}
+        serializer = IntercorrenciaDiretorCompletoSerializer(intercorrencia, context={"cache_unidades": cache})
         data = serializer.data
+
         assert "status_display" in data
         assert "status_extra" in data
         assert data["nome_unidade"] == "Unidade Teste"
-        assert data["nome_dre"] == "Unidade Teste" 
+        assert data["nome_dre"] == "Unidade Teste"
 
     @patch("intercorrencias.api.serializers.intercorrencia_serializer.unidades_service.get_unidade")
     def test_get_nome_unidade_quando_servico_lanca_erro(self, mock_get_unidade):
@@ -204,6 +234,35 @@ class TestIntercorrenciaDiretorCompletoSerializer:
         
         assert display_values_tratados == expected_displays
 
+    @patch("intercorrencias.api.serializers.intercorrencia_serializer.unidades_service.get_unidades_em_lote")
+    def test_list_serializer_carrega_cache_unidades(self, mock_get_lote, db):
+        mock_get_lote.return_value = {
+            "123": {"nome": "UE 123"},
+            "456": {"nome": "DRE 456"},
+        }
+
+        interc1 = Intercorrencia.objects.create(
+            data_ocorrencia=timezone.now(),
+            user_username="u",
+            unidade_codigo_eol="123",
+            dre_codigo_eol="456",
+            sobre_furto_roubo_invasao_depredacao=True,
+        )
+
+        interc2 = Intercorrencia.objects.create(
+            data_ocorrencia=timezone.now(),
+            user_username="u2",
+            unidade_codigo_eol="456",
+            dre_codigo_eol="123",
+            sobre_furto_roubo_invasao_depredacao=True,
+        )
+
+        serializer = IntercorrenciaDiretorCompletoSerializer([interc1, interc2], many=True)
+        data = serializer.data
+
+        mock_get_lote.assert_called_once()
+        assert "nome_unidade" in data[0]
+        assert "nome_dre" in data[0]
 
 @pytest.mark.django_db
 class TestIntercorrenciaSecaoInicialSerializer:
@@ -1388,4 +1447,3 @@ class TestIntercorrenciaUpdateDiretorCompletoSerializer:
         # Verifica que envolvido e tem_info_agressor_ou_vitima foram limpos
         assert instance.envolvido is None
         assert instance.tem_info_agressor_ou_vitima == ""
-

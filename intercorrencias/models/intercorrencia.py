@@ -10,6 +10,12 @@ from intercorrencias.choices.info_agressor_choices import (
     EtapaEscolar,
 )
 
+from intercorrencias.choices.gipe_choices import (
+    EnvolveArmaOuAtaque,
+    AmeacaFoiRealizadaDeQualManeira,
+    CicloAprendizagem
+)
+
 
 class Intercorrencia(ModeloBase):
 
@@ -17,12 +23,14 @@ class Intercorrencia(ModeloBase):
         ("em_preenchimento_diretor", "Em preenchimento - Diretor"),
         ("enviado_para_dre", "Enviado para DRE"),
         ("enviado_para_gipe", "Enviado para GIPE"),
+        ("finalizada", "Finalizada"),
     ]
 
     STATUS_EXTRA_LABELS = {
         "em_preenchimento_diretor": "Incompleta",
         "enviado_para_dre": "Em andamento",
         "enviado_para_gipe": "Em andamento",
+        "finalizada": "Finalizada",
     }
 
     SMART_SAMPA_CHOICES = [
@@ -308,6 +316,45 @@ class Intercorrencia(ModeloBase):
         verbose_name="Finalizado DRE por",
         blank=True
     )
+    envolve_arma_ataque = models.CharField(
+        max_length=3,
+        choices=EnvolveArmaOuAtaque.choices,
+        verbose_name="Envolve arma ou ataque?",
+        blank=True,
+    )
+    ameaca_realizada_qual_maneira = models.CharField(
+        max_length=15,
+        choices=AmeacaFoiRealizadaDeQualManeira.choices,
+        verbose_name="Ameaça foi realizada de qual maneira?",
+        blank=True,
+    )
+    qual_ciclo_aprendizagem = models.CharField(
+        max_length=17,
+        choices=CicloAprendizagem.choices,
+        verbose_name="Qual o ciclo de aprendizagem?",
+        blank=True,
+    )
+    info_sobre_interacoes_virtuais_pessoa_agressora = models.TextField(
+        verbose_name="Existe informações sobre as interações virtuais da pessoa agressora?",
+        blank=True,
+    )
+    encaminhamentos_gipe = models.TextField(
+        verbose_name="São informações após a análise feita pelo GIPE.",
+        blank=True,
+    )
+    motivo_encerramento_gipe=models.TextField(
+        verbose_name="Motivo do encerramento GIPE",
+        blank=True,
+    )
+    finalizado_gipe_em = models.DateTimeField(
+        verbose_name="Finalizado GIPE em",
+        blank=True, null=True
+    )
+    finalizado_gipe_por = models.CharField(
+        max_length=150,
+        verbose_name="Finalizado GIPE por",
+        blank=True
+    )
 
     class Meta:
         ordering = ("-criado_em",)
@@ -348,4 +395,4 @@ class Intercorrencia(ModeloBase):
     @property
     def pode_ser_editado_por_gipe(self):
         """Verifica se pode ser editado pela GIPE"""
-        return self.status in ["em_preenchimento_diretor", "em_preenchimento_assistente", "em_preenchimento_dre", "em_preenchimento_gipe", "enviado_para_dre", "enviado_para_gipe"]
+        return self.status in ["em_preenchimento_diretor", "em_preenchimento_assistente", "em_preenchimento_dre", "em_preenchimento_gipe", "enviado_para_dre", "enviado_para_gipe", "finalizada"]
