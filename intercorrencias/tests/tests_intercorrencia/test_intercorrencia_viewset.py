@@ -18,22 +18,31 @@ from intercorrencias.api.views.intercorrencias_viewset import IntercorrenciaDire
 
 from django.conf import settings
 
+
 @pytest.fixture(autouse=True)
-def mock_get_unidade():
+def mock_unidades_service():
     mock_data = {
-        "200237": {"codigo_eol": "200237", "dre_codigo_eol": "108500"},
-        "300100": {"codigo_eol": "300100", "dre_codigo_eol": "108600"},
-        "108500": {"codigo_eol": "108500"},
-        "108600": {"codigo_eol": "108600"},
-        "DRE01": {"codigo_eol": "DRE01"},
-        "GIPE01": {"codigo_eol": "GIPE01"},
+        "200237": {"codigo_eol": "200237", "nome": "Unidade 200237"},
+        "300100": {"codigo_eol": "300100", "nome": "Unidade 300100"},
+        "108500": {"codigo_eol": "108500", "nome": "DRE 108500"},
+        "108600": {"codigo_eol": "108600", "nome": "DRE 108600"},
     }
 
-    def _mock_get(codigo_eol):
-        return mock_data.get(codigo_eol, None)
+    def _mock_get_unidades_em_lote(codigos):
+        return {c: mock_data.get(c, {}) for c in codigos}
 
-    with patch('intercorrencias.services.unidades_service.get_unidade', side_effect=_mock_get):
+    def _mock_get_unidade(codigo):
+        return mock_data.get(str(codigo))
+
+    with patch(
+        "intercorrencias.services.unidades_service.get_unidades_em_lote",
+        side_effect=_mock_get_unidades_em_lote,
+    ), patch(
+        "intercorrencias.services.unidades_service.get_unidade",
+        side_effect=_mock_get_unidade,
+    ):
         yield
+
 
 @pytest.mark.django_db
 class TestIntercorrenciaDiretorViewSet:
