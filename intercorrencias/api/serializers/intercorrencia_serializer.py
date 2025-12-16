@@ -593,6 +593,19 @@ class IntercorrenciaDiretorCompletoSerializer(serializers.ModelSerializer):
     def get_nome_dre(self, obj):
         cache = self.context.get("cache_unidades", {})
         return cache.get(str(obj.dre_codigo_eol), {}).get("nome")
+    
+    def to_representation(self, instance):
+        if "cache_unidades" not in self.context:
+            codigos = set()
+
+            if instance.unidade_codigo_eol:
+                codigos.add(str(instance.unidade_codigo_eol))
+            if instance.dre_codigo_eol:
+                codigos.add(str(instance.dre_codigo_eol))
+
+            self.context["cache_unidades"] = unidades_service.get_unidades_em_lote(codigos)
+
+        return super().to_representation(instance)
 
     class Meta:
         model = Intercorrencia
