@@ -41,7 +41,6 @@ class IntercorrenciaSerializer(serializers.ModelSerializer):
         return [
             "nome_pessoa_agressora",
             "idade_pessoa_agressora",
-            "motivacao_ocorrencia",
             "genero_pessoa_agressora",
             "grupo_etnico_racial",
             "etapa_escolar",
@@ -64,8 +63,6 @@ class IntercorrenciaSerializer(serializers.ModelSerializer):
         for campo in campos:
             if campo in ["idade_pessoa_agressora", "notificado_conselho_tutelar", "acompanhado_naapa"]:
                 setattr(instance, campo, None)
-            else:
-                setattr(instance, campo, [] if campo == "motivacao_ocorrencia" else "")
         instance.save(update_fields=campos)
 
     def validate(self, attrs):
@@ -205,7 +202,6 @@ class IntercorrenciaFurtoRouboSerializer(IntercorrenciaSerializer):
         
         # ETAPA 1: Remove campos não aplicáveis do validated_data ANTES do update
         # Furto/roubo não possui envolvido nem informações de agressor/vítima
-        validated_data.pop("envolvido", None)
         validated_data.pop("tem_info_agressor_ou_vitima", None)
         
         campos_agressor_vitima = self._get_campos_agressor_vitima()
@@ -218,9 +214,8 @@ class IntercorrenciaFurtoRouboSerializer(IntercorrenciaSerializer):
         instance = super().update(instance, validated_data)
         
         # ETAPA 2: Limpa campos na instância APÓS o update
-        instance.envolvido = None
         instance.tem_info_agressor_ou_vitima = ""
-        instance.save(update_fields=["envolvido", "tem_info_agressor_ou_vitima"])
+        instance.save(update_fields=["tem_info_agressor_ou_vitima"])
         
         # Limpa todos os campos de agressor/vítima
         self._limpar_campos_agressor_vitima(instance, campos_agressor_vitima)
@@ -762,7 +757,6 @@ class IntercorrenciaUpdateDiretorCompletoSerializer(IntercorrenciaSerializer):
 
         # ETAPA 1: Remove campos não aplicáveis do validated_data ANTES do update
         if sobre_furto_roubo:
-            validated_data.pop("envolvido", None)
             validated_data.pop("tem_info_agressor_ou_vitima", None)
             
             # Remove também campos agressor/vítima pois não se aplicam a furto/roubo
@@ -785,9 +779,8 @@ class IntercorrenciaUpdateDiretorCompletoSerializer(IntercorrenciaSerializer):
 
         # ETAPA 2: Após atualizar, garante que os campos foram limpos na instância
         if sobre_furto_roubo:
-            instance.envolvido = None
             instance.tem_info_agressor_ou_vitima = ""
-            instance.save(update_fields=["envolvido", "tem_info_agressor_ou_vitima"])
+            instance.save(update_fields=["tem_info_agressor_ou_vitima"])
         else:
             instance.smart_sampa_situacao = ""
             instance.save(update_fields=["smart_sampa_situacao"])
