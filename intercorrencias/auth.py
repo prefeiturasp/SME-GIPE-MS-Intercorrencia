@@ -15,6 +15,8 @@ VERIFY_URL = settings.AUTH_VERIFY_URL
 class ExternalUser:
     username: str
     name: str | None = None
+    cpf: str | None = None
+    email: str | None = None
     cargo_codigo: int | None = None
     unidade_codigo_eol: str | None = None
     is_authenticated: bool = True
@@ -36,7 +38,6 @@ class RemoteJWTAuthentication(BaseAuthentication):
         user_payload = self._verify_and_get_payload(token)  # dict
 
         logger.info("Payload do usuário: %s", user_payload)
-
         username = (
             user_payload.get("username")
             or user_payload.get("sub")
@@ -48,6 +49,8 @@ class RemoteJWTAuthentication(BaseAuthentication):
         user = ExternalUser(
             username=username,
             name=user_payload.get("name"),
+            cpf=user_payload.get("cpf"),
+            email=user_payload.get("email"),
             cargo_codigo=user_payload.get("perfil_codigo"),
             unidade_codigo_eol=user_payload.get("codigo_unidade_eol"),
         )

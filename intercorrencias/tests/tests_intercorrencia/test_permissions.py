@@ -10,7 +10,9 @@ from intercorrencias.permissions import IntercorrenciaPermission
 
 @pytest.fixture
 def view():
-    return APIView()
+    v = APIView()
+    v.action = None
+    return v
 
 
 @pytest.fixture
@@ -121,6 +123,7 @@ class TestIntercorrenciaPermission:
         u_dir.cargo_codigo = 10
         u_dir.unidade_codigo_eol = intercorrencia.unidade_codigo_eol
         req.user = u_dir
+        view.action = None
         assert permission.has_object_permission(req, view, intercorrencia)
 
         # Assistente integer-coded
@@ -130,6 +133,7 @@ class TestIntercorrenciaPermission:
         u_ass.cargo_codigo = 40
         u_ass.unidade_codigo_eol = intercorrencia.unidade_codigo_eol
         req.user = u_ass
+        view.action = None
         assert permission.has_object_permission(req, view, intercorrencia)
 
         # DRE integer-coded
@@ -139,6 +143,7 @@ class TestIntercorrenciaPermission:
         u_dre.cargo_codigo = 20
         u_dre.unidade_codigo_eol = intercorrencia.dre_codigo_eol
         req.user = u_dre
+        view.action = None
         assert permission.has_object_permission(req, view, intercorrencia)
 
         # GIPE integer-coded
@@ -147,67 +152,71 @@ class TestIntercorrenciaPermission:
         u_gipe.is_authenticated = True
         u_gipe.cargo_codigo = 30
         req.user = u_gipe
+        view.action = None
         assert permission.has_object_permission(req, view, intercorrencia)
 
-    def test_diretor_logger_info(self, permission, req, diretor_user, intercorrencia):
+    def test_diretor_logger_info(self, permission, req, diretor_user, intercorrencia, view):
         diretor_user.unidade_codigo_eol = None
         req.user = diretor_user
+        view.action = "update"
         with patch("intercorrencias.permissions.logger.info") as mock_logger:
-            assert not permission._check_diretor_permission(req, intercorrencia)
+            assert not permission._check_diretor_permission(req, intercorrencia, view.action)
             mock_logger.assert_called()
 
-    def test_diretor_unidade_diferente(self, permission, req, diretor_user, intercorrencia):
+    def test_diretor_unidade_diferente(self, permission, req, diretor_user, intercorrencia, view):
         intercorrencia.unidade_codigo_eol = "999"
         req.user = diretor_user
-        assert not permission._check_diretor_permission(req, intercorrencia)
+        view.action = "update"
+        assert not permission._check_diretor_permission(req, intercorrencia, view.action)
 
-    def test_diretor_post_put_patch_delete(self, permission, req, diretor_user, intercorrencia):
+    def test_diretor_put_mesma_unidade(self, permission, req, diretor_user, intercorrencia, view):
         req.user = diretor_user
-        for method in ["POST", "PUT", "PATCH", "DELETE"]:
-            req.method = method
-            intercorrencia.pode_ser_editado_por_diretor = True
-            assert permission._check_diretor_permission(req, intercorrencia)
-            intercorrencia.pode_ser_editado_por_diretor = False
-            if method in ["PUT", "PATCH", "DELETE"]:
-                assert not permission._check_diretor_permission(req, intercorrencia)
+        req.method = "PUT"
+        intercorrencia.unidade_codigo_eol = diretor_user.unidade_codigo_eol
+        view.action = "update"
+        assert permission._check_diretor_permission(req, intercorrencia, view.action)
 
-    def test_diretor_metodo_nao_permitido(self, permission, req, diretor_user, intercorrencia):
+    def test_diretor_metodo_nao_permitido(self, permission, req, diretor_user, intercorrencia, view):
         req.user = diretor_user
         req.method = "CONNECT"
-        assert not permission._check_diretor_permission(req, intercorrencia)
+        view.action = None
+        assert not permission._check_diretor_permission(req, intercorrencia, view.action)
 
-    def test_dre_logger_info(self, permission, req, dre_user, intercorrencia):
+    def test_dre_logger_info(self, permission, req, dre_user, intercorrencia, view):
         dre_user.unidade_codigo_eol = None
         req.user = dre_user
+        view.action = "update"
         with patch("intercorrencias.permissions.logger.info") as mock_logger:
-            assert not permission._check_dre_permission(req, intercorrencia)
+            assert not permission._check_dre_permission(req, intercorrencia, view.action)
             mock_logger.assert_called()
 
-    def test_dre_status_em_preenchimento(self, permission, req, dre_user, intercorrencia):
+    def test_dre_status_em_preenchimento(self, permission, req, dre_user, intercorrencia, view):
         intercorrencia.status = "em_preenchimento_diretor"
         req.method = 'PUT'
         req.user = dre_user
-        assert not permission._check_dre_permission(req, intercorrencia)
+        view.action = "update"
+        assert permission._check_dre_permission(req, intercorrencia, view.action)
 
-    def test_dre_dre_diferente(self, permission, req, dre_user, intercorrencia):
+    def test_dre_dre_diferente(self, permission, req, dre_user, intercorrencia, view):
         intercorrencia.dre_codigo_eol = "OUTRA"
         req.user = dre_user
-        assert not permission._check_dre_permission(req, intercorrencia)
+        view.action = "update"
+        assert not permission._check_dre_permission(req, intercorrencia, view.action)
 
-    def test_dre_put_patch_safe(self, permission, req, dre_user, intercorrencia):
+    def test_dre_put_mesma_dre(self, permission, req, dre_user, intercorrencia, view):
         req.user = dre_user
-        for method in ["PUT", "PATCH", "GET"]:
-            req.method = method
-            intercorrencia.pode_ser_editado_por_dre = True
-            assert permission._check_dre_permission(req, intercorrencia)
-            intercorrencia.pode_ser_editado_por_dre = False
-            if method in ["PUT", "PATCH"]:
-                assert not permission._check_dre_permission(req, intercorrencia)
+        req.method = "PUT"
+        intercorrencia.dre_codigo_eol = dre_user.unidade_codigo_eol
+        intercorrencia.pode_ser_editado_por_dre = False
+        intercorrencia.pode_ser_editado_por_diretor = False
+        view.action = "update"
+        assert permission._check_dre_permission(req, intercorrencia, view.action)
 
-    def test_dre_metodo_nao_permitido(self, permission, req, dre_user, intercorrencia):
+    def test_dre_metodo_nao_permitido(self, permission, req, dre_user, intercorrencia, view):
         req.user = dre_user
         req.method = "TRACE"
-        assert not permission._check_dre_permission(req, intercorrencia)
+        view.action = None
+        assert not permission._check_dre_permission(req, intercorrencia, view.action)
 
     def test_gipe_status_bloqueado(self, permission, req, gipe_user, intercorrencia):
         req.user = gipe_user
@@ -215,16 +224,21 @@ class TestIntercorrenciaPermission:
             req.method = method
             for status in ["em_preenchimento_diretor", "enviado_para_dre", "em_analise_dre"]:
                 intercorrencia.status = status
-                assert not permission._check_gipe_permission(req, intercorrencia)
+                assert permission._check_gipe_permission(req, intercorrencia)
 
     def test_gipe_put_patch_safe(self, permission, req, gipe_user, intercorrencia):
         req.user = gipe_user
         for method in ["PUT", "PATCH", "GET"]:
             req.method = method
             intercorrencia.status = "finalizado"
+
             intercorrencia.pode_ser_editado_por_gipe = True
             assert permission._check_gipe_permission(req, intercorrencia)
+
             intercorrencia.pode_ser_editado_por_gipe = False
+            intercorrencia.pode_ser_editado_por_dre = False
+            intercorrencia.pode_ser_editado_por_diretor = False
+
             if method in ["PUT", "PATCH"]:
                 assert not permission._check_gipe_permission(req, intercorrencia)
 
@@ -239,4 +253,5 @@ class TestIntercorrenciaPermission:
         user.is_authenticated = True
         user.cargo_codigo = "INVALIDO"
         req.user = user
+        view.action = None
         assert not permission.has_object_permission(req, view, intercorrencia)

@@ -46,7 +46,7 @@ class VerifyIntercorrenciaViewSet(viewsets.GenericViewSet):
             )
             return Response(
                 {"detail": "A intercorrência informada não existe."},
-                status=status.HTTP_404_NOT_FOUND
+                status=status.HTTP_400_BAD_REQUEST
             )
 
         validators = {

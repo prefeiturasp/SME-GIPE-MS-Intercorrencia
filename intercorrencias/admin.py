@@ -4,11 +4,32 @@ from .models.declarante import Declarante
 from .models.envolvido import Envolvido
 from .models.intercorrencia import Intercorrencia
 from .models.tipos_ocorrencia import TipoOcorrencia
+from django import forms
 
+from intercorrencias.choices.info_agressor_choices import (
+    MotivoOcorrencia,
+    GrupoEtnicoRacial,
+    Genero,
+    FrequenciaEscolar,
+    EtapaEscolar,
+)
+
+
+class IntercorrenciaAdminForm(forms.ModelForm):
+    # sobrescreve o campo do ModelForm
+    motivacao_ocorrencia = forms.MultipleChoiceField(
+        choices=MotivoOcorrencia.choices,
+        widget=forms.CheckboxSelectMultiple,  # ou forms.SelectMultiple
+        required=False,
+        label="O que motivou a ocorrência?",
+        help_text="Selecione uma ou mais motivações."
+    )
 
 
 @admin.register(Intercorrencia)
 class IntercorrenciaAdmin(admin.ModelAdmin):
+    form = IntercorrenciaAdminForm
+
     list_display = (
         "user_username",
         "unidade_codigo_eol",
@@ -18,7 +39,7 @@ class IntercorrenciaAdmin(admin.ModelAdmin):
     )
     list_filter = ("user_username", "unidade_codigo_eol", "dre_codigo_eol", "sobre_furto_roubo_invasao_depredacao")
     search_fields = ("unidade_codigo_eol", "user_username", "dre_codigo_eol")
-    readonly_fields = ("uuid", "criado_em", "atualizado_em")
+    readonly_fields = ("uuid", "criado_em", "atualizado_em", "protocolo_da_intercorrencia")
     ordering = ("-criado_em",)
 
     def get_tipos_ocorrencia(self, obj):
@@ -33,7 +54,11 @@ class IntercorrenciaAdmin(admin.ModelAdmin):
                 'fields': (
                     'status', 'user_username',
                     'data_ocorrencia', 'unidade_codigo_eol', 'dre_codigo_eol',
-                    'sobre_furto_roubo_invasao_depredacao'
+                    'sobre_furto_roubo_invasao_depredacao', "motivacao_ocorrencia",
+                    'motivo_encerramento_ue', "protocolo_da_intercorrencia",
+                    'finalizado_diretor_em', "finalizado_diretor_por",
+                    'motivo_encerramento_dre',
+                    'finalizado_dre_em', 'finalizado_dre_por',
                 )
             }),
             ('Seção Final (Diretor)', {
