@@ -780,7 +780,7 @@ class IntercorrenciaUpdateDiretorCompletoSerializer(IntercorrenciaSerializer):
         # ETAPA 2: Após atualizar, garante que os campos foram limpos na instância
         if sobre_furto_roubo:
             instance.tem_info_agressor_ou_vitima = ""
-            instance.save(update_fields=["envolvido", "tem_info_agressor_ou_vitima"])
+            instance.save(update_fields=["tem_info_agressor_ou_vitima"])
         else:
             instance.smart_sampa_situacao = ""
             instance.save(update_fields=["smart_sampa_situacao"])
