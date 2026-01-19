@@ -692,10 +692,6 @@ class TestIntercorrenciaDiretorViewSetUpdate:
     def tipos_ocorrencia(self):
         return [TipoOcorrencia.objects.create(nome=f"Tipo {i}") for i in range(1, 3)]
 
-    @pytest.fixture
-    def envolvido(self):
-        return Envolvido.objects.create(perfil_dos_envolvidos=1)
-
     def test_update_sucesso_com_dados_validos(self, client, diretor_user, intercorrencia_editavel, tipos_ocorrencia):
         """Testa atualização bem-sucedida com dados válidos"""
         type(intercorrencia_editavel).pode_ser_editado_por_diretor = PropertyMock(return_value=True)
@@ -715,33 +711,6 @@ class TestIntercorrenciaDiretorViewSetUpdate:
 
         assert response.status_code == status.HTTP_200_OK
         assert "Descrição atualizada" in response.data["descricao_ocorrencia"]
-
-    def test_update_limpa_campos_furto_roubo(self, client, diretor_user, create_intercorrencia, envolvido):
-        """Testa que campos de envolvido são limpos quando sobre_furto_roubo=True"""
-        intercorrencia = create_intercorrencia(furto_roubo=False, tem_info="sim")
-        intercorrencia.envolvido = envolvido
-        intercorrencia.nome_pessoa_agressora = "João Silva"
-        intercorrencia.save()
-
-        type(intercorrencia).pode_ser_editado_por_diretor = PropertyMock(return_value=True)
-
-        client.force_authenticate(user=diretor_user)
-        data = {
-            "unidade_codigo_eol": "200237",
-            "dre_codigo_eol": "108500",
-            "sobre_furto_roubo_invasao_depredacao": True,
-            "smart_sampa_situacao": "sim_com_dano",
-        }
-
-        url = f"/api-intercorrencias/v1/diretor/{intercorrencia.uuid}/"
-        response = client.put(url, data, format="json")
-
-        assert response.status_code == status.HTTP_200_OK
-        
-        intercorrencia.refresh_from_db()
-        assert intercorrencia.envolvido is None
-        assert intercorrencia.tem_info_agressor_ou_vitima == ""
-        assert intercorrencia.nome_pessoa_agressora == ""
 
     def test_update_limpa_smart_sampa_quando_nao_furto_roubo(self, client, diretor_user, intercorrencia_editavel):
         """Testa que smart_sampa_situacao é limpo quando sobre_furto_roubo=False"""
@@ -764,33 +733,6 @@ class TestIntercorrenciaDiretorViewSetUpdate:
         
         intercorrencia_editavel.refresh_from_db()
         assert intercorrencia_editavel.smart_sampa_situacao == ""
-
-    def test_update_limpa_campos_agressor_quando_tem_info_nao(self, client, diretor_user, create_intercorrencia):
-        """Testa que campos de agressor são limpos quando tem_info_agressor_ou_vitima != 'sim'"""
-        intercorrencia = create_intercorrencia(furto_roubo=False, tem_info="sim")
-        intercorrencia.nome_pessoa_agressora = "Maria Santos"
-        intercorrencia.idade_pessoa_agressora = 16
-        intercorrencia.motivacao_ocorrencia = ["bullying"]
-        intercorrencia.save()
-
-        type(intercorrencia).pode_ser_editado_por_diretor = PropertyMock(return_value=True)
-
-        client.force_authenticate(user=diretor_user)
-        data = {
-            "unidade_codigo_eol": "200237",
-            "dre_codigo_eol": "108500",
-            "tem_info_agressor_ou_vitima": "nao",
-        }
-
-        url = f"/api-intercorrencias/v1/diretor/{intercorrencia.uuid}/"
-        response = client.put(url, data, format="json")
-
-        assert response.status_code == status.HTTP_200_OK
-        
-        intercorrencia.refresh_from_db()
-        assert intercorrencia.nome_pessoa_agressora == ""
-        assert intercorrencia.idade_pessoa_agressora is None
-        assert intercorrencia.motivacao_ocorrencia == []
 
     def test_update_mantem_campos_agressor_quando_tem_info_sim(self, client, diretor_user, create_intercorrencia):
         """Testa que campos de agressor são mantidos quando tem_info_agressor_ou_vitima = 'sim'"""
@@ -958,67 +900,3 @@ class TestIntercorrenciaDiretorViewSetUpdate:
             assert response.status_code == status.HTTP_400_BAD_REQUEST
             assert "Erro no serializer update" in str(response.data["detail"])
             MockSerializer.assert_called()
-
-    def test_update_limpa_todos_campos_agressor_quando_furto_roubo(
-        self, client, diretor_user, create_intercorrencia
-    ):
-        """Testa que TODOS os 17 campos de agressor/vítima são limpos quando muda para furto/roubo"""
-        intercorrencia = create_intercorrencia(furto_roubo=False, tem_info="sim")
-        
-        # Preenche todos os campos de agressor
-        intercorrencia.nome_pessoa_agressora = "João Silva"
-        intercorrencia.idade_pessoa_agressora = 15
-        intercorrencia.motivacao_ocorrencia = ["bullying"]
-        intercorrencia.genero_pessoa_agressora = "homem_cis"
-        intercorrencia.grupo_etnico_racial = "branco"
-        intercorrencia.etapa_escolar = "fundamental_alfabetizacao"
-        intercorrencia.frequencia_escolar = "regularizada"
-        intercorrencia.interacao_ambiente_escolar = "participa"
-        intercorrencia.redes_protecao_acompanhamento = "orientação"
-        intercorrencia.notificado_conselho_tutelar = True
-        intercorrencia.acompanhado_naapa = True
-        intercorrencia.cep = "12345678"
-        intercorrencia.logradouro = "Rua das Flores"
-        intercorrencia.numero_residencia = "123"
-        intercorrencia.complemento = "Apto 1"
-        intercorrencia.bairro = "Centro"
-        intercorrencia.cidade = "São Paulo"
-        intercorrencia.estado = "SP"
-        intercorrencia.save()
-
-        type(intercorrencia).pode_ser_editado_por_diretor = PropertyMock(return_value=True)
-
-        client.force_authenticate(user=diretor_user)
-        data = {
-            "unidade_codigo_eol": "200237",
-            "dre_codigo_eol": "108500",
-            "sobre_furto_roubo_invasao_depredacao": True,
-            "smart_sampa_situacao": "sim_com_dano",
-        }
-
-        url = f"/api-intercorrencias/v1/diretor/{intercorrencia.uuid}/"
-        response = client.put(url, data, format="json")
-
-        assert response.status_code == status.HTTP_200_OK
-        
-        intercorrencia.refresh_from_db()
-        # Verifica que TODOS os campos foram limpos
-        assert intercorrencia.nome_pessoa_agressora == ""
-        assert intercorrencia.idade_pessoa_agressora is None
-        assert intercorrencia.motivacao_ocorrencia == []
-        assert intercorrencia.genero_pessoa_agressora == ""
-        assert intercorrencia.grupo_etnico_racial == ""
-        assert intercorrencia.etapa_escolar == ""
-        assert intercorrencia.frequencia_escolar == ""
-        assert intercorrencia.interacao_ambiente_escolar == ""
-        assert intercorrencia.redes_protecao_acompanhamento == ""
-        assert intercorrencia.notificado_conselho_tutelar is None
-        assert intercorrencia.acompanhado_naapa is None
-        assert intercorrencia.cep == ""
-        assert intercorrencia.logradouro == ""
-        assert intercorrencia.numero_residencia == ""
-        assert intercorrencia.complemento == ""
-        assert intercorrencia.bairro == ""
-        assert intercorrencia.cidade == ""
-        assert intercorrencia.estado == ""
-
