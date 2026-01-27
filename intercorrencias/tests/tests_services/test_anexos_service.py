@@ -8,7 +8,7 @@ from intercorrencias.services.anexos_service import AnexosService
 
 @pytest.fixture
 def service_defaults(monkeypatch):
-    monkeypatch.setattr(AnexosService, "BASE_URL", "http://anexos.test/api-anexos/v1")
+    monkeypatch.setattr(AnexosService, "BASE_URL", "https://anexos.test/api-anexos/v1")
     monkeypatch.setattr(AnexosService, "INTERNAL_TOKEN", "token-123")
     monkeypatch.setattr(AnexosService, "TIMEOUT", 5)
 
@@ -33,7 +33,7 @@ def test_deletar_anexos_intercorrencia_sucesso(service_defaults):
 
     post_mock.assert_called_once()
     args, kwargs = post_mock.call_args
-    assert args[0] == "http://anexos.test/api-anexos/v1/anexos/deletar-por-intercorrencia/"
+    assert args[0] == "https://anexos.test/api-anexos/v1/anexos/deletar-por-intercorrencia/"
     assert kwargs["json"] == {"intercorrencia_uuid": "uuid-123"}
     assert kwargs["headers"]["X-Internal-Service-Token"] == "token-123"
     assert kwargs["timeout"] == 5
