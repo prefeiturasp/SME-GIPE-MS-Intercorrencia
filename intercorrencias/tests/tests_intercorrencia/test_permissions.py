@@ -2,10 +2,11 @@ import pytest
 from unittest.mock import Mock, patch
 
 from rest_framework.views import APIView
+from django.conf import settings
 from config.settings import CODIGO_PERFIL_DIRETOR, CODIGO_PERFIL_DRE, CODIGO_PERFIL_GIPE
 
 import intercorrencias.permissions as perms
-from intercorrencias.permissions import IntercorrenciaPermission
+from intercorrencias.permissions import IntercorrenciaPermission, IsInternalServiceRequest
 
 
 @pytest.fixture
@@ -66,6 +67,19 @@ def gipe_user():
     u.is_authenticated = True
     u.cargo_codigo = CODIGO_PERFIL_GIPE
     return u
+
+
+@pytest.fixture
+def internal_permission():
+    return IsInternalServiceRequest()
+
+
+@pytest.fixture
+def internal_req():
+    r = Mock()
+    r.headers = {}
+    r.META = {"REMOTE_ADDR": "127.0.0.1"}
+    return r
 
 
 @pytest.mark.django_db
@@ -255,3 +269,29 @@ class TestIntercorrenciaPermission:
         req.user = user
         view.action = None
         assert not permission.has_object_permission(req, view, intercorrencia)
+
+
+@pytest.mark.django_db
+class TestIsInternalServiceRequest:
+
+    def test_has_permission_missing_expected_token(self, internal_permission, internal_req, view, monkeypatch):
+        internal_req.headers = {"X-Internal-Service-Token": "abc"}
+        monkeypatch.setattr(settings, "INTERNAL_SERVICE_TOKEN", None, raising=False)
+
+        with patch("intercorrencias.permissions.logger.warning") as mock_logger:
+            assert not internal_permission.has_permission(internal_req, view)
+            mock_logger.assert_called()
+
+    def test_has_permission_token_invalido(self, internal_permission, internal_req, view, monkeypatch):
+        internal_req.headers = {"X-Internal-Service-Token": "wrong"}
+        monkeypatch.setattr(settings, "INTERNAL_SERVICE_TOKEN", "secret", raising=False)
+
+        with patch("intercorrencias.permissions.logger.warning") as mock_logger:
+            assert not internal_permission.has_permission(internal_req, view)
+            mock_logger.assert_called()
+
+    def test_has_permission_token_valido(self, internal_permission, internal_req, view, monkeypatch):
+        internal_req.headers = {"X-Internal-Service-Token": "secret"}
+        monkeypatch.setattr(settings, "INTERNAL_SERVICE_TOKEN", "secret", raising=False)
+
+        assert internal_permission.has_permission(internal_req, view)
