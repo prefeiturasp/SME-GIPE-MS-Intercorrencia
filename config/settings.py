@@ -30,6 +30,13 @@ if READ_DOT_ENV_FILE:
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = env("DJANGO_SECRET_KEY")
 
+
+ANEXOS_API_URL = env(
+    'ANEXOS_API_URL',
+    default='http://localhost:8002/api-anexos/v1'
+)
+INTERNAL_SERVICE_TOKEN = env("INTERNAL_SERVICE_TOKEN", default="")
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env("DEBUG", default=False)
 

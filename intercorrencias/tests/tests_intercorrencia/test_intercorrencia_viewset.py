@@ -637,6 +637,89 @@ class TestIntercorrenciaDiretorViewSet:
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert "não tem permissão" in str(response.data["detail"]).lower()
+
+    def _post_interno(self, client, data, token):
+        return client.post(
+            "/api-intercorrencias/v1/diretor/deletar-por-usuario-inativo/",
+            data,
+            format="json",
+            HTTP_X_INTERNAL_SERVICE_TOKEN=token,
+        )
+
+    def test_deletar_por_usuario_inativo_username_obrigatorio(self, client, monkeypatch):
+        monkeypatch.setattr(settings, "INTERNAL_SERVICE_TOKEN", "token", raising=False)
+        response = self._post_interno(client, {}, "token")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "Username é obrigatório" in str(response.data["detail"])
+
+    def test_deletar_por_usuario_inativo_username_invalido(self, client, monkeypatch):
+        monkeypatch.setattr(settings, "INTERNAL_SERVICE_TOKEN", "token", raising=False)
+        response = self._post_interno(client, {"username": "   "}, "token")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "Username deve ser uma string válida" in str(response.data["detail"])
+
+    def test_deletar_por_usuario_inativo_sem_intercorrencias(self, client, monkeypatch):
+        monkeypatch.setattr(settings, "INTERNAL_SERVICE_TOKEN", "token", raising=False)
+        response = self._post_interno(client, {"username": "usuario-sem-registro"}, "token")
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["intercorrencias_deletadas"] == 0
+
+    def test_deletar_por_usuario_inativo_sucesso(self, client, create_intercorrencia, monkeypatch):
+        monkeypatch.setattr(settings, "INTERNAL_SERVICE_TOKEN", "token", raising=False)
+        intercorrencia_a = create_intercorrencia(user_username="usuario123")
+        intercorrencia_b = create_intercorrencia(user_username="usuario123")
+
+        anexos_resultados = [
+            {"success": True, "total_anexos": 2},
+            {"success": True, "total_anexos": 1},
+        ]
+
+        with patch(
+            "intercorrencias.api.views.intercorrencias_viewset.AnexosService.deletar_anexos_intercorrencia",
+            side_effect=anexos_resultados,
+        ) as mock_deletar:
+            response = self._post_interno(client, {"username": "usuario123"}, "token")
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["intercorrencias_deletadas"] == 2
+        assert response.data["anexos_deletados"] == 3
+        assert (
+            Intercorrencia.objects.filter(user_username="usuario123", status="em_preenchimento_diretor").count()
+            == 0
+        )
+        chamados = {call.args[0] for call in mock_deletar.call_args_list}
+        assert chamados == {str(intercorrencia_a.uuid), str(intercorrencia_b.uuid)}
+
+    def test_deletar_por_usuario_inativo_falha_anexos(self, client, create_intercorrencia, monkeypatch):
+        monkeypatch.setattr(settings, "INTERNAL_SERVICE_TOKEN", "token", raising=False)
+        create_intercorrencia(user_username="usuario123")
+
+        with patch(
+            "intercorrencias.api.views.intercorrencias_viewset.AnexosService.deletar_anexos_intercorrencia",
+            return_value={"success": False, "error": "falha"},
+        ):
+            response = self._post_interno(client, {"username": "usuario123"}, "token")
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "Falha ao deletar anexos" in str(response.data["detail"])
+        assert (
+            Intercorrencia.objects.filter(user_username="usuario123", status="em_preenchimento_diretor").count()
+            == 1
+        )
+
+    def test_deletar_por_usuario_inativo_erro_interno(self, client, create_intercorrencia, monkeypatch):
+        monkeypatch.setattr(settings, "INTERNAL_SERVICE_TOKEN", "token", raising=False)
+        create_intercorrencia(user_username="usuario123")
+
+        with patch(
+            "intercorrencias.api.views.intercorrencias_viewset.AnexosService.deletar_anexos_intercorrencia",
+            side_effect=Exception("falha inesperada"),
+        ):
+            response = self._post_interno(client, {"username": "usuario123"}, "token")
+
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+        assert "Erro ao deletar intercorrências" in str(response.data["detail"])
+        assert "falha inesperada" in str(response.data["error"])
         
 
 @pytest.mark.django_db
