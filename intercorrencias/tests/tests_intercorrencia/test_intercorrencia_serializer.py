@@ -643,8 +643,6 @@ class TestIntercorrenciaInfoAgressorSerializer:
         self.valid_data = {
             "unidade_codigo_eol": "123456",
             "dre_codigo_eol": "654321",
-            "nome_pessoa_agressora": "João Silva",
-            "idade_pessoa_agressora": 17,
             "motivacao_ocorrencia": ["racismo", "bullying"],
             "genero_pessoa_agressora": "homem_cis",
             "grupo_etnico_racial": "preto",
@@ -654,24 +652,8 @@ class TestIntercorrenciaInfoAgressorSerializer:
             "redes_protecao_acompanhamento": "CREAS",
             "notificado_conselho_tutelar": True,
             "acompanhado_naapa": False,
-            "cep": "01001-000",
-            "logradouro": "Rua das Flores",
-            "numero_residencia": "123",
-            "complemento": "",
-            "bairro": "Centro",
-            "cidade": "São Paulo",
-            "estado": "São Paulo",
         }
 
-    @patch("intercorrencias.services.unidades_service.get_unidade")
-    def test_serializer_valido(self, mock_get_unidade):
-        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
-        serializer = IntercorrenciaInfoAgressorSerializer(
-            instance=self.intercorrencia, data=self.valid_data, context={"request": self.request}
-        )
-        assert serializer.is_valid(), serializer.errors
-        obj = serializer.save()
-        assert obj.nome_pessoa_agressora == "João Silva"
 
     @patch("intercorrencias.services.unidades_service.get_unidade")
     def test_serializer_invalido_quando_tem_info_false(self, mock_get_unidade):
@@ -694,13 +676,7 @@ class TestIntercorrenciaInfoAgressorSerializer:
     @pytest.mark.parametrize(
         "campo",
         [
-            "nome_pessoa_agressora",
             "motivacao_ocorrencia",
-            "cep",
-            "logradouro",
-            "bairro",
-            "cidade",
-            "estado",
         ],
     )
     @patch("intercorrencias.services.unidades_service.get_unidade")
@@ -838,11 +814,7 @@ class TestIntercorrenciaInfoAgressorSerializer:
     @pytest.mark.parametrize(
         "campo",
         [
-            "nome_pessoa_agressora",
             "interacao_ambiente_escolar",
-            "logradouro",
-            "bairro",
-            "cidade",
         ],
     )
     @patch("intercorrencias.services.unidades_service.get_unidade")
@@ -858,15 +830,6 @@ class TestIntercorrenciaInfoAgressorSerializer:
         assert campo in serializer.errors["detail"]
         assert "não pode estar em branco" in serializer.errors["detail"]
 
-    @patch("intercorrencias.services.unidades_service.get_unidade")
-    def test_campo_complemento_pode_ser_vazio(self, mock_get_unidade):
-        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
-        data = self.valid_data.copy()
-        data["complemento"] = ""
-        serializer = IntercorrenciaInfoAgressorSerializer(
-            instance=self.intercorrencia, data=data, context={"request": self.request}
-        )
-        assert serializer.is_valid(), serializer.errors
 
     @patch("intercorrencias.services.unidades_service.get_unidade")
     def test_serializer_erro_formato_detail(self, mock_get_unidade):
@@ -1250,8 +1213,6 @@ class TestIntercorrenciaUpdateDiretorCompletoSerializer:
             dre_codigo_eol="654321",
             sobre_furto_roubo_invasao_depredacao=False,
             tem_info_agressor_ou_vitima="sim",
-            nome_pessoa_agressora="João da Silva",
-            idade_pessoa_agressora=17,
             motivacao_ocorrencia=["racismo", "bullying"],
             genero_pessoa_agressora="homem_cis",
             grupo_etnico_racial="preto",
@@ -1261,13 +1222,6 @@ class TestIntercorrenciaUpdateDiretorCompletoSerializer:
             redes_protecao_acompanhamento="CREAS",
             notificado_conselho_tutelar=True,
             acompanhado_naapa=False,
-            cep="01001-000",
-            logradouro="Rua das Flores",
-            numero_residencia="123",
-            complemento="Apto 45",
-            bairro="Centro",
-            cidade="São Paulo",
-            estado="São Paulo",
         )
 
     @patch("intercorrencias.services.unidades_service.get_unidade")
@@ -1300,10 +1254,7 @@ class TestIntercorrenciaUpdateDiretorCompletoSerializer:
         instance.refresh_from_db()
         
         # Verifica que os campos NÃO foram limpos
-        assert instance.nome_pessoa_agressora == "João da Silva"
-        assert instance.idade_pessoa_agressora == 17
         assert instance.motivacao_ocorrencia == ["racismo", "bullying"]
-        assert instance.cep == "01001-000"
         assert instance.descricao_ocorrencia == "Atualização da descrição"
 
     @patch("intercorrencias.services.unidades_service.get_unidade")
