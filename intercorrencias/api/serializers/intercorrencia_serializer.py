@@ -39,8 +39,6 @@ class IntercorrenciaSerializer(serializers.ModelSerializer):
     def _get_campos_agressor_vitima(self):
         """Retorna a lista de campos relacionados a informações de agressor/vítima"""
         return [
-            "nome_pessoa_agressora",
-            "idade_pessoa_agressora",
             "genero_pessoa_agressora",
             "grupo_etnico_racial",
             "etapa_escolar",
@@ -49,19 +47,12 @@ class IntercorrenciaSerializer(serializers.ModelSerializer):
             "redes_protecao_acompanhamento",
             "notificado_conselho_tutelar",
             "acompanhado_naapa",
-            "cep",
-            "logradouro",
-            "numero_residencia",
-            "complemento",
-            "bairro",
-            "cidade",
-            "estado",
         ]
 
     def _limpar_campos_agressor_vitima(self, instance, campos):
         """Limpa os campos de agressor/vítima na instância"""
         for campo in campos:
-            if campo in ["idade_pessoa_agressora", "notificado_conselho_tutelar", "acompanhado_naapa"]:
+            if campo in ["notificado_conselho_tutelar", "acompanhado_naapa"]:
                 setattr(instance, campo, None)
         instance.save(update_fields=campos)
 
@@ -349,8 +340,6 @@ class IntercorrenciaNaoFurtoRouboSerializer(IntercorrenciaSerializer):
 class IntercorrenciaInfoAgressorSerializer(IntercorrenciaSerializer):
     """Serializer para informações do agressor/vítima - Diretor"""
 
-    nome_pessoa_agressora = serializers.CharField(required=True, allow_blank=False)
-    idade_pessoa_agressora = serializers.IntegerField(required=True)
     motivacao_ocorrencia = serializers.ListField(
         child=serializers.ChoiceField(choices=MotivoOcorrencia.choices),
         allow_empty=False,  # se quiser obrigar pelo menos 1 motivo
@@ -372,13 +361,6 @@ class IntercorrenciaInfoAgressorSerializer(IntercorrenciaSerializer):
     )
     notificado_conselho_tutelar = serializers.BooleanField(required=True)
     acompanhado_naapa = serializers.BooleanField(required=True)
-    cep = serializers.CharField(required=True, allow_blank=False)
-    logradouro = serializers.CharField(required=True, allow_blank=False)
-    numero_residencia = serializers.CharField(required=True, allow_blank=False)
-    complemento = serializers.CharField(required=False, allow_blank=True)
-    bairro = serializers.CharField(required=True, allow_blank=False)
-    cidade = serializers.CharField(required=True, allow_blank=False)
-    estado = serializers.CharField(required=True, allow_blank=False)
 
     class Meta:
         model = Intercorrencia
@@ -386,8 +368,6 @@ class IntercorrenciaInfoAgressorSerializer(IntercorrenciaSerializer):
             "uuid",
             "unidade_codigo_eol",
             "dre_codigo_eol",
-            "nome_pessoa_agressora",
-            "idade_pessoa_agressora",
             "motivacao_ocorrencia",
             "motivacao_ocorrencia_display",
             "genero_pessoa_agressora",
@@ -398,13 +378,6 @@ class IntercorrenciaInfoAgressorSerializer(IntercorrenciaSerializer):
             "redes_protecao_acompanhamento",
             "notificado_conselho_tutelar",
             "acompanhado_naapa",
-            "cep",
-            "logradouro",
-            "numero_residencia",
-            "complemento",
-            "bairro",
-            "cidade",
-            "estado",
         )
         read_only_fields = ("uuid",)
 
@@ -628,8 +601,6 @@ class IntercorrenciaDiretorCompletoSerializer(serializers.ModelSerializer):
             "declarante_detalhes",
             "comunicacao_seguranca_publica",
             "protocolo_acionado",
-            "nome_pessoa_agressora",
-            "idade_pessoa_agressora",
             "motivacao_ocorrencia_display",
             "genero_pessoa_agressora",
             "grupo_etnico_racial",
@@ -639,13 +610,6 @@ class IntercorrenciaDiretorCompletoSerializer(serializers.ModelSerializer):
             "redes_protecao_acompanhamento",
             "notificado_conselho_tutelar",
             "acompanhado_naapa",
-            "cep",
-            "logradouro",
-            "numero_residencia",
-            "complemento",
-            "bairro",
-            "cidade",
-            "estado",
             "protocolo_da_intercorrencia",
             "motivo_encerramento_ue",
             "finalizado_diretor_em",
@@ -719,8 +683,6 @@ class IntercorrenciaUpdateDiretorCompletoSerializer(IntercorrenciaSerializer):
             "declarante",
             "comunicacao_seguranca_publica",
             "protocolo_acionado",
-            "nome_pessoa_agressora",
-            "idade_pessoa_agressora",
             "motivacao_ocorrencia",
             "genero_pessoa_agressora",
             "grupo_etnico_racial",
@@ -730,13 +692,6 @@ class IntercorrenciaUpdateDiretorCompletoSerializer(IntercorrenciaSerializer):
             "redes_protecao_acompanhamento",
             "notificado_conselho_tutelar",
             "acompanhado_naapa",
-            "cep",
-            "logradouro",
-            "numero_residencia",
-            "complemento",
-            "bairro",
-            "cidade",
-            "estado",
         )
         read_only_fields = ("uuid", "status_display")
 
