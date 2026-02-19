@@ -502,8 +502,6 @@ class TestIntercorrenciaDiretorViewSet:
         intercorrencia.save()
 
         data = {
-            "nome_pessoa_agressora": "João Silva",
-            "idade_pessoa_agressora": 15,
             "motivacao_ocorrencia": ["bullying"],
             "genero_pessoa_agressora": "homem_cis",
             "grupo_etnico_racial": "branco",
@@ -513,13 +511,6 @@ class TestIntercorrenciaDiretorViewSet:
             "redes_protecao_acompanhamento": "orientação escolar",
             "notificado_conselho_tutelar": True,
             "acompanhado_naapa": False,
-            "cep": "12345678",
-            "logradouro": "Rua das Flores",
-            "numero_residencia": "123",
-            "complemento": "",
-            "bairro": "Centro",
-            "cidade": "São Paulo",
-            "estado": "SP",
             "unidade_codigo_eol": "200237",
             "dre_codigo_eol": "108500",
         }
@@ -610,8 +601,6 @@ class TestIntercorrenciaDiretorViewSet:
         type(intercorrencia).pode_ser_editado_por_diretor = PropertyMock(return_value=False)
 
         data = {
-            "nome_pessoa_agressora": "João Silva",
-            "idade_pessoa_agressora": 15,
             "motivacao_ocorrencia": "bullying",
             "genero_pessoa_agressora": "homem_cis",
             "grupo_etnico_racial": "branco",
@@ -621,13 +610,6 @@ class TestIntercorrenciaDiretorViewSet:
             "redes_protecao_acompanhamento": "orientação escolar",
             "notificado_conselho_tutelar": True,
             "acompanhado_naapa": False,
-            "cep": "12345678",
-            "logradouro": "Rua das Flores",
-            "numero_residencia": "123",
-            "complemento": "",
-            "bairro": "Centro",
-            "cidade": "São Paulo",
-            "estado": "SP",
             "unidade_codigo_eol": "200237",
             "dre_codigo_eol": "108500",
         }
@@ -820,8 +802,6 @@ class TestIntercorrenciaDiretorViewSetUpdate:
     def test_update_mantem_campos_agressor_quando_tem_info_sim(self, client, diretor_user, create_intercorrencia):
         """Testa que campos de agressor são mantidos quando tem_info_agressor_ou_vitima = 'sim'"""
         intercorrencia = create_intercorrencia(furto_roubo=False, tem_info="sim")
-        intercorrencia.nome_pessoa_agressora = "Pedro Oliveira"
-        intercorrencia.idade_pessoa_agressora = 17
         intercorrencia.motivacao_ocorrencia = ["violencia_fisica"]
         intercorrencia.save()
 
@@ -841,8 +821,6 @@ class TestIntercorrenciaDiretorViewSetUpdate:
         assert response.status_code == status.HTTP_200_OK
         
         intercorrencia.refresh_from_db()
-        assert intercorrencia.nome_pessoa_agressora == "Pedro Oliveira"
-        assert intercorrencia.idade_pessoa_agressora == 17
         assert intercorrencia.motivacao_ocorrencia == ["violencia_fisica"]
 
     def test_update_partial_true_permite_atualizacao_parcial(self, client, diretor_user, intercorrencia_editavel):
