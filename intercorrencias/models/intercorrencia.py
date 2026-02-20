@@ -189,10 +189,6 @@ class Intercorrencia(ModeloBase):
         blank=True,
         null=True,
     )
-    motivo_encerramento_ue=models.TextField(
-        verbose_name="Motivo do encerramento pela UE",
-        blank=True,
-    )
     protocolo_da_intercorrencia=models.CharField(
         max_length=100,
         verbose_name="Protocolo da Intercorrência",
@@ -253,10 +249,6 @@ class Intercorrencia(ModeloBase):
         verbose_name="Informação complementar da atuação conjunta entre DRE e NAAPA",
         blank=True,
     )
-    motivo_encerramento_dre=models.TextField(
-        verbose_name="Motivo do encerramento DRE",
-        blank=True,
-    )
     finalizado_dre_em = models.DateTimeField(
         verbose_name="Finalizado DRE em",
         blank=True, null=True
@@ -290,10 +282,6 @@ class Intercorrencia(ModeloBase):
     )
     encaminhamentos_gipe = models.TextField(
         verbose_name="São informações após a análise feita pelo GIPE.",
-        blank=True,
-    )
-    motivo_encerramento_gipe=models.TextField(
-        verbose_name="Motivo do encerramento GIPE",
         blank=True,
     )
     finalizado_gipe_em = models.DateTimeField(

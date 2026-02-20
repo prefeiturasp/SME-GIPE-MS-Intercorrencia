@@ -55,9 +55,8 @@ class IntercorrenciaAdmin(admin.ModelAdmin):
                     'status', 'user_username',
                     'data_ocorrencia', 'unidade_codigo_eol', 'dre_codigo_eol',
                     'sobre_furto_roubo_invasao_depredacao', "motivacao_ocorrencia",
-                    'motivo_encerramento_ue', "protocolo_da_intercorrencia",
+                    "protocolo_da_intercorrencia",
                     'finalizado_diretor_em', "finalizado_diretor_por",
-                    'motivo_encerramento_dre',
                     'finalizado_dre_em', 'finalizado_dre_por',
                 )
             }),
