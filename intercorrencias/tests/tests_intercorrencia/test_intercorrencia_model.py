@@ -222,7 +222,6 @@ class TestIntercorrencia:
         dt = timezone.make_aware(datetime(2025, 2, 1, 15, 20))
 
         obj = intercorrencia_factory(
-            motivo_encerramento_dre="Caso encerrado após análise técnica.",
             finalizado_dre_em=dt,
             finalizado_dre_por="usuario_dre"
         )
@@ -232,7 +231,6 @@ class TestIntercorrencia:
 
         obj.refresh_from_db()
 
-        assert obj.motivo_encerramento_dre == "Caso encerrado após análise técnica."
         assert obj.finalizado_dre_em == dt
         assert obj.finalizado_dre_por == "usuario_dre"
 
@@ -335,7 +333,6 @@ class TestIntercorrencia:
         dt = timezone.make_aware(datetime(2025, 3, 10, 9, 45))
 
         obj = intercorrencia_factory(
-            motivo_encerramento_gipe="Caso encerrado após análise da equipe GIPE.",
             finalizado_gipe_em=dt,
             finalizado_gipe_por="usuario_gipe"
         )
@@ -344,13 +341,11 @@ class TestIntercorrencia:
         obj.save()
         obj.refresh_from_db()
 
-        assert obj.motivo_encerramento_gipe == "Caso encerrado após análise da equipe GIPE."
         assert obj.finalizado_gipe_em == dt
         assert obj.finalizado_gipe_por == "usuario_gipe"
 
     def test_campos_encerramento_gipe_podem_ser_em_branco(self, intercorrencia_factory):
         obj = intercorrencia_factory(
-            motivo_encerramento_gipe="",
             finalizado_gipe_em=None,
             finalizado_gipe_por=""
         )
@@ -359,7 +354,6 @@ class TestIntercorrencia:
         obj.save()
         obj.refresh_from_db()
 
-        assert obj.motivo_encerramento_gipe == ""
         assert obj.finalizado_gipe_em is None
         assert obj.finalizado_gipe_por == ""
 
