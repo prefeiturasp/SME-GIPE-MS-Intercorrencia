@@ -865,7 +865,6 @@ class TestIntercorrenciaConclusaoDaUeSerializer:
         self.valid_data = {
             "unidade_codigo_eol": "123456",
             "dre_codigo_eol": "654321",
-            "motivo_encerramento_ue": "Este é o motivo do encerramento da UE"
         }
         
     @patch("intercorrencias.services.unidades_service.get_unidade")
@@ -875,9 +874,6 @@ class TestIntercorrenciaConclusaoDaUeSerializer:
             instance=self.intercorrencia, data=self.valid_data, context={"request": self.request}
         )
         assert serializer.is_valid(), serializer.errors
-        obj = serializer.save()
-        assert obj.motivo_encerramento_ue == "Este é o motivo do encerramento da UE"
-
 
     @patch("intercorrencias.services.unidades_service.get_unidade")
     def test_validate_dre_incorreta(self, mock_get, intercorrencia_data, request):
@@ -888,18 +884,6 @@ class TestIntercorrenciaConclusaoDaUeSerializer:
         )
         with pytest.raises(ValidationError):
             serializer.is_valid(raise_exception=True)   
-            
-    @patch("intercorrencias.services.unidades_service.get_unidade")
-    def test_campo_obrigatorio_nao_informado(self, mock_get_unidade):
-        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
-        data = self.valid_data.copy()
-        data.pop("motivo_encerramento_ue")
-        serializer = IntercorrenciaConclusaoDaUeSerializer(
-            instance=self.intercorrencia, data=data, context={"request": self.request}
-        )
-        assert not serializer.is_valid()
-        assert "detail" in serializer.errors
-        assert "motivo_encerramento_ue" in serializer.errors["detail"]
         
     @patch("intercorrencias.api.serializers.intercorrencia_serializer.unidades_service.get_unidade")
     def test_get_nome_unidade_quando_servico_lanca_erro(self, mock_get_unidade):

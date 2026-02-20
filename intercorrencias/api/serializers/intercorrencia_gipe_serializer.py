@@ -84,7 +84,6 @@ class IntercorrenciaGipeSerializer(IntercorrenciaSerializer):
 class IntercorrenciaConclusaoGipeSerializer(IntercorrenciaSerializer):
     """Serializer para conclusão GIPE"""
     
-    motivo_encerramento_gipe = serializers.CharField(required=True, allow_blank=False)
     responsavel_nome = serializers.SerializerMethodField()
     responsavel_cpf = serializers.SerializerMethodField()
     responsavel_email = serializers.SerializerMethodField()
@@ -126,7 +125,6 @@ class IntercorrenciaConclusaoGipeSerializer(IntercorrenciaSerializer):
             "responsavel_email",
             "finalizado_gipe_em",
             "finalizado_gipe_por",
-            "motivo_encerramento_gipe",
             "protocolo_da_intercorrencia",
             "status_display",
             "status_extra",

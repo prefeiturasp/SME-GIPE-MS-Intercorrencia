@@ -424,7 +424,6 @@ class IntercorrenciaInfoAgressorSerializer(IntercorrenciaSerializer):
 class IntercorrenciaConclusaoDaUeSerializer(IntercorrenciaSerializer):
     """Serializer para conclusão da UE - Diretor"""
     
-    motivo_encerramento_ue = serializers.CharField(required=True, allow_blank=False)
     nome_unidade = serializers.SerializerMethodField()
     nome_dre = serializers.SerializerMethodField()
     responsavel_nome = serializers.SerializerMethodField()
@@ -504,7 +503,6 @@ class IntercorrenciaConclusaoDaUeSerializer(IntercorrenciaSerializer):
             "nome_dre",
             "finalizado_diretor_em",
             "finalizado_diretor_por",
-            "motivo_encerramento_ue",
             "protocolo_da_intercorrencia",
             "status_display",
             "status_extra",
@@ -611,7 +609,6 @@ class IntercorrenciaDiretorCompletoSerializer(serializers.ModelSerializer):
             "notificado_conselho_tutelar",
             "acompanhado_naapa",
             "protocolo_da_intercorrencia",
-            "motivo_encerramento_ue",
             "finalizado_diretor_em",
             "finalizado_diretor_por",
         )

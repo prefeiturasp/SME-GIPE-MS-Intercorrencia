@@ -459,7 +459,7 @@ class TestIntercorrenciaDiretorViewSet:
         
     def test_enviar_para_dre_sucesso(self, client, diretor_user, intercorrencia, tipos_ocorrencia):
         type(intercorrencia).pode_ser_editado_por_diretor = PropertyMock(return_value=True)
-        data = {"unidade_codigo_eol": "200237", "dre_codigo_eol": "108500", "motivo_encerramento_ue": "Encerramento teste",}
+        data = {"unidade_codigo_eol": "200237", "dre_codigo_eol": "108500"}
         url = f"/api-intercorrencias/v1/diretor/{intercorrencia.uuid}/enviar-para-dre/"
         response = self._api_call(client, diretor_user, 'put', url, data)
         assert response.status_code == status.HTTP_200_OK
@@ -471,7 +471,6 @@ class TestIntercorrenciaDiretorViewSet:
         data = {
             "unidade_codigo_eol": "200237",
             "dre_codigo_eol": "108500",
-            "motivo_encerramento_ue": "Encerramento teste"
         }
         url = f"/api-intercorrencias/v1/diretor/{intercorrencia.uuid}/enviar-para-dre/"
         
@@ -490,7 +489,6 @@ class TestIntercorrenciaDiretorViewSet:
             data = {
                 "unidade_codigo_eol": "200237",
                 "dre_codigo_eol": "108500",
-                "motivo_encerramento_ue": "Encerramento teste"
             }
             response = client.put(url, data, format="json")
             assert response.status_code == status.HTTP_400_BAD_REQUEST

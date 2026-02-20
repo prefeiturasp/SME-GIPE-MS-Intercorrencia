@@ -40,7 +40,6 @@ class TestIntercorrenciaDreViewSet:
             status="em_preenchimento_dre",
             data_ocorrencia=timezone.now(),
             user_username=dre_user.username,
-            motivo_encerramento_dre="Encerramento teste",
         )
 
     def _api_call(self, client, user, method, url, data):
@@ -56,34 +55,16 @@ class TestIntercorrenciaDreViewSet:
         data = {
             "unidade_codigo_eol": "200237",
             "dre_codigo_eol": dre_user.unidade_codigo_eol,
-            "motivo_encerramento_dre": "Encerramento concluído com sucesso"
         }
         response = client.put(url, data, format="json")
         assert response.status_code == status.HTTP_200_OK
-        assert response.data["motivo_encerramento_dre"] == "Encerramento concluído com sucesso"
-
-    @patch("intercorrencias.api.serializers.intercorrencia_serializer.unidades_service.get_unidade")
-    def test_enviar_para_gipe_erro_validacao(self, mock_get_unidade, client, dre_user, intercorrencia_dre):
-        client.force_authenticate(user=dre_user)
-        mock_get_unidade.return_value = {"codigo_eol": "200237", "dre_codigo_eol": "DRE01"}
-
-        url = f"/api-intercorrencias/v1/dre/{intercorrencia_dre.uuid}/enviar-para-gipe/"
-        data = {
-            "unidade_codigo_eol": "200237",
-            "dre_codigo_eol": dre_user.unidade_codigo_eol,
-            "motivo_encerramento_dre": ""
-        }
-
-        response = client.put(url, data, format="json")
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "motivo_encerramento_dre" in str(response.data["detail"])
 
     @patch("intercorrencias.api.serializers.intercorrencia_serializer.unidades_service.get_unidade")
     def test_enviar_para_gipe_exception_generica(self, mock_get_unidade, client, dre_user, intercorrencia_dre):
         mock_get_unidade.return_value = {"codigo_eol": "200237", "dre_codigo_eol": "DRE01"}
 
         url = f"/api-intercorrencias/v1/dre/{intercorrencia_dre.uuid}/enviar-para-gipe/"
-        data = {"motivo_encerramento_dre": "teste"}
+        data = {}
 
         with patch.object(IntercorrenciaDreViewSet, "get_object", side_effect=Exception("Erro inesperado")):
             response = self._api_call(client, dre_user, "put", url, data)

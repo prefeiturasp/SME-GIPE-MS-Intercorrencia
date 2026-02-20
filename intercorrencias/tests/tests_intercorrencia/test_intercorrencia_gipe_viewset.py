@@ -41,7 +41,6 @@ class TestIntercorrenciaGipeViewSet:
             status="em_preenchimento_gipe",
             data_ocorrencia=timezone.now(),
             user_username=user.username,
-            motivo_encerramento_dre="Encerramento teste",
         )
 
     def _api_call_finalizar(self, client, user, intercorrencia, data):
@@ -79,7 +78,6 @@ class TestIntercorrenciaGipeViewSet:
         data = {
             "unidade_codigo_eol": intercorrencia.unidade_codigo_eol,
             "dre_codigo_eol": intercorrencia.dre_codigo_eol,
-            "motivo_encerramento_gipe": "Finalizado com sucesso"
         }
 
         with patch(
@@ -90,31 +88,13 @@ class TestIntercorrenciaGipeViewSet:
             response = self._api_call_finalizar(client, user, intercorrencia, data)
 
         assert response.status_code == status.HTTP_200_OK
-        assert response.data["motivo_encerramento_gipe"] == "Finalizado com sucesso"
 
         intercorrencia.refresh_from_db()
         assert intercorrencia.status == "finalizada"
         assert intercorrencia.finalizado_gipe_por == user.username
 
-    def test_finalizar_erro_validacao(self, client, user, intercorrencia):
-        data = {
-            "unidade_codigo_eol": intercorrencia.unidade_codigo_eol,
-            "dre_codigo_eol": intercorrencia.dre_codigo_eol,
-            "motivo_encerramento_gipe": ""  # campo inválido
-        }
-
-        with patch(
-            "intercorrencias.api.serializers.intercorrencia_serializer.unidades_service.get_unidade"
-        ) as mock_get_unidade:
-            mock_get_unidade.return_value = {"codigo_eol": "200237", "dre_codigo_eol": "GIPE01"}
-
-            response = self._api_call_finalizar(client, user, intercorrencia, data)
-
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "motivo_encerramento_gipe" in str(response.data["detail"])
-
     def test_finalizar_exception_generica(self, client, user, intercorrencia):
-        data = {"motivo_encerramento_gipe": "teste"}
+        data = {}
 
         with patch.object(
             IntercorrenciaGipeViewSet, "get_object", side_effect=Exception("Erro inesperado")
