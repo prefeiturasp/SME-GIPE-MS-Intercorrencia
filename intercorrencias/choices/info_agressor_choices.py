@@ -8,16 +8,17 @@ class MotivoOcorrencia(models.TextChoices):
     BULLYING = "bullying", "Bullying"
     CYBERBULLYING = "cyberbullying", "Cyberbullying"
     ATIVIDADES_ILICITAS = "atividades_ilicitas", "Envolvimento com atividades ilícitas"
-    HOMOFOBIA = "homofobia", "Homofobia"
+    BULLYING_HOMOFOBIA = "bullying_homofobia", "Bullying/Homofobia"
     IDEOLOGIAS_EXTREMISTAS = "ideologias_extremistas", "Ideologias extremistas (facista, nazista, discurso de ódio)"
-    MISOGINIA_MACHISMO = "misoginia_machismo", "Misoginia/machismo"
-    RACISMO = "racismo", "Racismo"
+    BULLYING_MISOGINIA = "bullying_misoginia", "Bullying/Misoginia"
+    BULLYING_MACHISMO = "bullying_machismo", "Bullying/machismo"
+    BULLYING_RACISMO = "bullying_racismo", "Bullying/Racismo"
     VIOLENCIA_GENERO = "violencia_genero", "Violência de Gênero"
-    CAPACITISMO = "capacitismo", "Capacitismo"
+    BULLYING_CAPACITISMO = "bullying_capacitismo", "Bullying/Capacitismo"
     RELACOES_AFETIVAS = "relacoes_afetivas", "Relações afetivas"
     USO_DROGAS = "uso_drogas", "Uso de drogas"
     VINGANCA = "vinganca", "Vingança"
-    XENOFOBIA = "xenofobia", "Xenofobia"
+    BULLYING_XENOFOBIA = "bullying_xenofobia", "Bullying/Xenofobia"
     OUTROS = "outros", "Outros"
 
 
@@ -30,11 +31,8 @@ class GrupoEtnicoRacial(models.TextChoices):
 
 
 class Genero(models.TextChoices):
-    MULHER_TRANS = "mulher_trans", "Mulher trans"
-    HOMEM_TRANS = "homem_trans", "Homem trans"
-    MULHER_CIS = "mulher_cis", "Mulher cisgênero"
-    HOMEM_CIS = "homem_cis", "Homem cisgênero"
-    PESSOA_NAO_BINARIA = "pessoa_nao_binaria", "Pessoa não binária"
+    MASCULINO = "masculino", "Masculino"
+    FEMININO = "feminino", "Feminino"
 
 
 class FrequenciaEscolar(models.TextChoices):
@@ -52,8 +50,10 @@ class EtapaEscolar(models.TextChoices):
     EDU_INFANTIL_CEI = "edu_infantil_cei", "Educação infantil - CEI"
     EDU_INFANTIL_EMEI = "edu_infantil_emei", "Educação Infantil - EMEI"
     FUNDAMENTAL_ALFABETIZACAO = "fundamental_alfabetizacao", "Ensino fundamental - Ciclo de alfabetização"
+    INTERDISCIPLINAR = "interdisciplinar", "Ensino fundamental - Ciclo Interdisciplinar"
     FUNDAMENTAL_AUTORAL = "fundamental_autoral", "Ensino fundamental - Ciclo Autoral"
     ENSINO_MEDIO = "ensino_medio", "Ensino médio"
+    EJA = "eja", "Educação de Jovens e Adultos"
     NAO_SE_APLICA = "nao_se_aplica", "Não se aplica"
 
 
