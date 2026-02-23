@@ -5,6 +5,7 @@ from django.contrib.auth.models import User
 from intercorrencias.models.declarante import Declarante
 from intercorrencias.models.intercorrencia import Intercorrencia
 from intercorrencias.models.tipos_ocorrencia import TipoOcorrencia
+from intercorrencias.models.pessoa_agressora import PessoaAgressora
 
 
 
@@ -49,3 +50,14 @@ class DeclaranteFactory(factory.django.DjangoModelFactory):
         django_get_or_create = ("declarante",)
 
     declarante = factory.Faker("word")
+    
+    
+class PessoaAgressoraFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = PessoaAgressora
+        django_get_or_create = ("uuid",)
+        
+    uuid = factory.Faker('uuid4')
+    nome = factory.Faker("name")
+    idade = factory.Faker("random_int", min=1, max=100)
+    intercorrencia = factory.SubFactory(IntercorrenciaFactory)        
