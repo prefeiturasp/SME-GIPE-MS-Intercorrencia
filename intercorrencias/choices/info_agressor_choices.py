@@ -11,7 +11,7 @@ class MotivoOcorrencia(models.TextChoices):
     BULLYING_HOMOFOBIA = "bullying_homofobia", "Bullying/Homofobia"
     IDEOLOGIAS_EXTREMISTAS = "ideologias_extremistas", "Ideologias extremistas (facista, nazista, discurso de ódio)"
     BULLYING_MISOGINIA = "bullying_misoginia", "Bullying/Misoginia"
-    BULLYING_MACHISMO = "bullying_machismo", "Bullying/machismo"
+    BULLYING_MACHISMO = "bullying_machismo", "Bullying/Machismo"
     BULLYING_RACISMO = "bullying_racismo", "Bullying/Racismo"
     VIOLENCIA_GENERO = "violencia_genero", "Violência de Gênero"
     BULLYING_CAPACITISMO = "bullying_capacitismo", "Bullying/Capacitismo"
