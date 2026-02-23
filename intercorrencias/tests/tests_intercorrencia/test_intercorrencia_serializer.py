@@ -217,7 +217,7 @@ class TestIntercorrenciaDiretorCompletoSerializer:
             unidade_codigo_eol="123",
             dre_codigo_eol="456",
             sobre_furto_roubo_invasao_depredacao=True,
-            motivacao_ocorrencia=["racismo", "bullying"],
+            motivacao_ocorrencia=["bullying_racismo", "bullying"],
         )
         
         serializer = IntercorrenciaDiretorCompletoSerializer()
@@ -638,13 +638,13 @@ class TestIntercorrenciaInfoAgressorSerializer:
             unidade_codigo_eol="123456",
             dre_codigo_eol="654321",
             tem_info_agressor_ou_vitima="sim",
-            motivacao_ocorrencia=["racismo", "bullying"],
+            motivacao_ocorrencia=["bullying_racismo", "bullying"],
         )
         self.valid_data = {
             "unidade_codigo_eol": "123456",
             "dre_codigo_eol": "654321",
-            "motivacao_ocorrencia": ["racismo", "bullying"],
-            "genero_pessoa_agressora": "homem_cis",
+            "motivacao_ocorrencia": ["bullying_racismo", "bullying"],
+            "genero_pessoa_agressora": "masculino",
             "grupo_etnico_racial": "preto",
             "etapa_escolar": "ensino_medio",
             "frequencia_escolar": "regularizada",
@@ -804,11 +804,11 @@ class TestIntercorrenciaInfoAgressorSerializer:
         serializer = IntercorrenciaInfoAgressorSerializer()
         
         # Lista com duplicatas
-        result = serializer.validate_motivacao_ocorrencia(["racismo", "bullying", "racismo", "bullying"])
+        result = serializer.validate_motivacao_ocorrencia(["bullying_racismo", "bullying", "bullying_racismo", "bullying"])
         
         # Deve remover duplicatas
         assert len(result) == 2
-        assert "racismo" in result
+        assert "bullying_racismo" in result
         assert "bullying" in result
 
     @pytest.mark.parametrize(
@@ -1197,8 +1197,8 @@ class TestIntercorrenciaUpdateDiretorCompletoSerializer:
             dre_codigo_eol="654321",
             sobre_furto_roubo_invasao_depredacao=False,
             tem_info_agressor_ou_vitima="sim",
-            motivacao_ocorrencia=["racismo", "bullying"],
-            genero_pessoa_agressora="homem_cis",
+            motivacao_ocorrencia=["bullying_racismo", "bullying"],
+            genero_pessoa_agressora="masculino",
             grupo_etnico_racial="preto",
             etapa_escolar="ensino_medio",
             frequencia_escolar="regularizada",
@@ -1238,7 +1238,7 @@ class TestIntercorrenciaUpdateDiretorCompletoSerializer:
         instance.refresh_from_db()
         
         # Verifica que os campos NÃO foram limpos
-        assert instance.motivacao_ocorrencia == ["racismo", "bullying"]
+        assert instance.motivacao_ocorrencia == ["bullying_racismo", "bullying"]
         assert instance.descricao_ocorrencia == "Atualização da descrição"
 
     @patch("intercorrencias.services.unidades_service.get_unidade")

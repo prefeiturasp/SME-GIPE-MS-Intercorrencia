@@ -501,7 +501,7 @@ class TestIntercorrenciaDiretorViewSet:
 
         data = {
             "motivacao_ocorrencia": ["bullying"],
-            "genero_pessoa_agressora": "homem_cis",
+            "genero_pessoa_agressora": "masculino",
             "grupo_etnico_racial": "branco",
             "etapa_escolar": "fundamental_alfabetizacao",
             "frequencia_escolar": "regularizada",
