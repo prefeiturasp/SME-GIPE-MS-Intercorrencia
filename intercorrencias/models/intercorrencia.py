@@ -34,9 +34,8 @@ class Intercorrencia(ModeloBase):
     }
 
     SMART_SAMPA_CHOICES = [
-        ("sim_com_dano", "Sim e houve dano"),
-        ("sim_sem_dano", "Sim, mas não houve dano"),
-        ("nao_faz_parte", "A UE não faz parte do Smart Sampa"),
+        ("sim", "Sim"),
+        ("nao", "Não")
     ]
 
     SEGURANCA_PUBLICA_CHOICES = [
@@ -101,7 +100,7 @@ class Intercorrencia(ModeloBase):
     smart_sampa_situacao = models.CharField(
         max_length=20,
         choices=SMART_SAMPA_CHOICES,
-        verbose_name="UE é contemplada pelo Smart Sampa? Houve dano às câmeras?",
+        verbose_name="UE é contemplada pelo Smart Sampa?",
         blank=True,
     )
     declarante = models.ForeignKey(

@@ -20,28 +20,118 @@ def test_endpoint_require_authentication(client):
     response = client.get(url)
     assert response.status_code == 403
 
-
-def test_listar_apenas_tipos_ativos(client, django_user_model):
-    """
-    Usuário autenticado vê apenas os tipos com ativo=True.
-    """
-    # cria usuário e autentica
+def test_filtrar_tipo_patrimonial_retorna_patrimonial_e_todos(
+    client, django_user_model
+):
     user = django_user_model.objects.create_user(username="u1")
     client.force_authenticate(user=user)
 
-    # dados
-    TipoOcorrencia.objects.create(nome="Teste A", ativo=True)
-    TipoOcorrencia.objects.create(nome="Teste B", ativo=False)
-    TipoOcorrencia.objects.create(nome="Teste C", ativo=True)
+    TipoOcorrencia.objects.create(
+        nome="Patrimonial 1",
+        ativo=True,
+        tipo_formulario="PATRIMONIAL",
+    )
+
+    TipoOcorrencia.objects.create(
+        nome="Todos 1",
+        ativo=True,
+        tipo_formulario="TODOS",
+    )
+
+    TipoOcorrencia.objects.create(
+        nome="Geral 1",
+        ativo=True,
+        tipo_formulario="GERAL",
+    )
 
     url = reverse("tipo-ocorrencia-list")
-    response = client.get(url)
+
+    response = client.get(
+        url,
+        {"tipo_formulario": "PATRIMONIAL"}
+    )
 
     assert response.status_code == 200
+
     data = response.json()
     nomes = [t["nome"] for t in data]
 
-    assert "Teste A" in nomes
-    assert "Teste C" in nomes
-    assert "Teste B" not in nomes
+    assert "Patrimonial 1" in nomes
+    assert "Todos 1" in nomes
+    assert "Geral 1" not in nomes
 
+def test_filtrar_tipo_geral_retorna_geral_e_todos(
+    client, django_user_model
+):
+    user = django_user_model.objects.create_user(username="u2")
+    client.force_authenticate(user=user)
+
+    TipoOcorrencia.objects.create(
+        nome="Geral 1",
+        ativo=True,
+        tipo_formulario="GERAL",
+    )
+
+    TipoOcorrencia.objects.create(
+        nome="Todos 1",
+        ativo=True,
+        tipo_formulario="TODOS",
+    )
+
+    TipoOcorrencia.objects.create(
+        nome="Patrimonial 1",
+        ativo=True,
+        tipo_formulario="PATRIMONIAL",
+    )
+
+    url = reverse("tipo-ocorrencia-list")
+
+    response = client.get(
+        url,
+        {"tipo_formulario": "GERAL"}
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+    nomes = [t["nome"] for t in data]
+
+    assert "Geral 1" in nomes
+    assert "Todos 1" in nomes
+    assert "Patrimonial 1" not in nomes
+
+def test_filtrar_tipo_invalido_retorna_vazio(
+    client, django_user_model
+):
+    user = django_user_model.objects.create_user(username="u3")
+    client.force_authenticate(user=user)
+
+    TipoOcorrencia.objects.create(
+        nome="TESTE_INVALIDO_A",
+        ativo=True,
+        tipo_formulario="GERAL",
+    )
+
+    TipoOcorrencia.objects.create(
+        nome="TESTE_INVALIDO_B",
+        ativo=True,
+        tipo_formulario="TODOS",
+    )
+
+    TipoOcorrencia.objects.create(
+        nome="TESTE_INVALIDO_C",
+        ativo=True,
+        tipo_formulario="PATRIMONIAL",
+    )
+
+    url = reverse("tipo-ocorrencia-list")
+
+    response = client.get(
+        url,
+        {"tipo_formulario": "INVALIDO"}
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data == []

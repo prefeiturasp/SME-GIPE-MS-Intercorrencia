@@ -310,7 +310,7 @@ class TestIntercorrenciaFurtoRouboSerializer:
         data = {
             "tipos_ocorrencia": [str(tipo.uuid)],
             "descricao_ocorrencia": "Roubo de equipamentos",
-            "smart_sampa_situacao": "sim_com_dano",
+            "smart_sampa_situacao": "sim",
             "envolvido": "Apenas um estudante",
             "tem_info_agressor_ou_vitima": "Não"
         }
@@ -331,7 +331,7 @@ class TestIntercorrenciaFurtoRouboSerializer:
         data = {
             "tipos_ocorrencia": [str(tipo.uuid)],
             "descricao_ocorrencia": "Roubo de equipamentos",
-            "smart_sampa_situacao": "sim_com_dano",
+            "smart_sampa_situacao": "sim",
             "envolvido": "Apenas um estudante",
             "tem_info_agressor_ou_vitima": "Não"
         }
@@ -351,7 +351,7 @@ class TestIntercorrenciaFurtoRouboSerializer:
             dre_codigo_eol="456",
             sobre_furto_roubo_invasao_depredacao=True,
             descricao_ocorrencia="",
-            smart_sampa_situacao="sim_com_dano",
+            smart_sampa_situacao="sim",
         )
         intercorrencia.tipos_ocorrencia.add(tipo)
 
@@ -412,7 +412,7 @@ class TestIntercorrenciaFurtoRouboSerializer:
         data = {
             "tipos_ocorrencia": [],
             "descricao_ocorrencia": "Roubo de equipamentos",
-            "smart_sampa_situacao": "sim_com_dano",
+            "smart_sampa_situacao": "sim",
             "envolvido": "Apenas um estudante",
             "tem_info_agressor_ou_vitima": "Não" 
         }
@@ -1257,7 +1257,7 @@ class TestIntercorrenciaUpdateDiretorCompletoSerializer:
             unidade_codigo_eol="123456",
             dre_codigo_eol="654321",
             sobre_furto_roubo_invasao_depredacao=False,
-            smart_sampa_situacao="sim_com_dano",
+            smart_sampa_situacao="sim",
         )
         
         data = {
