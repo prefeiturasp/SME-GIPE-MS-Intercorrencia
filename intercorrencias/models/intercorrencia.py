@@ -41,6 +41,8 @@ class Intercorrencia(ModeloBase):
     SEGURANCA_PUBLICA_CHOICES = [
         ("sim_gcm", "Sim, com GCM"),
         ("sim_pm", "Sim, com a PM"),
+        ("sim_dc", "Sim, com a Defesa civil"),
+        ("sim_cbm", "Sim, com o Bombeiro"),
         ("nao", "Não"),
     ]
 
