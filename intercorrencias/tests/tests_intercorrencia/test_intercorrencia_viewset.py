@@ -509,6 +509,12 @@ class TestIntercorrenciaDiretorViewSet:
             "redes_protecao_acompanhamento": "orientação escolar",
             "notificado_conselho_tutelar": True,
             "acompanhado_naapa": False,
+            "pessoas_agressoras": [
+                {
+                    "nome": "Agressor 1",
+                    "idade": 15,
+                }
+            ],
             "unidade_codigo_eol": "200237",
             "dre_codigo_eol": "108500",
         }
