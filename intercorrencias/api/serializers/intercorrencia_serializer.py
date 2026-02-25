@@ -6,6 +6,8 @@ from config.settings import (
     CODIGO_PERFIL_DRE,
     CODIGO_PERFIL_GIPE,
 )
+from intercorrencias.api.serializers.pessoa_agressora_serializer import PessoaAgressoraSerializer
+from intercorrencias.models.pessoa_agressora import PessoaAgressora
 from intercorrencias.services import unidades_service
 from intercorrencias.models.envolvido import Envolvido
 from intercorrencias.models.declarante import Declarante
@@ -54,6 +56,9 @@ class IntercorrenciaSerializer(serializers.ModelSerializer):
         for campo in campos:
             if campo in ["notificado_conselho_tutelar", "acompanhado_naapa"]:
                 setattr(instance, campo, None)
+            else:
+                setattr(instance, campo, "")
+                
         instance.save(update_fields=campos)
 
     def validate(self, attrs):
@@ -210,6 +215,9 @@ class IntercorrenciaFurtoRouboSerializer(IntercorrenciaSerializer):
         
         # Limpa todos os campos de agressor/vítima
         self._limpar_campos_agressor_vitima(instance, campos_agressor_vitima)
+        
+        if instance.sobre_furto_roubo_invasao_depredacao or instance.tem_info_agressor_ou_vitima != "sim":
+            instance.pessoas_agressoras.all().delete()
 
         return instance 
 
@@ -333,16 +341,19 @@ class IntercorrenciaNaoFurtoRouboSerializer(IntercorrenciaSerializer):
         
         if tem_info_agressor_ou_vitima != "sim":
             self._limpar_campos_agressor_vitima(instance, campos_agressor_vitima)
+            instance.pessoas_agressoras.all().delete()
 
         return instance    
 
 
 class IntercorrenciaInfoAgressorSerializer(IntercorrenciaSerializer):
     """Serializer para informações do agressor/vítima - Diretor"""
+    
+    pessoas_agressoras = PessoaAgressoraSerializer(many=True, required=True)
 
     motivacao_ocorrencia = serializers.ListField(
         child=serializers.ChoiceField(choices=MotivoOcorrencia.choices),
-        allow_empty=False,  # se quiser obrigar pelo menos 1 motivo
+        allow_empty=False,  
     )
     motivacao_ocorrencia_display = serializers.SerializerMethodField(read_only=True)
     genero_pessoa_agressora = serializers.ChoiceField(
@@ -378,6 +389,7 @@ class IntercorrenciaInfoAgressorSerializer(IntercorrenciaSerializer):
             "redes_protecao_acompanhamento",
             "notificado_conselho_tutelar",
             "acompanhado_naapa",
+            "pessoas_agressoras",
         )
         read_only_fields = ("uuid",)
 
@@ -391,6 +403,14 @@ class IntercorrenciaInfoAgressorSerializer(IntercorrenciaSerializer):
             {"value": motivo, "label": choices_dict.get(motivo, motivo)}
             for motivo in obj.motivacao_ocorrencia
         ]
+        
+    def validate_pessoas_agressoras(self, value):
+        """Valida que há pelo menos uma pessoa agressora"""
+        if not value or len(value) == 0:
+            raise serializers.ValidationError(
+                "É necessário informar pelo menos uma pessoa agressora."
+            )
+        return value
 
     def validate_motivacao_ocorrencia(self, value):
         """Valida as motivações selecionadas"""
@@ -420,6 +440,28 @@ class IntercorrenciaInfoAgressorSerializer(IntercorrenciaSerializer):
                 }
             )
         return attrs
+    
+    def update(self, instance, validated_data):
+        """
+        Atualiza a intercorrência e cria/atualiza as pessoas agressoras.
+        Remove todas as pessoas agressoras existentes e cria novas.
+        """
+        pessoas_agressoras_data = validated_data.pop('pessoas_agressoras', [])
+        
+        # Atualiza a intercorrência
+        instance = super().update(instance, validated_data)
+        
+        # Remove pessoas agressoras antigas
+        instance.pessoas_agressoras.all().delete()
+        
+        # Cria novas pessoas agressoras
+        for pessoa_data in pessoas_agressoras_data:
+            PessoaAgressora.objects.create(
+                intercorrencia=instance,
+                **pessoa_data
+            )
+        
+        return instance
     
 class IntercorrenciaConclusaoDaUeSerializer(IntercorrenciaSerializer):
     """Serializer para conclusão da UE - Diretor"""
@@ -537,6 +579,7 @@ class IntercorrenciaDiretorCompletoSerializer(serializers.ModelSerializer):
     nome_dre = serializers.SerializerMethodField()
     envolvido = EnvolvidoSerializer(read_only=True)
     motivacao_ocorrencia_display = serializers.SerializerMethodField(read_only=True)
+    pessoas_agressoras = PessoaAgressoraSerializer(many=True, read_only=True)
 
     def get_motivacao_ocorrencia_display(self, obj):
         """Retorna os labels das motivações selecionadas"""
@@ -611,6 +654,7 @@ class IntercorrenciaDiretorCompletoSerializer(serializers.ModelSerializer):
             "protocolo_da_intercorrencia",
             "finalizado_diretor_em",
             "finalizado_diretor_por",
+            "pessoas_agressoras",
         )
         read_only_fields = ("id", "uuid", "user_username", "criado_em", "atualizado_em")
         list_serializer_class = IntercorrenciaDiretorCompletoListSerializer
@@ -663,6 +707,8 @@ class IntercorrenciaUpdateDiretorCompletoSerializer(IntercorrenciaSerializer):
     protocolo_acionado = serializers.ChoiceField(
         choices=Intercorrencia.PROTOCOLO_CHOICES, required=False, allow_blank=True
     )
+    
+    pessoas_agressoras = PessoaAgressoraSerializer(many=True, required=False)
 
     class Meta:
         model = Intercorrencia
@@ -689,6 +735,7 @@ class IntercorrenciaUpdateDiretorCompletoSerializer(IntercorrenciaSerializer):
             "redes_protecao_acompanhamento",
             "notificado_conselho_tutelar",
             "acompanhado_naapa",
+            "pessoas_agressoras",
         )
         read_only_fields = ("uuid", "status_display")
 
@@ -699,6 +746,9 @@ class IntercorrenciaUpdateDiretorCompletoSerializer(IntercorrenciaSerializer):
         - Se NÃO É furto/roubo: limpa smart_sampa_situacao
         - Se tem_info != "sim": limpa campos de agressor/vítima
         """
+        
+        pessoas_agressoras_data = validated_data.pop('pessoas_agressoras', None)
+        
         # Verifica se é sobre furto/roubo (pode estar em validated_data ou já na instância)
         sobre_furto_roubo = validated_data.get(
             "sobre_furto_roubo_invasao_depredacao",
@@ -728,16 +778,29 @@ class IntercorrenciaUpdateDiretorCompletoSerializer(IntercorrenciaSerializer):
 
         # Atualiza a instância com os dados validados
         instance = super().update(instance, validated_data)
+        
+        if pessoas_agressoras_data is not None:
+            # Remove pessoas antigas
+            instance.pessoas_agressoras.all().delete()
+            
+            # Cria novas pessoas
+            for pessoa_data in pessoas_agressoras_data:
+                PessoaAgressora.objects.create(
+                    intercorrencia=instance,
+                    **pessoa_data
+                )
 
         # ETAPA 2: Após atualizar, garante que os campos foram limpos na instância
         if sobre_furto_roubo:
             instance.tem_info_agressor_ou_vitima = ""
             instance.save(update_fields=["tem_info_agressor_ou_vitima"])
+            instance.pessoas_agressoras.all().delete()
         else:
             instance.smart_sampa_situacao = ""
             instance.save(update_fields=["smart_sampa_situacao"])
 
         if tem_info_agressor_ou_vitima != "sim" or sobre_furto_roubo:
             self._limpar_campos_agressor_vitima(instance, campos_agressor_vitima)
+            instance.pessoas_agressoras.all().delete()
 
         return instance
