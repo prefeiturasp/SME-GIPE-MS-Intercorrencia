@@ -23,6 +23,7 @@ from intercorrencias.models.declarante import Declarante
 from intercorrencias.models.intercorrencia import Intercorrencia
 from intercorrencias.models.tipos_ocorrencia import TipoOcorrencia
 from intercorrencias.models.envolvido import Envolvido
+from intercorrencias.models.pessoa_agressora import PessoaAgressora
 from intercorrencias.services import unidades_service
 
 
@@ -652,6 +653,12 @@ class TestIntercorrenciaInfoAgressorSerializer:
             "redes_protecao_acompanhamento": "CREAS",
             "notificado_conselho_tutelar": True,
             "acompanhado_naapa": False,
+            "pessoas_agressoras": [
+                {
+                    "nome": "Agressor 1",
+                    "idade": 15,
+                }
+            ],
         }
 
 
@@ -810,6 +817,15 @@ class TestIntercorrenciaInfoAgressorSerializer:
         assert len(result) == 2
         assert "bullying_racismo" in result
         assert "bullying" in result
+
+    def test_validate_pessoas_agressoras_vazio_direto(self):
+        serializer = IntercorrenciaInfoAgressorSerializer()
+
+        with pytest.raises(
+            serializers.ValidationError,
+            match="É necessário informar pelo menos uma pessoa agressora.",
+        ):
+            serializer.validate_pessoas_agressoras([])
 
     @pytest.mark.parametrize(
         "campo",
@@ -1281,3 +1297,42 @@ class TestIntercorrenciaUpdateDiretorCompletoSerializer:
         
         # Verifica que smart_sampa_situacao foi limpo
         assert instance.smart_sampa_situacao == ""
+
+    @patch("intercorrencias.services.unidades_service.get_unidade")
+    def test_update_substitui_pessoas_agressoras_quando_enviado(self, mock_get_unidade):
+        from intercorrencias.api.serializers.intercorrencia_serializer import (
+            IntercorrenciaUpdateDiretorCompletoSerializer,
+        )
+
+        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
+
+        PessoaAgressora.objects.create(
+            intercorrencia=self.intercorrencia,
+            nome="Agressor Antigo",
+            idade=14,
+        )
+
+        data = {
+            "unidade_codigo_eol": "123456",
+            "dre_codigo_eol": "654321",
+            "tem_info_agressor_ou_vitima": "sim",
+            "pessoas_agressoras": [
+                {"nome": "Agressor Novo 1", "idade": 16},
+                {"nome": "Agressor Novo 2", "idade": 17},
+            ],
+        }
+
+        serializer = IntercorrenciaUpdateDiretorCompletoSerializer(
+            instance=self.intercorrencia,
+            data=data,
+            partial=True,
+            context={"request": self.request},
+        )
+
+        assert serializer.is_valid(), serializer.errors
+        instance = serializer.save()
+
+        nomes = list(
+            instance.pessoas_agressoras.order_by("nome").values_list("nome", flat=True)
+        )
+        assert nomes == ["Agressor Novo 1", "Agressor Novo 2"]
