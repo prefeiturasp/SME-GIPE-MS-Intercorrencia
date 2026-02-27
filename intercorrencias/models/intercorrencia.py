@@ -34,14 +34,15 @@ class Intercorrencia(ModeloBase):
     }
 
     SMART_SAMPA_CHOICES = [
-        ("sim_com_dano", "Sim e houve dano"),
-        ("sim_sem_dano", "Sim, mas não houve dano"),
-        ("nao_faz_parte", "A UE não faz parte do Smart Sampa"),
+        ("sim", "Sim"),
+        ("nao", "Não")
     ]
 
     SEGURANCA_PUBLICA_CHOICES = [
         ("sim_gcm", "Sim, com GCM"),
         ("sim_pm", "Sim, com a PM"),
+        ("sim_dc", "Sim, com a Defesa civil"),
+        ("sim_cbm", "Sim, com o Bombeiro"),
         ("nao", "Não"),
     ]
 
@@ -101,7 +102,7 @@ class Intercorrencia(ModeloBase):
     smart_sampa_situacao = models.CharField(
         max_length=20,
         choices=SMART_SAMPA_CHOICES,
-        verbose_name="UE é contemplada pelo Smart Sampa? Houve dano às câmeras?",
+        verbose_name="UE é contemplada pelo Smart Sampa?",
         blank=True,
     )
     declarante = models.ForeignKey(
@@ -137,14 +138,6 @@ class Intercorrencia(ModeloBase):
         choices=INFORMACOES_AGRESSOR_VITIMA_CHOICES,
         verbose_name="Existem informações sobre o agressor e/ou vítima?",
         blank=True,
-    )
-    nome_pessoa_agressora = models.CharField(
-        max_length=200,
-        verbose_name="Qual o nome da pessoa agressora?",
-        blank=True,
-    )
-    idade_pessoa_agressora = models.PositiveIntegerField(
-        verbose_name="Qual a idade da pessoa agressora?", blank=True, null=True
     )
     motivacao_ocorrencia = ArrayField(
         models.CharField(max_length=23, choices=MotivoOcorrencia.choices),
@@ -196,52 +189,6 @@ class Intercorrencia(ModeloBase):
         default=False,
         blank=True,
         null=True,
-    )
-    cep = models.CharField(
-        max_length=9,
-        verbose_name="CEP",
-        help_text="CEP do endereço relacionado à intercorrência",
-        blank=True,
-    )
-    logradouro = models.CharField(
-        max_length=255,
-        verbose_name="Logradouro",
-        help_text="Rua, avenida ou local da ocorrência",
-        blank=True,
-    )
-    numero_residencia = models.CharField(
-        max_length=10,
-        verbose_name="Número da residência",
-        help_text="Número do imóvel onde ocorreu a intercorrência",
-        blank=True,
-    )
-    complemento = models.CharField(
-        max_length=100,
-        verbose_name="Complemento",
-        help_text="Complemento do endereço (ex: bloco, apartamento, referência)",
-        blank=True,
-    )
-    bairro = models.CharField(
-        max_length=100,
-        verbose_name="Bairro",
-        help_text="Bairro do endereço da ocorrência",
-        blank=True,
-    )
-    cidade = models.CharField(
-        max_length=100,
-        verbose_name="Cidade",
-        help_text="Cidade onde ocorreu a intercorrência",
-        blank=True,
-    )
-    estado = models.CharField(
-        max_length=50,
-        verbose_name="Estado",
-        help_text="Nome do estado por extenso (ex: São Paulo, Rio de Janeiro)",
-        blank=True,
-    )
-    motivo_encerramento_ue=models.TextField(
-        verbose_name="Motivo do encerramento pela UE",
-        blank=True,
     )
     protocolo_da_intercorrencia=models.CharField(
         max_length=100,
@@ -303,10 +250,6 @@ class Intercorrencia(ModeloBase):
         verbose_name="Informação complementar da atuação conjunta entre DRE e NAAPA",
         blank=True,
     )
-    motivo_encerramento_dre=models.TextField(
-        verbose_name="Motivo do encerramento DRE",
-        blank=True,
-    )
     finalizado_dre_em = models.DateTimeField(
         verbose_name="Finalizado DRE em",
         blank=True, null=True
@@ -340,10 +283,6 @@ class Intercorrencia(ModeloBase):
     )
     encaminhamentos_gipe = models.TextField(
         verbose_name="São informações após a análise feita pelo GIPE.",
-        blank=True,
-    )
-    motivo_encerramento_gipe=models.TextField(
-        verbose_name="Motivo do encerramento GIPE",
         blank=True,
     )
     finalizado_gipe_em = models.DateTimeField(

@@ -23,6 +23,7 @@ from intercorrencias.models.declarante import Declarante
 from intercorrencias.models.intercorrencia import Intercorrencia
 from intercorrencias.models.tipos_ocorrencia import TipoOcorrencia
 from intercorrencias.models.envolvido import Envolvido
+from intercorrencias.models.pessoa_agressora import PessoaAgressora
 from intercorrencias.services import unidades_service
 
 
@@ -217,7 +218,7 @@ class TestIntercorrenciaDiretorCompletoSerializer:
             unidade_codigo_eol="123",
             dre_codigo_eol="456",
             sobre_furto_roubo_invasao_depredacao=True,
-            motivacao_ocorrencia=["racismo", "bullying"],
+            motivacao_ocorrencia=["bullying_racismo", "bullying"],
         )
         
         serializer = IntercorrenciaDiretorCompletoSerializer()
@@ -310,7 +311,7 @@ class TestIntercorrenciaFurtoRouboSerializer:
         data = {
             "tipos_ocorrencia": [str(tipo.uuid)],
             "descricao_ocorrencia": "Roubo de equipamentos",
-            "smart_sampa_situacao": "sim_com_dano",
+            "smart_sampa_situacao": "sim",
             "envolvido": "Apenas um estudante",
             "tem_info_agressor_ou_vitima": "Não"
         }
@@ -331,7 +332,7 @@ class TestIntercorrenciaFurtoRouboSerializer:
         data = {
             "tipos_ocorrencia": [str(tipo.uuid)],
             "descricao_ocorrencia": "Roubo de equipamentos",
-            "smart_sampa_situacao": "sim_com_dano",
+            "smart_sampa_situacao": "sim",
             "envolvido": "Apenas um estudante",
             "tem_info_agressor_ou_vitima": "Não"
         }
@@ -351,7 +352,7 @@ class TestIntercorrenciaFurtoRouboSerializer:
             dre_codigo_eol="456",
             sobre_furto_roubo_invasao_depredacao=True,
             descricao_ocorrencia="",
-            smart_sampa_situacao="sim_com_dano",
+            smart_sampa_situacao="sim",
         )
         intercorrencia.tipos_ocorrencia.add(tipo)
 
@@ -412,7 +413,7 @@ class TestIntercorrenciaFurtoRouboSerializer:
         data = {
             "tipos_ocorrencia": [],
             "descricao_ocorrencia": "Roubo de equipamentos",
-            "smart_sampa_situacao": "sim_com_dano",
+            "smart_sampa_situacao": "sim",
             "envolvido": "Apenas um estudante",
             "tem_info_agressor_ou_vitima": "Não" 
         }
@@ -638,15 +639,13 @@ class TestIntercorrenciaInfoAgressorSerializer:
             unidade_codigo_eol="123456",
             dre_codigo_eol="654321",
             tem_info_agressor_ou_vitima="sim",
-            motivacao_ocorrencia=["racismo", "bullying"],
+            motivacao_ocorrencia=["bullying_racismo", "bullying"],
         )
         self.valid_data = {
             "unidade_codigo_eol": "123456",
             "dre_codigo_eol": "654321",
-            "nome_pessoa_agressora": "João Silva",
-            "idade_pessoa_agressora": 17,
-            "motivacao_ocorrencia": ["racismo", "bullying"],
-            "genero_pessoa_agressora": "homem_cis",
+            "motivacao_ocorrencia": ["bullying_racismo", "bullying"],
+            "genero_pessoa_agressora": "masculino",
             "grupo_etnico_racial": "preto",
             "etapa_escolar": "ensino_medio",
             "frequencia_escolar": "regularizada",
@@ -654,24 +653,14 @@ class TestIntercorrenciaInfoAgressorSerializer:
             "redes_protecao_acompanhamento": "CREAS",
             "notificado_conselho_tutelar": True,
             "acompanhado_naapa": False,
-            "cep": "01001-000",
-            "logradouro": "Rua das Flores",
-            "numero_residencia": "123",
-            "complemento": "",
-            "bairro": "Centro",
-            "cidade": "São Paulo",
-            "estado": "São Paulo",
+            "pessoas_agressoras": [
+                {
+                    "nome": "Agressor 1",
+                    "idade": 15,
+                }
+            ],
         }
 
-    @patch("intercorrencias.services.unidades_service.get_unidade")
-    def test_serializer_valido(self, mock_get_unidade):
-        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
-        serializer = IntercorrenciaInfoAgressorSerializer(
-            instance=self.intercorrencia, data=self.valid_data, context={"request": self.request}
-        )
-        assert serializer.is_valid(), serializer.errors
-        obj = serializer.save()
-        assert obj.nome_pessoa_agressora == "João Silva"
 
     @patch("intercorrencias.services.unidades_service.get_unidade")
     def test_serializer_invalido_quando_tem_info_false(self, mock_get_unidade):
@@ -694,13 +683,7 @@ class TestIntercorrenciaInfoAgressorSerializer:
     @pytest.mark.parametrize(
         "campo",
         [
-            "nome_pessoa_agressora",
             "motivacao_ocorrencia",
-            "cep",
-            "logradouro",
-            "bairro",
-            "cidade",
-            "estado",
         ],
     )
     @patch("intercorrencias.services.unidades_service.get_unidade")
@@ -828,21 +811,26 @@ class TestIntercorrenciaInfoAgressorSerializer:
         serializer = IntercorrenciaInfoAgressorSerializer()
         
         # Lista com duplicatas
-        result = serializer.validate_motivacao_ocorrencia(["racismo", "bullying", "racismo", "bullying"])
+        result = serializer.validate_motivacao_ocorrencia(["bullying_racismo", "bullying", "bullying_racismo", "bullying"])
         
         # Deve remover duplicatas
         assert len(result) == 2
-        assert "racismo" in result
+        assert "bullying_racismo" in result
         assert "bullying" in result
+
+    def test_validate_pessoas_agressoras_vazio_direto(self):
+        serializer = IntercorrenciaInfoAgressorSerializer()
+
+        with pytest.raises(
+            serializers.ValidationError,
+            match="É necessário informar pelo menos uma pessoa agressora.",
+        ):
+            serializer.validate_pessoas_agressoras([])
 
     @pytest.mark.parametrize(
         "campo",
         [
-            "nome_pessoa_agressora",
             "interacao_ambiente_escolar",
-            "logradouro",
-            "bairro",
-            "cidade",
         ],
     )
     @patch("intercorrencias.services.unidades_service.get_unidade")
@@ -858,15 +846,6 @@ class TestIntercorrenciaInfoAgressorSerializer:
         assert campo in serializer.errors["detail"]
         assert "não pode estar em branco" in serializer.errors["detail"]
 
-    @patch("intercorrencias.services.unidades_service.get_unidade")
-    def test_campo_complemento_pode_ser_vazio(self, mock_get_unidade):
-        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
-        data = self.valid_data.copy()
-        data["complemento"] = ""
-        serializer = IntercorrenciaInfoAgressorSerializer(
-            instance=self.intercorrencia, data=data, context={"request": self.request}
-        )
-        assert serializer.is_valid(), serializer.errors
 
     @patch("intercorrencias.services.unidades_service.get_unidade")
     def test_serializer_erro_formato_detail(self, mock_get_unidade):
@@ -902,7 +881,6 @@ class TestIntercorrenciaConclusaoDaUeSerializer:
         self.valid_data = {
             "unidade_codigo_eol": "123456",
             "dre_codigo_eol": "654321",
-            "motivo_encerramento_ue": "Este é o motivo do encerramento da UE"
         }
         
     @patch("intercorrencias.services.unidades_service.get_unidade")
@@ -912,9 +890,6 @@ class TestIntercorrenciaConclusaoDaUeSerializer:
             instance=self.intercorrencia, data=self.valid_data, context={"request": self.request}
         )
         assert serializer.is_valid(), serializer.errors
-        obj = serializer.save()
-        assert obj.motivo_encerramento_ue == "Este é o motivo do encerramento da UE"
-
 
     @patch("intercorrencias.services.unidades_service.get_unidade")
     def test_validate_dre_incorreta(self, mock_get, intercorrencia_data, request):
@@ -925,18 +900,6 @@ class TestIntercorrenciaConclusaoDaUeSerializer:
         )
         with pytest.raises(ValidationError):
             serializer.is_valid(raise_exception=True)   
-            
-    @patch("intercorrencias.services.unidades_service.get_unidade")
-    def test_campo_obrigatorio_nao_informado(self, mock_get_unidade):
-        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
-        data = self.valid_data.copy()
-        data.pop("motivo_encerramento_ue")
-        serializer = IntercorrenciaConclusaoDaUeSerializer(
-            instance=self.intercorrencia, data=data, context={"request": self.request}
-        )
-        assert not serializer.is_valid()
-        assert "detail" in serializer.errors
-        assert "motivo_encerramento_ue" in serializer.errors["detail"]
         
     @patch("intercorrencias.api.serializers.intercorrencia_serializer.unidades_service.get_unidade")
     def test_get_nome_unidade_quando_servico_lanca_erro(self, mock_get_unidade):
@@ -1250,10 +1213,8 @@ class TestIntercorrenciaUpdateDiretorCompletoSerializer:
             dre_codigo_eol="654321",
             sobre_furto_roubo_invasao_depredacao=False,
             tem_info_agressor_ou_vitima="sim",
-            nome_pessoa_agressora="João da Silva",
-            idade_pessoa_agressora=17,
-            motivacao_ocorrencia=["racismo", "bullying"],
-            genero_pessoa_agressora="homem_cis",
+            motivacao_ocorrencia=["bullying_racismo", "bullying"],
+            genero_pessoa_agressora="masculino",
             grupo_etnico_racial="preto",
             etapa_escolar="ensino_medio",
             frequencia_escolar="regularizada",
@@ -1261,13 +1222,6 @@ class TestIntercorrenciaUpdateDiretorCompletoSerializer:
             redes_protecao_acompanhamento="CREAS",
             notificado_conselho_tutelar=True,
             acompanhado_naapa=False,
-            cep="01001-000",
-            logradouro="Rua das Flores",
-            numero_residencia="123",
-            complemento="Apto 45",
-            bairro="Centro",
-            cidade="São Paulo",
-            estado="São Paulo",
         )
 
     @patch("intercorrencias.services.unidades_service.get_unidade")
@@ -1300,10 +1254,7 @@ class TestIntercorrenciaUpdateDiretorCompletoSerializer:
         instance.refresh_from_db()
         
         # Verifica que os campos NÃO foram limpos
-        assert instance.nome_pessoa_agressora == "João da Silva"
-        assert instance.idade_pessoa_agressora == 17
-        assert instance.motivacao_ocorrencia == ["racismo", "bullying"]
-        assert instance.cep == "01001-000"
+        assert instance.motivacao_ocorrencia == ["bullying_racismo", "bullying"]
         assert instance.descricao_ocorrencia == "Atualização da descrição"
 
     @patch("intercorrencias.services.unidades_service.get_unidade")
@@ -1322,7 +1273,7 @@ class TestIntercorrenciaUpdateDiretorCompletoSerializer:
             unidade_codigo_eol="123456",
             dre_codigo_eol="654321",
             sobre_furto_roubo_invasao_depredacao=False,
-            smart_sampa_situacao="sim_com_dano",
+            smart_sampa_situacao="sim",
         )
         
         data = {
@@ -1346,3 +1297,42 @@ class TestIntercorrenciaUpdateDiretorCompletoSerializer:
         
         # Verifica que smart_sampa_situacao foi limpo
         assert instance.smart_sampa_situacao == ""
+
+    @patch("intercorrencias.services.unidades_service.get_unidade")
+    def test_update_substitui_pessoas_agressoras_quando_enviado(self, mock_get_unidade):
+        from intercorrencias.api.serializers.intercorrencia_serializer import (
+            IntercorrenciaUpdateDiretorCompletoSerializer,
+        )
+
+        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
+
+        PessoaAgressora.objects.create(
+            intercorrencia=self.intercorrencia,
+            nome="Agressor Antigo",
+            idade=14,
+        )
+
+        data = {
+            "unidade_codigo_eol": "123456",
+            "dre_codigo_eol": "654321",
+            "tem_info_agressor_ou_vitima": "sim",
+            "pessoas_agressoras": [
+                {"nome": "Agressor Novo 1", "idade": 16},
+                {"nome": "Agressor Novo 2", "idade": 17},
+            ],
+        }
+
+        serializer = IntercorrenciaUpdateDiretorCompletoSerializer(
+            instance=self.intercorrencia,
+            data=data,
+            partial=True,
+            context={"request": self.request},
+        )
+
+        assert serializer.is_valid(), serializer.errors
+        instance = serializer.save()
+
+        nomes = list(
+            instance.pessoas_agressoras.order_by("nome").values_list("nome", flat=True)
+        )
+        assert nomes == ["Agressor Novo 1", "Agressor Novo 2"]

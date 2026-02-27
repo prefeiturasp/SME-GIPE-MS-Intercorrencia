@@ -202,14 +202,14 @@ class TestIntercorrenciaDiretorViewSet:
 
     def test_furto_roubo_sucesso(self, client, diretor_user, intercorrencia, tipos_ocorrencia):
         type(intercorrencia).pode_ser_editado_por_diretor = PropertyMock(return_value=True)
-        data = {"unidade_codigo_eol": "200237", "dre_codigo_eol": "108500", "tipos_ocorrencia": [str(t.uuid) for t in tipos_ocorrencia], "descricao_ocorrencia": "Teste", "smart_sampa_situacao": "sim_com_dano"}
+        data = {"unidade_codigo_eol": "200237", "dre_codigo_eol": "108500", "tipos_ocorrencia": [str(t.uuid) for t in tipos_ocorrencia], "descricao_ocorrencia": "Teste", "smart_sampa_situacao": "sim"}
         url = f"/api-intercorrencias/v1/diretor/{intercorrencia.uuid}/furto-roubo/"
         response = self._api_call(client, diretor_user, 'put', url, data)
         assert response.status_code == status.HTTP_200_OK
 
     def test_furto_roubo_bloqueado(self, client, diretor_user, intercorrencia, tipos_ocorrencia):
         type(intercorrencia).pode_ser_editado_por_diretor = PropertyMock(return_value=False)
-        data = {"unidade_codigo_eol": "200237", "dre_codigo_eol": "108500", "tipos_ocorrencia": [str(tipos_ocorrencia[0].uuid)], "descricao_ocorrencia": "Teste bloqueado", "smart_sampa_situacao": "sim_com_dano"}
+        data = {"unidade_codigo_eol": "200237", "dre_codigo_eol": "108500", "tipos_ocorrencia": [str(tipos_ocorrencia[0].uuid)], "descricao_ocorrencia": "Teste bloqueado", "smart_sampa_situacao": "sim"}
         url = f"/api-intercorrencias/v1/diretor/{intercorrencia.uuid}/furto-roubo/"
         response = self._api_call(client, diretor_user, 'put', url, data)
         assert response.status_code == status.HTTP_403_FORBIDDEN
@@ -278,7 +278,7 @@ class TestIntercorrenciaDiretorViewSet:
             "dre_codigo_eol": "108500",
             "tipos_ocorrencia": [str(t.uuid) for t in tipos_ocorrencia],
             "descricao_ocorrencia": "Teste bloqueado",
-            "smart_sampa_situacao": "sim_com_dano",
+            "smart_sampa_situacao": "sim",
         }
         url = f"/api-intercorrencias/v1/diretor/{intercorrencia.uuid}/furto-roubo/"
 
@@ -335,7 +335,7 @@ class TestIntercorrenciaDiretorViewSet:
             mock_instance = Mock()
             mock_instance.is_valid.side_effect = Exception("Erro no furto/roubo")
             MockSerializer.return_value = mock_instance
-            data = {"unidade_codigo_eol": "200237", "dre_codigo_eol": "108500", "tipos_ocorrencia": [str(t.uuid) for t in tipos_ocorrencia], "descricao_ocorrencia": "Teste", "smart_sampa_situacao": "sim_com_dano"}
+            data = {"unidade_codigo_eol": "200237", "dre_codigo_eol": "108500", "tipos_ocorrencia": [str(t.uuid) for t in tipos_ocorrencia], "descricao_ocorrencia": "Teste", "smart_sampa_situacao": "sim"}
             url = f"/api-intercorrencias/v1/diretor/{intercorrencia.uuid}/furto-roubo/"
             response = self._api_call(client, diretor_user, 'put', url, data)
             assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -459,7 +459,7 @@ class TestIntercorrenciaDiretorViewSet:
         
     def test_enviar_para_dre_sucesso(self, client, diretor_user, intercorrencia, tipos_ocorrencia):
         type(intercorrencia).pode_ser_editado_por_diretor = PropertyMock(return_value=True)
-        data = {"unidade_codigo_eol": "200237", "dre_codigo_eol": "108500", "motivo_encerramento_ue": "Encerramento teste",}
+        data = {"unidade_codigo_eol": "200237", "dre_codigo_eol": "108500"}
         url = f"/api-intercorrencias/v1/diretor/{intercorrencia.uuid}/enviar-para-dre/"
         response = self._api_call(client, diretor_user, 'put', url, data)
         assert response.status_code == status.HTTP_200_OK
@@ -471,7 +471,6 @@ class TestIntercorrenciaDiretorViewSet:
         data = {
             "unidade_codigo_eol": "200237",
             "dre_codigo_eol": "108500",
-            "motivo_encerramento_ue": "Encerramento teste"
         }
         url = f"/api-intercorrencias/v1/diretor/{intercorrencia.uuid}/enviar-para-dre/"
         
@@ -490,7 +489,6 @@ class TestIntercorrenciaDiretorViewSet:
             data = {
                 "unidade_codigo_eol": "200237",
                 "dre_codigo_eol": "108500",
-                "motivo_encerramento_ue": "Encerramento teste"
             }
             response = client.put(url, data, format="json")
             assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -502,10 +500,8 @@ class TestIntercorrenciaDiretorViewSet:
         intercorrencia.save()
 
         data = {
-            "nome_pessoa_agressora": "João Silva",
-            "idade_pessoa_agressora": 15,
             "motivacao_ocorrencia": ["bullying"],
-            "genero_pessoa_agressora": "homem_cis",
+            "genero_pessoa_agressora": "masculino",
             "grupo_etnico_racial": "branco",
             "etapa_escolar": "fundamental_alfabetizacao",
             "frequencia_escolar": "regularizada",
@@ -513,13 +509,12 @@ class TestIntercorrenciaDiretorViewSet:
             "redes_protecao_acompanhamento": "orientação escolar",
             "notificado_conselho_tutelar": True,
             "acompanhado_naapa": False,
-            "cep": "12345678",
-            "logradouro": "Rua das Flores",
-            "numero_residencia": "123",
-            "complemento": "",
-            "bairro": "Centro",
-            "cidade": "São Paulo",
-            "estado": "SP",
+            "pessoas_agressoras": [
+                {
+                    "nome": "Agressor 1",
+                    "idade": 15,
+                }
+            ],
             "unidade_codigo_eol": "200237",
             "dre_codigo_eol": "108500",
         }
@@ -610,8 +605,6 @@ class TestIntercorrenciaDiretorViewSet:
         type(intercorrencia).pode_ser_editado_por_diretor = PropertyMock(return_value=False)
 
         data = {
-            "nome_pessoa_agressora": "João Silva",
-            "idade_pessoa_agressora": 15,
             "motivacao_ocorrencia": "bullying",
             "genero_pessoa_agressora": "homem_cis",
             "grupo_etnico_racial": "branco",
@@ -621,13 +614,6 @@ class TestIntercorrenciaDiretorViewSet:
             "redes_protecao_acompanhamento": "orientação escolar",
             "notificado_conselho_tutelar": True,
             "acompanhado_naapa": False,
-            "cep": "12345678",
-            "logradouro": "Rua das Flores",
-            "numero_residencia": "123",
-            "complemento": "",
-            "bairro": "Centro",
-            "cidade": "São Paulo",
-            "estado": "SP",
             "unidade_codigo_eol": "200237",
             "dre_codigo_eol": "108500",
         }
@@ -786,7 +772,7 @@ class TestIntercorrenciaDiretorViewSetUpdate:
             "data_ocorrencia": "2025-10-25T10:00:00-03:00",
             "tipos_ocorrencia": [str(t.uuid) for t in tipos_ocorrencia],
             "descricao_ocorrencia": "Descrição atualizada",
-            "smart_sampa_situacao": "sim_com_dano",
+            "smart_sampa_situacao": "sim",
         }
 
         url = f"/api-intercorrencias/v1/diretor/{intercorrencia_editavel.uuid}/"
@@ -797,7 +783,7 @@ class TestIntercorrenciaDiretorViewSetUpdate:
 
     def test_update_limpa_smart_sampa_quando_nao_furto_roubo(self, client, diretor_user, intercorrencia_editavel):
         """Testa que smart_sampa_situacao é limpo quando sobre_furto_roubo=False"""
-        intercorrencia_editavel.smart_sampa_situacao = "sim_com_dano"
+        intercorrencia_editavel.smart_sampa_situacao = "sim"
         intercorrencia_editavel.save()
 
         type(intercorrencia_editavel).pode_ser_editado_por_diretor = PropertyMock(return_value=True)
@@ -820,8 +806,6 @@ class TestIntercorrenciaDiretorViewSetUpdate:
     def test_update_mantem_campos_agressor_quando_tem_info_sim(self, client, diretor_user, create_intercorrencia):
         """Testa que campos de agressor são mantidos quando tem_info_agressor_ou_vitima = 'sim'"""
         intercorrencia = create_intercorrencia(furto_roubo=False, tem_info="sim")
-        intercorrencia.nome_pessoa_agressora = "Pedro Oliveira"
-        intercorrencia.idade_pessoa_agressora = 17
         intercorrencia.motivacao_ocorrencia = ["violencia_fisica"]
         intercorrencia.save()
 
@@ -841,8 +825,6 @@ class TestIntercorrenciaDiretorViewSetUpdate:
         assert response.status_code == status.HTTP_200_OK
         
         intercorrencia.refresh_from_db()
-        assert intercorrencia.nome_pessoa_agressora == "Pedro Oliveira"
-        assert intercorrencia.idade_pessoa_agressora == 17
         assert intercorrencia.motivacao_ocorrencia == ["violencia_fisica"]
 
     def test_update_partial_true_permite_atualizacao_parcial(self, client, diretor_user, intercorrencia_editavel):
@@ -851,7 +833,7 @@ class TestIntercorrenciaDiretorViewSetUpdate:
         intercorrencia_editavel.descricao_ocorrencia = descricao_original
         # Como a intercorrencia_editavel foi criada com sobre_furto_roubo=True,
         # o smart_sampa_situacao é válido. Vamos garantir que ela não seja limpa
-        intercorrencia_editavel.smart_sampa_situacao = "sim_com_dano"
+        intercorrencia_editavel.smart_sampa_situacao = "sim"
         intercorrencia_editavel.save()
 
         type(intercorrencia_editavel).pode_ser_editado_por_diretor = PropertyMock(return_value=True)
@@ -871,7 +853,7 @@ class TestIntercorrenciaDiretorViewSetUpdate:
         intercorrencia_editavel.refresh_from_db()
         assert intercorrencia_editavel.descricao_ocorrencia == "Nova descrição"
         # smart_sampa_situacao deve permanecer inalterado
-        assert intercorrencia_editavel.smart_sampa_situacao == "sim_com_dano"
+        assert intercorrencia_editavel.smart_sampa_situacao == "sim"
 
     def test_update_atualiza_timestamp(self, client, diretor_user, intercorrencia_editavel):
         """Testa que atualizado_em é atualizado corretamente"""

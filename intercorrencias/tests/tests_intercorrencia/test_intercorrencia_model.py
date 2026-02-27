@@ -129,8 +129,8 @@ class TestIntercorrencia:
 
     def test_choices_info_agressor_validos(self, intercorrencia_factory):
         obj = intercorrencia_factory(
-            motivacao_ocorrencia=[MotivoOcorrencia.RACISMO],
-            genero_pessoa_agressora=Genero.HOMEM_CIS,
+            motivacao_ocorrencia=[MotivoOcorrencia.BULLYING_RACISMO],
+            genero_pessoa_agressora=Genero.MASCULINO,
             grupo_etnico_racial=GrupoEtnicoRacial.PARDO,
             etapa_escolar=EtapaEscolar.FUNDAMENTAL_ALFABETIZACAO,
             frequencia_escolar=FrequenciaEscolar.REGULARIZADA,
@@ -138,8 +138,8 @@ class TestIntercorrencia:
         obj.full_clean()
         obj.save()
 
-        assert obj.motivacao_ocorrencia == [MotivoOcorrencia.RACISMO]
-        assert obj.genero_pessoa_agressora == Genero.HOMEM_CIS
+        assert obj.motivacao_ocorrencia == [MotivoOcorrencia.BULLYING_RACISMO]
+        assert obj.genero_pessoa_agressora == Genero.MASCULINO
         assert obj.grupo_etnico_racial == GrupoEtnicoRacial.PARDO
         assert obj.etapa_escolar == EtapaEscolar.FUNDAMENTAL_ALFABETIZACAO
         assert obj.frequencia_escolar == FrequenciaEscolar.REGULARIZADA
@@ -157,77 +157,15 @@ class TestIntercorrencia:
 
     def test_campos_texto_opcionais_funcionam(self, intercorrencia_factory):
         obj = intercorrencia_factory(
-            nome_pessoa_agressora="João da Silva",
             interacao_ambiente_escolar="Agressor demonstra comportamento reservado.",
             redes_protecao_acompanhamento="CRAS e Conselho Tutelar",
-            cep="01234-567",
-            logradouro="Rua das Flores",
-            numero_residencia="123",
-            complemento="Apto 12",
-            bairro="Jardim Paulista",
-            cidade="São Paulo",
-            estado="São Paulo",
         )
         obj.full_clean()
         obj.save()
 
-        assert "João" in obj.nome_pessoa_agressora
         assert "reservado" in obj.interacao_ambiente_escolar
         assert "Conselho Tutelar" in obj.redes_protecao_acompanhamento
-        assert obj.cep == "01234-567"
-        assert obj.logradouro == "Rua das Flores"
-        assert obj.numero_residencia == "123"
-        assert obj.complemento == "Apto 12"
-        assert obj.bairro == "Jardim Paulista"
-        assert obj.cidade == "São Paulo"
-        assert obj.estado == "São Paulo"
 
-    def test_campos_endereco_podem_ser_nulos_ou_em_branco(self, intercorrencia_factory):
-        obj = intercorrencia_factory(
-            cep="",
-            logradouro="",
-            numero_residencia="",
-            complemento="",
-            bairro="",
-            cidade="",
-            estado="",
-        )
-        obj.full_clean()
-        obj.save()
-
-        obj.refresh_from_db()
-        assert obj.cep == ""
-        assert obj.logradouro == ""
-        assert obj.numero_residencia == ""
-        assert obj.complemento == ""
-        assert obj.bairro == ""
-        assert obj.cidade == ""
-        assert obj.estado == ""
-
-    def test_validacao_max_length_endereco(self):
-        obj = Intercorrencia(
-            data_ocorrencia=timezone.now(),
-            user_username="usuario",
-            unidade_codigo_eol="123456",
-            dre_codigo_eol="654321",
-            cep="9" * 10,
-            logradouro="x" * 256,
-            numero_residencia="x" * 11,
-            complemento="x" * 101,
-            bairro="x" * 101,
-            cidade="x" * 101,
-            estado="x" * 51,
-        )
-        with pytest.raises(ValidationError) as exc:
-            obj.full_clean()
-        err_dict = exc.value.error_dict
-        assert "cep" in err_dict
-        assert "logradouro" in err_dict
-        assert "numero_residencia" in err_dict
-        assert "complemento" in err_dict
-        assert "bairro" in err_dict
-        assert "cidade" in err_dict
-        assert "estado" in err_dict
 
     def test_booleanos_funcionam(self, intercorrencia_factory):
         obj = intercorrencia_factory(
@@ -284,7 +222,6 @@ class TestIntercorrencia:
         dt = timezone.make_aware(datetime(2025, 2, 1, 15, 20))
 
         obj = intercorrencia_factory(
-            motivo_encerramento_dre="Caso encerrado após análise técnica.",
             finalizado_dre_em=dt,
             finalizado_dre_por="usuario_dre"
         )
@@ -294,7 +231,6 @@ class TestIntercorrencia:
 
         obj.refresh_from_db()
 
-        assert obj.motivo_encerramento_dre == "Caso encerrado após análise técnica."
         assert obj.finalizado_dre_em == dt
         assert obj.finalizado_dre_por == "usuario_dre"
 
@@ -397,7 +333,6 @@ class TestIntercorrencia:
         dt = timezone.make_aware(datetime(2025, 3, 10, 9, 45))
 
         obj = intercorrencia_factory(
-            motivo_encerramento_gipe="Caso encerrado após análise da equipe GIPE.",
             finalizado_gipe_em=dt,
             finalizado_gipe_por="usuario_gipe"
         )
@@ -406,13 +341,11 @@ class TestIntercorrencia:
         obj.save()
         obj.refresh_from_db()
 
-        assert obj.motivo_encerramento_gipe == "Caso encerrado após análise da equipe GIPE."
         assert obj.finalizado_gipe_em == dt
         assert obj.finalizado_gipe_por == "usuario_gipe"
 
     def test_campos_encerramento_gipe_podem_ser_em_branco(self, intercorrencia_factory):
         obj = intercorrencia_factory(
-            motivo_encerramento_gipe="",
             finalizado_gipe_em=None,
             finalizado_gipe_por=""
         )
@@ -421,7 +354,6 @@ class TestIntercorrencia:
         obj.save()
         obj.refresh_from_db()
 
-        assert obj.motivo_encerramento_gipe == ""
         assert obj.finalizado_gipe_em is None
         assert obj.finalizado_gipe_por == ""
 

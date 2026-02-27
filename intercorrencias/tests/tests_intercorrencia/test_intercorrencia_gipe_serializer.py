@@ -177,7 +177,6 @@ class TestIntercorrenciaConclusaoGipeSerializer:
         )
 
         self.valid_data = {
-            "motivo_encerramento_gipe": "Motivo do encerramento",
             "unidade_codigo_eol": "123",
             "dre_codigo_eol": "456",
         }
@@ -204,17 +203,6 @@ class TestIntercorrenciaConclusaoGipeSerializer:
         )
         data = serializer.data
         assert data["responsavel_cpf"] == "abc123"
-
-    def test_motivo_encerramento_obrigatorio(self):
-        data = {"unidade_codigo_eol": "123", "dre_codigo_eol": "456"}
-        serializer = IntercorrenciaConclusaoGipeSerializer(
-            data=data, context={"request": self.request}
-        )
-        is_valid = serializer.is_valid()
-        errors = serializer.errors
-
-        assert not is_valid
-        assert "motivo_encerramento_gipe" in str(errors.get("detail", ""))
 
     def test_responsavel_none_quando_sem_usuario(self):
         serializer = IntercorrenciaConclusaoGipeSerializer(instance=self.intercorrencia, context={})

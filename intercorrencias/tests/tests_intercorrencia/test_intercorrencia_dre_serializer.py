@@ -301,7 +301,6 @@ class TestIntercorrenciaConclusaoDaDreSerializer:
             unidade_codigo_eol="123456",
             dre_codigo_eol="654321",
             descricao_ocorrencia="Descrição inicial",
-            motivo_encerramento_dre="Encerrado por teste",
         )
 
     @patch("intercorrencias.api.serializers.intercorrencia_dre_serializer.unidades_service.get_unidade")
@@ -385,68 +384,3 @@ class TestIntercorrenciaConclusaoDaDreSerializer:
         assert serializer.get_responsavel_nome(self.intercorrencia) is None
         assert serializer.get_responsavel_cpf(self.intercorrencia) is None
         assert serializer.get_responsavel_email(self.intercorrencia) is None
-
-    @patch("intercorrencias.api.serializers.intercorrencia_dre_serializer.unidades_service.get_unidade")
-    def test_validacao_campo_motivo_encerramento_dre_obrigatorio_quando_vazio(self, mock_get_unidade):
-        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
-
-        data = {
-            "unidade_codigo_eol": "123456",
-            "dre_codigo_eol": "654321",
-            "motivo_encerramento_dre": ""
-        }
-
-        serializer = IntercorrenciaConclusaoDaDreSerializer(
-            instance=self.intercorrencia,
-            data=data,
-            context={"request": self.request},
-            partial=False
-        )
-
-        assert not serializer.is_valid()
-        assert "detail" in serializer.errors
-        assert str(serializer.errors["detail"]).strip() == "motivo_encerramento_dre: Este campo não pode estar em branco."
-
-    @patch("intercorrencias.api.serializers.intercorrencia_dre_serializer.unidades_service.get_unidade")
-    def test_validacao_campo_motivo_encerramento_dre_obrigatorio_quando_ausente(self, mock_get_unidade):
-        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
-
-        data = {
-            "unidade_codigo_eol": "123456",
-            "dre_codigo_eol": "654321",
-        }
-
-        serializer = IntercorrenciaConclusaoDaDreSerializer(
-            instance=self.intercorrencia,
-            data=data,
-            context={"request": self.request},
-            partial=False
-        )
-
-        assert not serializer.is_valid()
-        assert "detail" in serializer.errors
-        assert str(serializer.errors["detail"]).strip() == "motivo_encerramento_dre: Este campo é obrigatório."
-
-    @patch("intercorrencias.api.serializers.intercorrencia_dre_serializer.unidades_service.get_unidade")
-    def test_validacao_campo_motivo_encerramento_dre_valido(self, mock_get_unidade):
-        mock_get_unidade.return_value = {
-            "codigo_eol": "123456",
-            "dre_codigo_eol": "654321"
-        }
-
-        self.request.user.unidade_codigo_eol = "123456"
-
-        data = {
-            "unidade_codigo_eol": "123456",
-            "dre_codigo_eol": "654321",
-            "motivo_encerramento_dre": "Encerramento concluído com sucesso"
-        }
-
-        serializer = IntercorrenciaConclusaoDaDreSerializer(
-            instance=self.intercorrencia,
-            data=data,
-            context={"request": self.request},
-            partial=False
-        )
-
-        assert serializer.is_valid(), serializer.errors
