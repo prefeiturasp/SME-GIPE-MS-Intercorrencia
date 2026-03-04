@@ -270,12 +270,17 @@ class IntercorrenciaNaoFurtoRouboSerializer(IntercorrenciaSerializer):
     )
     descricao_ocorrencia = serializers.CharField(required=True, allow_blank=False)
     envolvido = serializers.SlugRelatedField(
+        many=True,
         slug_field="uuid",
         queryset=Envolvido.objects.all(),
         required=True,
         write_only=True,
     )
-    envolvido_detalhes = EnvolvidoSerializer(read_only=True, source="envolvido")
+    envolvido_detalhes = EnvolvidoSerializer(
+        many=True,
+        read_only=True,
+        source="envolvido"
+    )
     tem_info_agressor_ou_vitima = serializers.ChoiceField(
         choices=Intercorrencia.INFORMACOES_AGRESSOR_VITIMA_CHOICES, required=True
     )
@@ -299,6 +304,13 @@ class IntercorrenciaNaoFurtoRouboSerializer(IntercorrenciaSerializer):
         if not value:
             raise serializers.ValidationError(
                 "Este campo é obrigatório e não pode estar vazio."
+            )
+        return value
+
+    def validate_envolvido(self, value):
+        if not value:
+            raise serializers.ValidationError(
+                "Este campo é obrigatório, e não pode estar vazio."
             )
         return value
 
@@ -577,7 +589,7 @@ class IntercorrenciaDiretorCompletoSerializer(serializers.ModelSerializer):
     declarante_detalhes = DeclaranteSerializer(source="declarante", read_only=True)
     nome_unidade = serializers.SerializerMethodField()
     nome_dre = serializers.SerializerMethodField()
-    envolvido = EnvolvidoSerializer(read_only=True)
+    envolvido = EnvolvidoSerializer(many=True)
     motivacao_ocorrencia_display = serializers.SerializerMethodField(read_only=True)
     pessoas_agressoras = PessoaAgressoraSerializer(many=True, read_only=True)
 
@@ -679,10 +691,10 @@ class IntercorrenciaUpdateDiretorCompletoSerializer(IntercorrenciaSerializer):
         required=False, allow_blank=True, choices=Intercorrencia.SMART_SAMPA_CHOICES
     )
     envolvido = serializers.SlugRelatedField(
+        many=True,
         slug_field="uuid",
         queryset=Envolvido.objects.all(),
         required=False,
-        allow_null=True,
         write_only=True,
     )
 
