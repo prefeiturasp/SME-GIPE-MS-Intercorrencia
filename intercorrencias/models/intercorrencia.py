@@ -125,13 +125,11 @@ class Intercorrencia(ModeloBase):
         verbose_name="Qual protocolo foi acionado?",
         blank=True,
     )
-    envolvido = models.ForeignKey(
+    envolvido = models.ManyToManyField(
         "intercorrencias.Envolvido",
         verbose_name="Quem são os envolvidos?",
-        blank=True,
-        null=True,
-        on_delete=models.PROTECT,
         help_text="Selecione quem são os envolvidos",
+        blank=True,
     )
     tem_info_agressor_ou_vitima = models.CharField(
         max_length=3,
