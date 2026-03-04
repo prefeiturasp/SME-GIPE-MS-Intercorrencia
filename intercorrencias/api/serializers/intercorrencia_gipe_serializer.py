@@ -32,6 +32,7 @@ class IntercorrenciaGipeSerializer(IntercorrenciaSerializer):
         allow_blank=False
     )
     envolvido = serializers.SlugRelatedField(
+        many=True,
         slug_field="uuid",
         queryset=Envolvido.objects.all(),
         required=True

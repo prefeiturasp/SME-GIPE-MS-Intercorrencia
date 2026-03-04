@@ -562,7 +562,7 @@ class TestIntercorrenciaNaoFurtoRouboSerializer:
         data = {
             "tipos_ocorrencia": [str(tipo.uuid)],
             "descricao_ocorrencia": "Aluno se machucou durante recreio",
-            "envolvido": envolvido.uuid,
+            "envolvido": [envolvido.uuid],
             "tem_info_agressor_ou_vitima": "nao",
         }
 
@@ -578,7 +578,7 @@ class TestIntercorrenciaNaoFurtoRouboSerializer:
         data = {
             "tipos_ocorrencia": [str(tipo.uuid)],
             "descricao_ocorrencia": "Roubo de material",
-            "envolvido": envolvido.uuid,
+            "envolvido": [envolvido.uuid],
             "tem_info_agressor_ou_vitima": "nao",
         }
 
@@ -607,6 +607,20 @@ class TestIntercorrenciaNaoFurtoRouboSerializer:
             "tipos_ocorrencia": [str(tipo.uuid)],
             "descricao_ocorrencia": "Teste com envolvido inválido",
             "envolvido": 9999,
+            "tem_info_agressor_ou_vitima": "sim",
+        }
+
+        serializer = IntercorrenciaNaoFurtoRouboSerializer(instance=intercorrencia, data=data)
+        assert not serializer.is_valid()
+        assert "envolvido" in serializer.errors.get("detail", "")
+    
+    def test_rejeita_quando_envolvido_vazio(self):
+        tipo, _, intercorrencia = self.criar_dados_basicos(sobre_furto_roubo=False)
+
+        data = {
+            "tipos_ocorrencia": [str(tipo.uuid)],
+            "descricao_ocorrencia": "Teste com envolvido inválido",
+            "envolvido": [],
             "tem_info_agressor_ou_vitima": "sim",
         }
 

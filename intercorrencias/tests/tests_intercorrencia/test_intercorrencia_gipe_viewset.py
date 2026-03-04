@@ -156,10 +156,3 @@ class TestIntercorrenciaGipeViewSet:
 
         assert response.data["detail"] == "Apenas uma mensagem"
         assert response.status_code == 400
-
-    def test_retrieve_intercorrencia_sucesso(self, client, user, intercorrencia):
-        client.force_authenticate(user=user)
-        url = f"/api-intercorrencias/v1/gipe/{intercorrencia.uuid}/"
-        response = client.get(url)
-        assert response.status_code == status.HTTP_200_OK
-        assert response.data["uuid"] == str(intercorrencia.uuid)

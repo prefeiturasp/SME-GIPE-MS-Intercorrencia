@@ -56,7 +56,7 @@ class TestIntercorrenciaGipeSerializer:
         self.valid_data = {
             "envolve_arma_ataque": EnvolveArmaOuAtaque.SIM,
             "ameaca_realizada_qual_maneira": AmeacaFoiRealizadaDeQualManeira.VIRTUALMENTE,
-            "envolvido": str(self.envolvido.uuid),
+            "envolvido": [str(self.envolvido.uuid)],
             "motivacao_ocorrencia": [MotivoOcorrencia.BULLYING],
             "tipos_ocorrencia": [str(self.tipo1.uuid), str(self.tipo2.uuid)],
             "qual_ciclo_aprendizagem": CicloAprendizagem.ALFABETIZACAO,
