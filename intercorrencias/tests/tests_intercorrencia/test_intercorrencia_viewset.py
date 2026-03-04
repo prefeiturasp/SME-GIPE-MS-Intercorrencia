@@ -218,7 +218,7 @@ class TestIntercorrenciaDiretorViewSet:
         type(intercorrencia).pode_ser_editado_por_diretor = PropertyMock(return_value=True)
         intercorrencia.sobre_furto_roubo_invasao_depredacao = False
         intercorrencia.save()
-        data = {"unidade_codigo_eol": "200237", "dre_codigo_eol": "108500", "tipos_ocorrencia": [str(t.uuid) for t in tipos_ocorrencia], "descricao_ocorrencia": "Teste", "tem_info_agressor_ou_vitima": "sim", "envolvido": str(envolvido[0].uuid)}
+        data = {"unidade_codigo_eol": "200237", "dre_codigo_eol": "108500", "tipos_ocorrencia": [str(t.uuid) for t in tipos_ocorrencia], "descricao_ocorrencia": "Teste", "tem_info_agressor_ou_vitima": "sim", "envolvido": [str(envolvido[0].uuid)]}
         url = f"/api-intercorrencias/v1/diretor/{intercorrencia.uuid}/nao-furto-roubo/"
         response = self._api_call(client, diretor_user, 'put', url, data)
         print(response.status_code)
