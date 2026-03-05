@@ -72,7 +72,7 @@ class TestIntercorrenciaDiretorViewSet:
 
     @pytest.fixture
     def dre_user(self, create_user):
-        return create_user("dre", settings.CODIGO_PERFIL_DRE, "DRE01")
+        return create_user("dre", settings.CODIGO_PERFIL_DRE, "200237")
 
     @pytest.fixture
     def gipe_user(self, create_user):
@@ -94,10 +94,6 @@ class TestIntercorrenciaDiretorViewSet:
     @pytest.fixture
     def intercorrencia(self, create_intercorrencia, diretor_user):
         return create_intercorrencia(user_username=diretor_user.username, furto_roubo=True)
-
-    @pytest.fixture
-    def intercorrencia_outra_unidade(self, create_intercorrencia):
-        return create_intercorrencia(unidade_codigo_eol="300100", dre_codigo_eol="108600", user_username="outro_diretor")
 
     @pytest.fixture
     def intercorrencia_dre(self, create_intercorrencia, dre_user):
@@ -148,12 +144,6 @@ class TestIntercorrenciaDiretorViewSet:
         assert intercorrencia_dre in qs
         assert all(i.dre_codigo_eol == dre_user.unidade_codigo_eol for i in qs)
 
-    def test_queryset_gipe_ve_todas(self, gipe_user, intercorrencia, intercorrencia_outra_unidade):
-        viewset = IntercorrenciaDiretorViewSet()
-        viewset.request = type("Request", (), {"user": gipe_user})()
-        qs = viewset.get_queryset()
-        assert intercorrencia in qs and intercorrencia_outra_unidade in qs
-
     def test_queryset_sem_unidade_retorna_vazio(self, diretor_user, dre_user):
         for user in (diretor_user, dre_user):
             user.unidade_codigo_eol = None
@@ -171,11 +161,6 @@ class TestIntercorrenciaDiretorViewSet:
         data = {"data_ocorrencia": "2025-10-21T21:00:00-03:00", "unidade_codigo_eol": "200237", "dre_codigo_eol": "108500", "sobre_furto_roubo_invasao_depredacao": True}
         response = self._api_call(client, assistente_user, 'post', '/api-intercorrencias/v1/diretor/secao-inicial/', data)
         assert response.status_code == status.HTTP_201_CREATED
-
-    def test_secao_inicial_create_dre_negado(self, client, dre_user):
-        data = {"data_ocorrencia": "2025-10-21T21:00:00-03:00", "unidade_codigo_eol": "200237", "dre_codigo_eol": "108500", "sobre_furto_roubo_invasao_depredacao": True}
-        response = self._api_call(client, dre_user, 'post', '/api-intercorrencias/v1/diretor/secao-inicial/', data)
-        assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_secao_inicial_create_sem_unidade(self, client, diretor_user):
         diretor_user.unidade_codigo_eol = None
@@ -707,6 +692,64 @@ class TestIntercorrenciaDiretorViewSet:
         assert "Erro ao deletar intercorrências" in str(response.data["detail"])
         assert "falha inesperada" in str(response.data["error"])
         
+    def test_queryset_gipe_filtragem(self, gipe_user):
+        i1 = Intercorrencia.objects.create(
+            unidade_codigo_eol="200237",
+            dre_codigo_eol="108500",
+            status="em_preenchimento_diretor",
+            data_ocorrencia=timezone.now(),
+            user_username=gipe_user.username,
+        )
+
+        i2 = Intercorrencia.objects.create(
+            unidade_codigo_eol="200237",
+            dre_codigo_eol="108500",
+            status="enviado_para_gipe",
+            data_ocorrencia=timezone.now(),
+            user_username="outro_user",
+        )
+
+        i3 = Intercorrencia.objects.create(
+            unidade_codigo_eol="200237",
+            dre_codigo_eol="108500",
+            status="finalizada",
+            data_ocorrencia=timezone.now(),
+            user_username="outro_user",
+        )
+
+        i4 = Intercorrencia.objects.create(
+            unidade_codigo_eol="200237",
+            dre_codigo_eol="108500",
+            status="em_preenchimento_diretor",
+            data_ocorrencia=timezone.now(),
+            user_username="outro_user",
+        )
+
+        viewset = IntercorrenciaDiretorViewSet()
+        viewset.request = type("Request", (), {"user": gipe_user})()
+
+        qs = viewset.get_queryset()
+
+        assert i1 in qs
+        assert i2 in qs
+        assert i3 in qs
+        assert i4 not in qs
+
+    def test_queryset_perfil_desconhecido_retorna_none(self, create_user):
+        user = create_user("teste", "999999", "200237")
+
+        viewset = IntercorrenciaDiretorViewSet()
+        viewset.request = type("Request", (), {"user": user})()
+
+        qs = viewset.get_queryset()
+
+        assert qs.count() == 0
+    
+    def test_secao_inicial_create_success_perfil_dre(self, client, dre_user):
+        data = {"data_ocorrencia": "2025-10-21T21:00:00-03:00", "unidade_codigo_eol": "200237", "dre_codigo_eol": "108500", "sobre_furto_roubo_invasao_depredacao": True}
+        response = self._api_call(client, dre_user, 'post', '/api-intercorrencias/v1/diretor/secao-inicial/', data)
+        assert response.status_code == status.HTTP_201_CREATED
+
 
 @pytest.mark.django_db
 class TestIntercorrenciaDiretorViewSetUpdate:
