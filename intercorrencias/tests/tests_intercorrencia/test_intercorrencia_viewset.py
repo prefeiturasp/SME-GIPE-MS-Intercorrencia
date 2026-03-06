@@ -76,7 +76,7 @@ class TestIntercorrenciaDiretorViewSet:
 
     @pytest.fixture
     def gipe_user(self, create_user):
-        return create_user("gipe", settings.CODIGO_PERFIL_GIPE, "GIPE01")
+        return create_user("gipe", settings.CODIGO_PERFIL_GIPE, "200237")
 
     @pytest.fixture
     def create_intercorrencia(self, diretor_user):
@@ -236,21 +236,47 @@ class TestIntercorrenciaDiretorViewSet:
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert "não tem permissão" in str(response.data["detail"]).lower()
 
-    def test_secoes_update_raise_permission_denied_sem_unidade(self, diretor_user, intercorrencia):
-        diretor_user.unidade_codigo_eol = None
-        diretor_user.save()
-        factory = APIRequestFactory()
-        data = {"data_ocorrencia": "2025-10-21T21:00:00-03:00"}
-        request = factory.put("/", data, format="json")
-        request.user = diretor_user
-        drf_request = Request(request)
+    def test_secao_inicial_update_gipe_usa_unidade_payload(self, client, gipe_user):
+        intercorrencia = Intercorrencia.objects.create(
+            unidade_codigo_eol="200237",
+            dre_codigo_eol="108500",
+            status="enviado_para_gipe",
+            data_ocorrencia=timezone.now(),
+            user_username=gipe_user.username,
+        )
 
-        viewset = IntercorrenciaDiretorViewSet()
-        viewset.request = drf_request
-        viewset.kwargs = {"uuid": str(intercorrencia.uuid)}
-        viewset.get_object = MagicMock(return_value=intercorrencia)
+        data = {
+            "data_ocorrencia": "2025-10-21T21:00:00-03:00",
+            "unidade_codigo_eol": "200237",
+            "dre_codigo_eol": "108500",
+        }
 
-        response = viewset.secao_inicial_update(drf_request, uuid=str(intercorrencia.uuid))
+        url = f"/api-intercorrencias/v1/diretor/{intercorrencia.uuid}/secao-inicial/"
+
+        response = self._api_call(client, gipe_user, "put", url, data)
+        print('response: ', response)
+        print('response: ', response.json())
+
+        assert response.status_code == status.HTTP_200_OK
+    
+    def test_secao_inicial_update_gipe_sem_unidade_payload(self, client, gipe_user):
+        intercorrencia = Intercorrencia.objects.create(
+            unidade_codigo_eol="200237",
+            dre_codigo_eol="108500",
+            status="enviado_para_gipe",
+            data_ocorrencia=timezone.now(),
+            user_username=gipe_user.username,
+        )
+
+        data = {
+            "data_ocorrencia": "2025-10-21T21:00:00-03:00",
+            "unidade_codigo_eol": "",
+        }
+
+        url = f"/api-intercorrencias/v1/diretor/{intercorrencia.uuid}/secao-inicial/"
+
+        response = self._api_call(client, gipe_user, "put", url, data)
+
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert "Usuário sem unidade vinculada" in str(response.data["detail"])
 
