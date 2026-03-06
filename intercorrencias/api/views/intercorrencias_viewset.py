@@ -177,6 +177,12 @@ class IntercorrenciaDiretorViewSet(
         try:
             instance = self.get_object()
             user_unidade = getattr(request.user, "unidade_codigo_eol", None)
+            cargo_codigo = getattr(request.user, "cargo_codigo", None)
+            cargo_str = str(cargo_codigo)
+            data = request.data
+
+            if cargo_str == str(CODIGO_PERFIL_GIPE) or cargo_str == str(CODIGO_PERFIL_DRE):
+                user_unidade = data["unidade_codigo_eol"]
 
             if not user_unidade:
                 raise PermissionDenied({"detail": "Usuário sem unidade vinculada."})
