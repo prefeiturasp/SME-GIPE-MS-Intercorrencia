@@ -83,7 +83,6 @@ class IntercorrenciaDreSerializer(IntercorrenciaSerializer):
 class IntercorrenciaConclusaoDaDreSerializer(IntercorrenciaSerializer):
     """Serializer para conclusão da DRE"""
     
-    motivo_encerramento_dre = serializers.CharField(required=True, allow_blank=False)
     nome_dre = serializers.SerializerMethodField()
     responsavel_nome = serializers.SerializerMethodField()
     responsavel_cpf = serializers.SerializerMethodField()
@@ -135,7 +134,6 @@ class IntercorrenciaConclusaoDaDreSerializer(IntercorrenciaSerializer):
             "nome_dre",
             "finalizado_dre_em",
             "finalizado_dre_por",
-            "motivo_encerramento_dre",
             "protocolo_da_intercorrencia",
             "status_display",
             "status_extra",

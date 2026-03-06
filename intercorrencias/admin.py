@@ -1,5 +1,7 @@
 from django.contrib import admin
 
+from intercorrencias.models.pessoa_agressora import PessoaAgressora
+
 from .models.declarante import Declarante
 from .models.envolvido import Envolvido
 from .models.intercorrencia import Intercorrencia
@@ -8,11 +10,12 @@ from django import forms
 
 from intercorrencias.choices.info_agressor_choices import (
     MotivoOcorrencia,
-    GrupoEtnicoRacial,
-    Genero,
-    FrequenciaEscolar,
-    EtapaEscolar,
 )
+
+class PessoaAgressoraInline(admin.TabularInline):
+    model = PessoaAgressora
+    extra = 0 
+    fields = ['nome', 'idade']
 
 
 class IntercorrenciaAdminForm(forms.ModelForm):
@@ -29,13 +32,14 @@ class IntercorrenciaAdminForm(forms.ModelForm):
 @admin.register(Intercorrencia)
 class IntercorrenciaAdmin(admin.ModelAdmin):
     form = IntercorrenciaAdminForm
-
+    inlines = [PessoaAgressoraInline]
     list_display = (
         "user_username",
         "unidade_codigo_eol",
         "dre_codigo_eol",
         "sobre_furto_roubo_invasao_depredacao",
         "criado_em",
+        "id",
     )
     list_filter = ("user_username", "unidade_codigo_eol", "dre_codigo_eol", "sobre_furto_roubo_invasao_depredacao")
     search_fields = ("unidade_codigo_eol", "user_username", "dre_codigo_eol")
@@ -55,9 +59,8 @@ class IntercorrenciaAdmin(admin.ModelAdmin):
                     'status', 'user_username',
                     'data_ocorrencia', 'unidade_codigo_eol', 'dre_codigo_eol',
                     'sobre_furto_roubo_invasao_depredacao', "motivacao_ocorrencia",
-                    'motivo_encerramento_ue', "protocolo_da_intercorrencia",
+                    "protocolo_da_intercorrencia",
                     'finalizado_diretor_em', "finalizado_diretor_por",
-                    'motivo_encerramento_dre',
                     'finalizado_dre_em', 'finalizado_dre_por',
                 )
             }),
@@ -107,3 +110,13 @@ class EnvolvidoAdmin(admin.ModelAdmin):
     list_display = ("perfil_dos_envolvidos", "ativo")
     search_fields = ("perfil_dos_envolvidos",)
     list_filter = ("ativo",)
+    
+    
+@admin.register(PessoaAgressora)
+class PessoaAgressoraAdmin(admin.ModelAdmin):
+    list_display = ("nome", "idade", "intercorrencia", "id")
+    search_fields = ("nome",)
+    list_filter = ("nome","idade",)    
+    readonly_fields = ("uuid", "criado_em", "atualizado_em")
+    ordering = ("nome",)
+    raw_id_fields = ("intercorrencia",)
