@@ -841,26 +841,6 @@ class TestIntercorrenciaInfoAgressorSerializer:
         ):
             serializer.validate_pessoas_agressoras([])
 
-    @pytest.mark.parametrize(
-        "campo",
-        [
-            "interacao_ambiente_escolar",
-        ],
-    )
-    @patch("intercorrencias.services.unidades_service.get_unidade")
-    def test_campo_nao_pode_ser_branco(self, mock_get_unidade, campo):
-        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
-        data = self.valid_data.copy()
-        data[campo] = ""
-        serializer = IntercorrenciaInfoAgressorSerializer(
-            instance=self.intercorrencia, data=data, context={"request": self.request}
-        )
-        assert not serializer.is_valid()
-        assert "detail" in serializer.errors
-        assert campo in serializer.errors["detail"]
-        assert "não pode estar em branco" in serializer.errors["detail"]
-
-
     @patch("intercorrencias.services.unidades_service.get_unidade")
     def test_serializer_erro_formato_detail(self, mock_get_unidade):
         mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
@@ -1228,11 +1208,6 @@ class TestIntercorrenciaUpdateDiretorCompletoSerializer:
             sobre_furto_roubo_invasao_depredacao=False,
             tem_info_agressor_ou_vitima="sim",
             motivacao_ocorrencia=["bullying_racismo", "bullying"],
-            genero_pessoa_agressora="masculino",
-            grupo_etnico_racial="preto",
-            etapa_escolar="ensino_medio",
-            frequencia_escolar="regularizada",
-            interacao_ambiente_escolar="Interage bem com os colegas",
             redes_protecao_acompanhamento="CREAS",
             notificado_conselho_tutelar=True,
             acompanhado_naapa=False,

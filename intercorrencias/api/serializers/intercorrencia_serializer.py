@@ -20,10 +20,6 @@ from intercorrencias.api.serializers.tipo_ocorrencia_serializer import (
 )
 from intercorrencias.choices.info_agressor_choices import (
     MotivoOcorrencia,
-    GrupoEtnicoRacial,
-    Genero,
-    FrequenciaEscolar,
-    EtapaEscolar,
 )
 
 import logging
@@ -41,11 +37,6 @@ class IntercorrenciaSerializer(serializers.ModelSerializer):
     def _get_campos_agressor_vitima(self):
         """Retorna a lista de campos relacionados a informações de agressor/vítima"""
         return [
-            "genero_pessoa_agressora",
-            "grupo_etnico_racial",
-            "etapa_escolar",
-            "frequencia_escolar",
-            "interacao_ambiente_escolar",
             "redes_protecao_acompanhamento",
             "notificado_conselho_tutelar",
             "acompanhado_naapa",
@@ -95,25 +86,23 @@ class IntercorrenciaSerializer(serializers.ModelSerializer):
             )
 
         return attrs
+    
+    def _get_first_error_message(self, error):
+        if isinstance(error, dict):
+            field, value = next(iter(error.items()))
+            return f"{field}: {self._get_first_error_message(value)}"
+        if isinstance(error, list):
+            return self._get_first_error_message(error[0])
+        return str(error)
 
     def is_valid(self, raise_exception=False):
 
         valid = super().is_valid(raise_exception=False)
         if not valid:
-            first_field, first_error_list = next(iter(self.errors.items()))
-            message = (
-                first_error_list[0]
-                if isinstance(first_error_list, list)
-                else str(first_error_list)
-            )
+            first_field, first_error = next(iter(self.errors.items()))
+            message = self._get_first_error_message(first_error)
 
-            if isinstance(self._errors, dict) and "detail" in self._errors:
-                error_dict = self._errors
-            else:
-                error_dict = {"detail": f"{first_field}: {message}"}
-
-            self._errors = error_dict
-
+            self._errors = {"detail": f"{first_field}: {message}"}
             if raise_exception:
                 raise serializers.ValidationError(self._errors)
 
@@ -368,17 +357,6 @@ class IntercorrenciaInfoAgressorSerializer(IntercorrenciaSerializer):
         allow_empty=False,  
     )
     motivacao_ocorrencia_display = serializers.SerializerMethodField(read_only=True)
-    genero_pessoa_agressora = serializers.ChoiceField(
-        choices=Genero.choices, required=True
-    )
-    grupo_etnico_racial = serializers.ChoiceField(
-        choices=GrupoEtnicoRacial.choices, required=True
-    )
-    etapa_escolar = serializers.ChoiceField(choices=EtapaEscolar.choices, required=True)
-    frequencia_escolar = serializers.ChoiceField(
-        choices=FrequenciaEscolar.choices, required=True
-    )
-    interacao_ambiente_escolar = serializers.CharField(required=True, allow_blank=False)
     redes_protecao_acompanhamento = serializers.CharField(
         required=True, allow_blank=False
     )
@@ -393,11 +371,6 @@ class IntercorrenciaInfoAgressorSerializer(IntercorrenciaSerializer):
             "dre_codigo_eol",
             "motivacao_ocorrencia",
             "motivacao_ocorrencia_display",
-            "genero_pessoa_agressora",
-            "grupo_etnico_racial",
-            "etapa_escolar",
-            "frequencia_escolar",
-            "interacao_ambiente_escolar",
             "redes_protecao_acompanhamento",
             "notificado_conselho_tutelar",
             "acompanhado_naapa",
@@ -655,11 +628,6 @@ class IntercorrenciaDiretorCompletoSerializer(serializers.ModelSerializer):
             "comunicacao_seguranca_publica",
             "protocolo_acionado",
             "motivacao_ocorrencia_display",
-            "genero_pessoa_agressora",
-            "grupo_etnico_racial",
-            "etapa_escolar",
-            "frequencia_escolar",
-            "interacao_ambiente_escolar",
             "redes_protecao_acompanhamento",
             "notificado_conselho_tutelar",
             "acompanhado_naapa",
@@ -739,11 +707,6 @@ class IntercorrenciaUpdateDiretorCompletoSerializer(IntercorrenciaSerializer):
             "comunicacao_seguranca_publica",
             "protocolo_acionado",
             "motivacao_ocorrencia",
-            "genero_pessoa_agressora",
-            "grupo_etnico_racial",
-            "etapa_escolar",
-            "frequencia_escolar",
-            "interacao_ambiente_escolar",
             "redes_protecao_acompanhamento",
             "notificado_conselho_tutelar",
             "acompanhado_naapa",
