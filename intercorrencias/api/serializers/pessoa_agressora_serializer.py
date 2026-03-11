@@ -5,7 +5,17 @@ from intercorrencias.models.pessoa_agressora import PessoaAgressora
 class PessoaAgressoraSerializer(serializers.ModelSerializer):
     class Meta:
         model = PessoaAgressora
-        fields = ["id","uuid", "nome", "idade",]
+        fields = [
+            "id",
+            "uuid",
+            "nome",
+            "idade",
+            "genero",
+            "grupo_etnico_racial",
+            "etapa_escolar",
+            "frequencia_escolar",
+            "interacao_ambiente_escolar"
+        ]
         read_only_fields = ["id", "uuid"]
 
     def validate_nome(self, value):
@@ -18,26 +28,27 @@ class PessoaAgressoraSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("A idade deve ser um número positivo.")
         return value
     
-    def is_valid(self, raise_exception=False):
+    def validate_genero(self, value):
+        if not value:
+            raise serializers.ValidationError("O campo gênero é obrigatório.")
+        return value
 
-        valid = super().is_valid(raise_exception=False)
-        if not valid:
-            first_field, first_error_list = next(iter(self.errors.items()))
-            message = (
-                first_error_list[0]
-                if isinstance(first_error_list, list)
-                else str(first_error_list)
-            )
+    def validate_grupo_etnico_racial(self, value):
+        if not value:
+            raise serializers.ValidationError("O campo grupo étnico racial é obrigatório.")
+        return value
 
-            if isinstance(self._errors, dict) and "detail" in self._errors:
-                error_dict = self._errors
-            else:
-                error_dict = {"detail": f"{first_field}: {message}"}
+    def validate_etapa_escolar(self, value):
+        if not value:
+            raise serializers.ValidationError("A etapa escolar é obrigatória.")
+        return value
 
-            self._errors = error_dict
+    def validate_frequencia_escolar(self, value):
+        if not value:
+            raise serializers.ValidationError("A frequência escolar é obrigatória.")
+        return value
 
-            if raise_exception:
-                raise serializers.ValidationError(self._errors)
-
-        return valid
-    
+    def validate_interacao_ambiente_escolar(self, value):
+        if not value:
+            raise serializers.ValidationError("A interação no ambiente escolar é obrigatória.")
+        return value
