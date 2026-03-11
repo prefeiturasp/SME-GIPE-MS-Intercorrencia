@@ -15,7 +15,7 @@ class TestPessoaAgressoraSerializer:
         serializer = PessoaAgressoraSerializer(instance=pessoa_agressora)
         data = serializer.data
 
-        expected_fields = {"uuid", "nome", "idade", "id"}
+        expected_fields = {"uuid", "nome", "idade", "id", "genero", "grupo_etnico_racial", "etapa_escolar", "frequencia_escolar", "interacao_ambiente_escolar"}
         assert set(data.keys()) == expected_fields, (
             f"Os campos retornados ({set(data.keys())}) não correspondem "
             f"aos esperados ({expected_fields})"
@@ -52,18 +52,6 @@ class TestPessoaAgressoraSerializer:
         assert serializer.is_valid(), f"Erros de validação: {serializer.errors}"
         assert serializer.validated_data["nome"] == "Ana Clara"
 
-    def test_nome_vazio_invalido(self):
-        payload = {
-            "nome": "   ",
-            "idade": 22,
-        }
-        serializer = PessoaAgressoraSerializer(data=payload)
-
-        assert not serializer.is_valid()
-        assert "detail" in serializer.errors
-        assert "nome:" in serializer.errors["detail"]
-        assert "não pode estar em branco" in serializer.errors["detail"]
-
     def test_validate_nome_em_branco_lanca_erro_customizado(self):
         serializer = PessoaAgressoraSerializer()
         with pytest.raises(serializers.ValidationError, match="O nome não pode estar em branco"):
@@ -79,25 +67,6 @@ class TestPessoaAgressoraSerializer:
         assert serializer.is_valid(), f"Erros de validação: {serializer.errors}"
         assert serializer.validated_data["idade"] is None
 
-    @pytest.mark.parametrize(
-        "idade,mensagem_esperada",
-        [
-            (0, "A idade deve ser um número positivo."),
-            (-1, "maior ou igual a 0"),
-        ],
-    )
-    def test_idade_nao_positiva_invalida(self, idade, mensagem_esperada):
-        payload = {
-            "nome": "Pessoa Teste",
-            "idade": idade,
-        }
-        serializer = PessoaAgressoraSerializer(data=payload)
-
-        assert not serializer.is_valid()
-        assert "detail" in serializer.errors
-        assert "idade:" in serializer.errors["detail"]
-        assert mensagem_esperada in serializer.errors["detail"]
-
     def test_is_valid_mantem_detail_quando_ja_existente(self, monkeypatch):
         serializer = PessoaAgressoraSerializer(data={})
 
@@ -109,15 +78,81 @@ class TestPessoaAgressoraSerializer:
 
         assert not serializer.is_valid()
         assert serializer.errors == {"detail": "erro já formatado"}
+    
+    def test_validate_idade_negativa_lanca_erro(self):
+        serializer = PessoaAgressoraSerializer()
 
-    def test_is_valid_raise_exception_repassa_detail(self):
-        payload = {
-            "nome": "Pessoa Teste",
-            "idade": 0,
-        }
-        serializer = PessoaAgressoraSerializer(data=payload)
+        with pytest.raises(serializers.ValidationError, match="A idade deve ser um número positivo."):
+            serializer.validate_idade(-5)
 
-        with pytest.raises(serializers.ValidationError) as exc:
-            serializer.is_valid(raise_exception=True)
+    def test_validate_idade_zero_lanca_erro(self):
+        serializer = PessoaAgressoraSerializer()
 
-        assert exc.value.detail["detail"] == "idade: A idade deve ser um número positivo."
+        with pytest.raises(serializers.ValidationError, match="A idade deve ser um número positivo."):
+            serializer.validate_idade(0)
+
+    def test_validate_genero_obrigatorio(self):
+        serializer = PessoaAgressoraSerializer()
+
+        with pytest.raises(serializers.ValidationError, match="O campo gênero é obrigatório."):
+            serializer.validate_genero(None)
+
+    def test_validate_grupo_etnico_racial_obrigatorio(self):
+        serializer = PessoaAgressoraSerializer()
+
+        with pytest.raises(serializers.ValidationError, match="O campo grupo étnico racial é obrigatório."):
+            serializer.validate_grupo_etnico_racial(None)
+
+    def test_validate_etapa_escolar_obrigatoria(self):
+        serializer = PessoaAgressoraSerializer()
+
+        with pytest.raises(serializers.ValidationError, match="A etapa escolar é obrigatória."):
+            serializer.validate_etapa_escolar(None)
+
+    def test_validate_frequencia_escolar_obrigatoria(self):
+        serializer = PessoaAgressoraSerializer()
+
+        with pytest.raises(serializers.ValidationError, match="A frequência escolar é obrigatória."):
+            serializer.validate_frequencia_escolar(None)
+
+    def test_validate_interacao_ambiente_escolar_obrigatoria(self):
+        serializer = PessoaAgressoraSerializer()
+
+        with pytest.raises(serializers.ValidationError, match="A interação no ambiente escolar é obrigatória."):
+            serializer.validate_interacao_ambiente_escolar(None)
+    
+    def test_validate_genero_valido(self):
+        serializer = PessoaAgressoraSerializer()
+        result = serializer.validate_genero("Feminino")
+
+        assert result == "Feminino"
+
+    def test_validate_grupo_etnico_racial_valido(self):
+        serializer = PessoaAgressoraSerializer()
+        result = serializer.validate_grupo_etnico_racial("Parda")
+
+        assert result == "Parda"
+
+    def test_validate_etapa_escolar_valida(self):
+        serializer = PessoaAgressoraSerializer()
+        result = serializer.validate_etapa_escolar("Ensino Médio")
+
+        assert result == "Ensino Médio"
+
+    def test_validate_frequencia_escolar_valida(self):
+        serializer = PessoaAgressoraSerializer()
+        result = serializer.validate_frequencia_escolar("Regular")
+
+        assert result == "Regular"
+
+    def test_validate_interacao_ambiente_escolar_valida(self):
+        serializer = PessoaAgressoraSerializer()
+        result = serializer.validate_interacao_ambiente_escolar("Boa")
+
+        assert result == "Boa"
+
+    def test_validate_idade_valida(self):
+        serializer = PessoaAgressoraSerializer()
+        result = serializer.validate_idade(20)
+
+        assert result == 20

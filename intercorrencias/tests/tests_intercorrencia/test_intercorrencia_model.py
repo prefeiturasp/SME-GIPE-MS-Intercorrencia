@@ -127,46 +127,6 @@ class TestIntercorrencia:
         )
         obj.full_clean()
 
-    def test_choices_info_agressor_validos(self, intercorrencia_factory):
-        obj = intercorrencia_factory(
-            motivacao_ocorrencia=[MotivoOcorrencia.BULLYING_RACISMO],
-            genero_pessoa_agressora=Genero.MASCULINO,
-            grupo_etnico_racial=GrupoEtnicoRacial.PARDO,
-            etapa_escolar=EtapaEscolar.FUNDAMENTAL_ALFABETIZACAO,
-            frequencia_escolar=FrequenciaEscolar.REGULARIZADA,
-        )
-        obj.full_clean()
-        obj.save()
-
-        assert obj.motivacao_ocorrencia == [MotivoOcorrencia.BULLYING_RACISMO]
-        assert obj.genero_pessoa_agressora == Genero.MASCULINO
-        assert obj.grupo_etnico_racial == GrupoEtnicoRacial.PARDO
-        assert obj.etapa_escolar == EtapaEscolar.FUNDAMENTAL_ALFABETIZACAO
-        assert obj.frequencia_escolar == FrequenciaEscolar.REGULARIZADA
-
-    def test_choices_info_agressor_invalidos(self, intercorrencia_factory):
-        obj = intercorrencia_factory(
-            motivacao_ocorrencia=["invalido"],
-            genero_pessoa_agressora="errado",
-            grupo_etnico_racial="xyz",
-            etapa_escolar="errado",
-            frequencia_escolar="errado",
-        )
-        with pytest.raises(ValidationError):
-            obj.full_clean()
-
-    def test_campos_texto_opcionais_funcionam(self, intercorrencia_factory):
-        obj = intercorrencia_factory(
-            interacao_ambiente_escolar="Agressor demonstra comportamento reservado.",
-            redes_protecao_acompanhamento="CRAS e Conselho Tutelar",
-        )
-        obj.full_clean()
-        obj.save()
-
-        assert "reservado" in obj.interacao_ambiente_escolar
-        assert "Conselho Tutelar" in obj.redes_protecao_acompanhamento
-
-
     def test_booleanos_funcionam(self, intercorrencia_factory):
         obj = intercorrencia_factory(
             notificado_conselho_tutelar=True,
