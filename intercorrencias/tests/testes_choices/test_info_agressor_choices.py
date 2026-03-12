@@ -22,6 +22,7 @@ def test_motivo_ocorrencia_values():
         "bullying_capacitismo",
         "relacoes_afetivas",
         "uso_drogas",
+        "uso_alcool",
         "vinganca",
         "bullying_xenofobia",
         "outros",
