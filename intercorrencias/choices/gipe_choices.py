@@ -2,7 +2,7 @@ import re
 import logging
 from django.db import models
 
-from intercorrencias.choices.info_agressor_choices import MotivoOcorrencia
+from intercorrencias.choices.info_agressor_choices import MotivoOcorrencia, EtapaEscolar
 
 logger = logging.getLogger(__name__)
 
@@ -16,19 +16,13 @@ class AmeacaFoiRealizadaDeQualManeira(models.TextChoices):
     VIRTUALMENTE = "virtualmente", "Virtualmente"
 
 
-class CicloAprendizagem(models.TextChoices):
-    ALFABETIZACAO = "alfabetizacao", "Alfabetização (1º ao 3º ano)"
-    INTERDISCIPLINAR = "interdisciplinar", "Interdisciplinar (4º ao 6º ano)"
-    AUTORAL = "autoral", "Autoral (7º ao 9º ano)"
-
-
 def get_values_gipe_choices():
     logger.info("Buscando gipe_choices...")
     choices_classes = [
         EnvolveArmaOuAtaque,
         AmeacaFoiRealizadaDeQualManeira,
         MotivoOcorrencia,
-        CicloAprendizagem
+        EtapaEscolar
     ]
 
     def to_snake_case(name: str) -> str:
