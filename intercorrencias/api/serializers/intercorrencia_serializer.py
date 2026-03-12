@@ -142,6 +142,10 @@ class IntercorrenciaFurtoRouboSerializer(IntercorrenciaSerializer):
     tipos_ocorrencia_detalhes = TipoOcorrenciaSerializer(
         many=True, read_only=True, source="tipos_ocorrencia"
     )
+    tipos_ocorrencia_outros = serializers.CharField(
+        required=False,
+        allow_blank=True
+    )
     descricao_ocorrencia = serializers.CharField(required=True, allow_blank=False)
     smart_sampa_situacao = serializers.ChoiceField(
         required=True, allow_blank=False, choices=Intercorrencia.SMART_SAMPA_CHOICES
@@ -153,6 +157,7 @@ class IntercorrenciaFurtoRouboSerializer(IntercorrenciaSerializer):
             "uuid",
             "tipos_ocorrencia",
             "tipos_ocorrencia_detalhes",
+            "tipos_ocorrencia_outros",
             "descricao_ocorrencia",
             "smart_sampa_situacao",
             "status_display",
@@ -257,6 +262,10 @@ class IntercorrenciaNaoFurtoRouboSerializer(IntercorrenciaSerializer):
     tipos_ocorrencia_detalhes = TipoOcorrenciaSerializer(
         many=True, read_only=True, source="tipos_ocorrencia"
     )
+    tipos_ocorrencia_outros = serializers.CharField(
+        required=False,
+        allow_blank=True
+    )
     descricao_ocorrencia = serializers.CharField(required=True, allow_blank=False)
     envolvido = serializers.SlugRelatedField(
         many=True,
@@ -270,6 +279,10 @@ class IntercorrenciaNaoFurtoRouboSerializer(IntercorrenciaSerializer):
         read_only=True,
         source="envolvido"
     )
+    envolvido_outros = serializers.CharField(
+        required=False,
+        allow_blank=True
+    )
     tem_info_agressor_ou_vitima = serializers.ChoiceField(
         choices=Intercorrencia.INFORMACOES_AGRESSOR_VITIMA_CHOICES, required=True
     )
@@ -280,9 +293,11 @@ class IntercorrenciaNaoFurtoRouboSerializer(IntercorrenciaSerializer):
             "uuid",
             "tipos_ocorrencia",
             "tipos_ocorrencia_detalhes",
+            "tipos_ocorrencia_outros",
             "descricao_ocorrencia",
             "envolvido",
             "envolvido_detalhes",
+            "envolvido_outros",
             "tem_info_agressor_ou_vitima",
             "status_display",
             "status_extra",
@@ -357,6 +372,10 @@ class IntercorrenciaInfoAgressorSerializer(IntercorrenciaSerializer):
         allow_empty=False,  
     )
     motivacao_ocorrencia_display = serializers.SerializerMethodField(read_only=True)
+    motivacao_ocorrencia_outros = serializers.CharField(
+        required=False,
+        allow_blank=True
+    )
     redes_protecao_acompanhamento = serializers.CharField(
         required=True, allow_blank=False
     )
@@ -371,6 +390,7 @@ class IntercorrenciaInfoAgressorSerializer(IntercorrenciaSerializer):
             "dre_codigo_eol",
             "motivacao_ocorrencia",
             "motivacao_ocorrencia_display",
+            "motivacao_ocorrencia_outros",
             "redes_protecao_acompanhamento",
             "notificado_conselho_tutelar",
             "acompanhado_naapa",
