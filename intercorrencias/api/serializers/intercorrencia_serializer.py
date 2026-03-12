@@ -676,7 +676,10 @@ class IntercorrenciaUpdateDiretorCompletoSerializer(IntercorrenciaSerializer):
         required=False,
         write_only=True,
     )
-
+    tipos_ocorrencia_outros = serializers.CharField(
+        required=False,
+        allow_blank=True
+    )
     descricao_ocorrencia = serializers.CharField(required=False, allow_blank=True)
     smart_sampa_situacao = serializers.ChoiceField(
         required=False, allow_blank=True, choices=Intercorrencia.SMART_SAMPA_CHOICES
@@ -688,7 +691,10 @@ class IntercorrenciaUpdateDiretorCompletoSerializer(IntercorrenciaSerializer):
         required=False,
         write_only=True,
     )
-
+    envolvido_outros = serializers.CharField(
+        required=False,
+        allow_blank=True
+    )
     tem_info_agressor_ou_vitima = serializers.ChoiceField(
         choices=Intercorrencia.INFORMACOES_AGRESSOR_VITIMA_CHOICES,
         required=False,
@@ -701,7 +707,6 @@ class IntercorrenciaUpdateDiretorCompletoSerializer(IntercorrenciaSerializer):
         allow_null=True,
         write_only=True,
     )
-
     comunicacao_seguranca_publica = serializers.ChoiceField(
         choices=Intercorrencia.SEGURANCA_PUBLICA_CHOICES,
         required=False,
@@ -710,7 +715,6 @@ class IntercorrenciaUpdateDiretorCompletoSerializer(IntercorrenciaSerializer):
     protocolo_acionado = serializers.ChoiceField(
         choices=Intercorrencia.PROTOCOLO_CHOICES, required=False, allow_blank=True
     )
-    
     pessoas_agressoras = PessoaAgressoraSerializer(many=True, required=False)
 
     class Meta:
@@ -722,14 +726,17 @@ class IntercorrenciaUpdateDiretorCompletoSerializer(IntercorrenciaSerializer):
             "dre_codigo_eol",
             "sobre_furto_roubo_invasao_depredacao",
             "tipos_ocorrencia",
+            "tipos_ocorrencia_outros",
             "descricao_ocorrencia",
             "smart_sampa_situacao",
             "envolvido",
+            "envolvido_outros",
             "tem_info_agressor_ou_vitima",
             "declarante",
             "comunicacao_seguranca_publica",
             "protocolo_acionado",
             "motivacao_ocorrencia",
+            "motivacao_ocorrencia_outros",
             "redes_protecao_acompanhamento",
             "notificado_conselho_tutelar",
             "acompanhado_naapa",
