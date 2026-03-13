@@ -9,10 +9,10 @@ from intercorrencias.api.serializers.tipo_ocorrencia_serializer import TipoOcorr
 from intercorrencias.choices.gipe_choices import (
     EnvolveArmaOuAtaque,
     AmeacaFoiRealizadaDeQualManeira,
-    CicloAprendizagem
 )
 from intercorrencias.choices.info_agressor_choices import (
-    MotivoOcorrencia
+    MotivoOcorrencia,
+    EtapaEscolar
 )
 
 logger = logging.getLogger(__name__)
@@ -37,9 +37,17 @@ class IntercorrenciaGipeSerializer(IntercorrenciaSerializer):
         queryset=Envolvido.objects.all(),
         required=True
     )
+    envolvido_outros = serializers.CharField(
+        required=False,
+        allow_blank=True
+    )
     motivacao_ocorrencia = serializers.ListField(
         child=serializers.ChoiceField(choices=MotivoOcorrencia.choices),
         allow_empty=False,
+    )
+    motivacao_ocorrencia_outros = serializers.CharField(
+        required=False,
+        allow_blank=True
     )
     tipos_ocorrencia = serializers.SlugRelatedField(
         many=True,
@@ -51,8 +59,12 @@ class IntercorrenciaGipeSerializer(IntercorrenciaSerializer):
     tipos_ocorrencia_detalhes = TipoOcorrenciaSerializer(
         many=True, read_only=True, source="tipos_ocorrencia"
     )
-    qual_ciclo_aprendizagem = serializers.ChoiceField(
-        choices=CicloAprendizagem.choices,
+    tipos_ocorrencia_outros = serializers.CharField(
+        required=False,
+        allow_blank=True
+    )
+    etapa_escolar = serializers.ChoiceField(
+        choices=EtapaEscolar.choices,
         required=True,
         allow_blank=False,
     )
@@ -75,10 +87,25 @@ class IntercorrenciaGipeSerializer(IntercorrenciaSerializer):
     class Meta:
         model = Intercorrencia
         fields = (
-            "id", "uuid", "unidade_codigo_eol", "dre_codigo_eol", "status", "status_display", "status_extra",
-            "envolve_arma_ataque", "ameaca_realizada_qual_maneira", "envolvido",
-            "motivacao_ocorrencia", "tipos_ocorrencia", "tipos_ocorrencia_detalhes", "qual_ciclo_aprendizagem", 
-            "info_sobre_interacoes_virtuais_pessoa_agressora", "encaminhamentos_gipe"
+            "id",
+            "uuid",
+            "unidade_codigo_eol",
+            "dre_codigo_eol",
+            "status",
+            "status_display",
+            "status_extra",
+            "envolve_arma_ataque",
+            "ameaca_realizada_qual_maneira",
+            "envolvido",
+            "envolvido_outros",
+            "motivacao_ocorrencia",
+            "motivacao_ocorrencia_outros",
+            "tipos_ocorrencia",
+            "tipos_ocorrencia_outros",
+            "tipos_ocorrencia_detalhes",
+            "etapa_escolar",
+            "info_sobre_interacoes_virtuais_pessoa_agressora",
+            "encaminhamentos_gipe",
         )
 
 

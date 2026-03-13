@@ -2,15 +2,14 @@ import pytest
 from intercorrencias.choices.gipe_choices import (
     EnvolveArmaOuAtaque,
     AmeacaFoiRealizadaDeQualManeira,
-    CicloAprendizagem,
     get_values_gipe_choices,
 )
-from intercorrencias.choices.info_agressor_choices import MotivoOcorrencia
+from intercorrencias.choices.info_agressor_choices import MotivoOcorrencia, EtapaEscolar
 
 
 @pytest.mark.parametrize(
     "enum_class",
-    [EnvolveArmaOuAtaque, AmeacaFoiRealizadaDeQualManeira, CicloAprendizagem, MotivoOcorrencia],
+    [EnvolveArmaOuAtaque, AmeacaFoiRealizadaDeQualManeira, EtapaEscolar, MotivoOcorrencia],
 )
 def test_enum_values_and_labels(enum_class):
     for item in enum_class:
@@ -26,7 +25,7 @@ def test_get_values_gipe_choices_returns_expected_keys():
         "envolve_arma_ou_ataque",
         "ameaca_foi_realizada_de_qual_maneira",
         "motivo_ocorrencia",
-        "ciclo_aprendizagem",
+        "etapa_escolar",
     }
 
     assert set(result.keys()) == expected_keys
@@ -50,4 +49,4 @@ def test_to_snake_case_inside_get_values_gipe_choices():
     assert "envolve_arma_ou_ataque" in result
     assert "ameaca_foi_realizada_de_qual_maneira" in result
     assert "motivo_ocorrencia" in result
-    assert "ciclo_aprendizagem" in result
+    assert "etapa_escolar" in result

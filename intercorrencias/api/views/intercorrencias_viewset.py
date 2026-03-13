@@ -94,7 +94,7 @@ class IntercorrenciaDiretorViewSet(
 
         if cargo_str == str(CODIGO_PERFIL_GIPE):
             return qs.filter(
-                Q(status="em_preenchimento_diretor", user_username=username)
+                Q(user_username=username)
                 | Q(status__in=["enviado_para_gipe", "finalizada"])
             )
 

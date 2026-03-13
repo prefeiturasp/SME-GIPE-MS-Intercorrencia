@@ -4,12 +4,12 @@ from .modelo_base import ModeloBase
 
 from intercorrencias.choices.info_agressor_choices import (
     MotivoOcorrencia,
+    EtapaEscolar
 )
 
 from intercorrencias.choices.gipe_choices import (
     EnvolveArmaOuAtaque,
     AmeacaFoiRealizadaDeQualManeira,
-    CicloAprendizagem
 )
 
 
@@ -90,6 +90,11 @@ class Intercorrencia(ModeloBase):
         help_text="Selecione um ou mais tipos de ocorrência",
         blank=True,
     )
+    tipos_ocorrencia_outros = models.TextField(
+        verbose_name="Outros tipos de ocorrência",
+        help_text="Descreva qual é o tipo de ocorrência.",
+        blank=True,
+    )
     descricao_ocorrencia = models.TextField(
         verbose_name="Descrição da Ocorrência",
         help_text="Descreva o fato ocorrido, incluindo informações sobre agressores, vítimas e prejuízos.",
@@ -127,6 +132,11 @@ class Intercorrencia(ModeloBase):
         help_text="Selecione quem são os envolvidos",
         blank=True,
     )
+    envolvido_outros = models.TextField(
+        verbose_name="Outros envolvidos",
+        help_text="Descreva quem são os envolvidos.",
+        blank=True,
+    )
     tem_info_agressor_ou_vitima = models.CharField(
         max_length=3,
         choices=INFORMACOES_AGRESSOR_VITIMA_CHOICES,
@@ -139,6 +149,11 @@ class Intercorrencia(ModeloBase):
         blank=True,
         default=list,  # Lista vazia como padrão
         help_text="Selecione uma ou mais motivações"
+    )
+    motivacao_ocorrencia_outros = models.TextField(
+        verbose_name="Outra motivação da ocorrência",
+        help_text="Descreva qual foi a motivação.",
+        blank=True,
     )
     redes_protecao_acompanhamento = models.TextField(
         verbose_name="Quais redes de proteção estão acompanhando o caso?",
@@ -237,10 +252,10 @@ class Intercorrencia(ModeloBase):
         verbose_name="Ameaça foi realizada de qual maneira?",
         blank=True,
     )
-    qual_ciclo_aprendizagem = models.CharField(
-        max_length=17,
-        choices=CicloAprendizagem.choices,
-        verbose_name="Qual o ciclo de aprendizagem?",
+    etapa_escolar = models.CharField(
+        max_length=27,
+        choices=EtapaEscolar.choices,
+        verbose_name="Qual etapa escolar?",
         blank=True,
     )
     info_sobre_interacoes_virtuais_pessoa_agressora = models.TextField(
