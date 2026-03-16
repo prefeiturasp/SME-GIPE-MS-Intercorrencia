@@ -70,6 +70,7 @@ class TestIntercorrenciaAdmin:
             "dre_codigo_eol",
             "sobre_furto_roubo_invasao_depredacao",
             "criado_em",
+            "status",
             "id",
         )
         assert intercorrencia_admin.list_filter == (

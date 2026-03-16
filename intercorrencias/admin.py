@@ -39,6 +39,7 @@ class IntercorrenciaAdmin(admin.ModelAdmin):
         "dre_codigo_eol",
         "sobre_furto_roubo_invasao_depredacao",
         "criado_em",
+        "status",
         "id",
     )
     list_filter = ("user_username", "unidade_codigo_eol", "dre_codigo_eol", "sobre_furto_roubo_invasao_depredacao")
@@ -98,19 +99,21 @@ class TipoOcorrenciaAdmin(admin.ModelAdmin):
     list_display = ("nome", "ativo")
     search_fields = ("nome",)
     list_filter = ("ativo",)
+    readonly_fields = ("uuid",)
 
 @admin.register(Declarante)
 class DeclaranteAdmin(admin.ModelAdmin):
     list_display = ("declarante", "ativo")
     search_fields = ("declarante",)
     list_filter = ("ativo",)
+    readonly_fields = ("uuid",)
 
 @admin.register(Envolvido)
 class EnvolvidoAdmin(admin.ModelAdmin):
     list_display = ("perfil_dos_envolvidos", "ativo")
     search_fields = ("perfil_dos_envolvidos",)
     list_filter = ("ativo",)
-    
+    readonly_fields = ("uuid",)
     
 @admin.register(PessoaAgressora)
 class PessoaAgressoraAdmin(admin.ModelAdmin):

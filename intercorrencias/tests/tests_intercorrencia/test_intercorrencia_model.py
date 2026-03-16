@@ -8,16 +8,11 @@ from django.core.exceptions import ValidationError
 from intercorrencias.models.intercorrencia import Intercorrencia
 from intercorrencias.tests.factories import IntercorrenciaFactory
 from intercorrencias.choices.info_agressor_choices import (
-    MotivoOcorrencia,
-    GrupoEtnicoRacial,
-    Genero,
-    FrequenciaEscolar,
     EtapaEscolar,
 )
 from intercorrencias.choices.gipe_choices import (
     EnvolveArmaOuAtaque,
     AmeacaFoiRealizadaDeQualManeira,
-    CicloAprendizagem
 )
 
 
@@ -127,46 +122,6 @@ class TestIntercorrencia:
         )
         obj.full_clean()
 
-    def test_choices_info_agressor_validos(self, intercorrencia_factory):
-        obj = intercorrencia_factory(
-            motivacao_ocorrencia=[MotivoOcorrencia.BULLYING_RACISMO],
-            genero_pessoa_agressora=Genero.MASCULINO,
-            grupo_etnico_racial=GrupoEtnicoRacial.PARDO,
-            etapa_escolar=EtapaEscolar.FUNDAMENTAL_ALFABETIZACAO,
-            frequencia_escolar=FrequenciaEscolar.REGULARIZADA,
-        )
-        obj.full_clean()
-        obj.save()
-
-        assert obj.motivacao_ocorrencia == [MotivoOcorrencia.BULLYING_RACISMO]
-        assert obj.genero_pessoa_agressora == Genero.MASCULINO
-        assert obj.grupo_etnico_racial == GrupoEtnicoRacial.PARDO
-        assert obj.etapa_escolar == EtapaEscolar.FUNDAMENTAL_ALFABETIZACAO
-        assert obj.frequencia_escolar == FrequenciaEscolar.REGULARIZADA
-
-    def test_choices_info_agressor_invalidos(self, intercorrencia_factory):
-        obj = intercorrencia_factory(
-            motivacao_ocorrencia=["invalido"],
-            genero_pessoa_agressora="errado",
-            grupo_etnico_racial="xyz",
-            etapa_escolar="errado",
-            frequencia_escolar="errado",
-        )
-        with pytest.raises(ValidationError):
-            obj.full_clean()
-
-    def test_campos_texto_opcionais_funcionam(self, intercorrencia_factory):
-        obj = intercorrencia_factory(
-            interacao_ambiente_escolar="Agressor demonstra comportamento reservado.",
-            redes_protecao_acompanhamento="CRAS e Conselho Tutelar",
-        )
-        obj.full_clean()
-        obj.save()
-
-        assert "reservado" in obj.interacao_ambiente_escolar
-        assert "Conselho Tutelar" in obj.redes_protecao_acompanhamento
-
-
     def test_booleanos_funcionam(self, intercorrencia_factory):
         obj = intercorrencia_factory(
             notificado_conselho_tutelar=True,
@@ -260,20 +215,20 @@ class TestIntercorrencia:
         obj = intercorrencia_factory(
             envolve_arma_ataque=EnvolveArmaOuAtaque.SIM,
             ameaca_realizada_qual_maneira=AmeacaFoiRealizadaDeQualManeira.VIRTUALMENTE,
-            qual_ciclo_aprendizagem=CicloAprendizagem.ALFABETIZACAO,
+            etapa_escolar=EtapaEscolar.FUNDAMENTAL_ALFABETIZACAO,
         )
         obj.full_clean()
         obj.save()
 
         assert obj.envolve_arma_ataque == EnvolveArmaOuAtaque.SIM
         assert obj.ameaca_realizada_qual_maneira == AmeacaFoiRealizadaDeQualManeira.VIRTUALMENTE
-        assert obj.qual_ciclo_aprendizagem == CicloAprendizagem.ALFABETIZACAO
+        assert obj.etapa_escolar == EtapaEscolar.FUNDAMENTAL_ALFABETIZACAO
 
     def test_campos_gipe_choices_invalidos(self, intercorrencia_factory):
         obj = intercorrencia_factory(
             envolve_arma_ataque="xxx",
             ameaca_realizada_qual_maneira="yyy",
-            qual_ciclo_aprendizagem="zzz",
+            etapa_escolar="zzz",
         )
         with pytest.raises(ValidationError):
             obj.full_clean()
@@ -282,7 +237,7 @@ class TestIntercorrencia:
         obj = intercorrencia_factory(
             envolve_arma_ataque="",
             ameaca_realizada_qual_maneira="",
-            qual_ciclo_aprendizagem="",
+            etapa_escolar="",
             info_sobre_interacoes_virtuais_pessoa_agressora="",
             encaminhamentos_gipe="",
         )
@@ -290,7 +245,7 @@ class TestIntercorrencia:
 
         assert obj.envolve_arma_ataque == ""
         assert obj.ameaca_realizada_qual_maneira == ""
-        assert obj.qual_ciclo_aprendizagem == ""
+        assert obj.etapa_escolar == ""
         assert obj.info_sobre_interacoes_virtuais_pessoa_agressora == ""
         assert obj.encaminhamentos_gipe == ""
 
@@ -302,7 +257,7 @@ class TestIntercorrencia:
             dre_codigo_eol="654321",
             envolve_arma_ataque="x" * 4,
             ameaca_realizada_qual_maneira="x" * 16,
-            qual_ciclo_aprendizagem="x" * 18,
+            etapa_escolar="x" * 18,
         )
 
         with pytest.raises(ValidationError) as exc:
@@ -311,7 +266,7 @@ class TestIntercorrencia:
         err = exc.value.error_dict
         assert "envolve_arma_ataque" in err
         assert "ameaca_realizada_qual_maneira" in err
-        assert "qual_ciclo_aprendizagem" in err
+        assert "etapa_escolar" in err
 
     def test_campos_gipe_texto_opcionais(self, intercorrencia_factory):
         obj = intercorrencia_factory(

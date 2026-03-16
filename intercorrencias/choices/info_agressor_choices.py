@@ -17,6 +17,7 @@ class MotivoOcorrencia(models.TextChoices):
     BULLYING_CAPACITISMO = "bullying_capacitismo", "Bullying/Capacitismo"
     RELACOES_AFETIVAS = "relacoes_afetivas", "Relações afetivas"
     USO_DROGAS = "uso_drogas", "Uso de drogas"
+    USO_ALCOOL = "uso_alcool", "Uso de álcool"
     VINGANCA = "vinganca", "Vingança"
     BULLYING_XENOFOBIA = "bullying_xenofobia", "Bullying/Xenofobia"
     OUTROS = "outros", "Outros"
@@ -54,6 +55,7 @@ class EtapaEscolar(models.TextChoices):
     FUNDAMENTAL_AUTORAL = "fundamental_autoral", "Ensino fundamental - Ciclo Autoral"
     ENSINO_MEDIO = "ensino_medio", "Ensino médio"
     EJA = "eja", "Educação de Jovens e Adultos"
+    MOVA = "mova", "Movimento de Alfabetização de Jovens e Adultos - MOVA"
     NAO_SE_APLICA = "nao_se_aplica", "Não se aplica"
 
 
