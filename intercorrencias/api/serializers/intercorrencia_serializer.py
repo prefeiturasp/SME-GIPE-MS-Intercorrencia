@@ -117,6 +117,7 @@ class IntercorrenciaSecaoInicialSerializer(IntercorrenciaSerializer):
         fields = (
             "uuid",
             "data_ocorrencia",
+            "fora_horario_funcionamento_ue",
             "unidade_codigo_eol",
             "dre_codigo_eol",
             "sobre_furto_roubo_invasao_depredacao",
@@ -632,6 +633,7 @@ class IntercorrenciaDiretorCompletoSerializer(serializers.ModelSerializer):
             "criado_em",
             "atualizado_em",
             "data_ocorrencia",
+            "fora_horario_funcionamento_ue",
             "unidade_codigo_eol",
             "dre_codigo_eol",
             "nome_unidade",
@@ -722,6 +724,7 @@ class IntercorrenciaUpdateDiretorCompletoSerializer(IntercorrenciaSerializer):
         fields = (
             "uuid",
             "data_ocorrencia",
+            "fora_horario_funcionamento_ue",
             "unidade_codigo_eol",
             "dre_codigo_eol",
             "sobre_furto_roubo_invasao_depredacao",
