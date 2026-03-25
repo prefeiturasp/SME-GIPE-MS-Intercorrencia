@@ -57,6 +57,12 @@ class Intercorrencia(ModeloBase):
         verbose_name="Data e Hora da Ocorrência",
         help_text="Data e hora em que a intercorrência ocorreu",
     )
+    fora_horario_funcionamento_ue = models.BooleanField(
+        verbose_name="A ocorrência aconteceu fora do horario de funcionamento da UE?",
+        default=False,
+        blank=True,
+        null=True,
+    )
     user_username = models.CharField(
         max_length=150,
         db_index=True,
