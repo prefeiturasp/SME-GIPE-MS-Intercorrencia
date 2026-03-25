@@ -31,6 +31,7 @@ from intercorrencias.services import unidades_service
 def intercorrencia_data():
     return {
         "data_ocorrencia": timezone.now(),
+        "fora_horario_funcionamento_ue": False,
         "unidade_codigo_eol": "123",
         "dre_codigo_eol": "456",
         "user_username": "diretor1",

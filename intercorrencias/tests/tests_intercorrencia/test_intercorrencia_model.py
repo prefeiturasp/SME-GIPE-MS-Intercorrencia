@@ -328,3 +328,28 @@ class TestIntercorrencia:
     def test_pode_ser_editado_por_gipe_com_status_finalizada(self, intercorrencia_factory):
         obj = intercorrencia_factory(status="finalizada")
         assert obj.pode_ser_editado_por_gipe is True
+    
+    def test_fora_horario_funcionamento_default(self, intercorrencia_factory):
+        obj = intercorrencia_factory()
+        assert obj.fora_horario_funcionamento_ue is False
+    
+    def test_fora_horario_funcionamento_true(self, intercorrencia_factory):
+        obj = intercorrencia_factory(fora_horario_funcionamento_ue=True)
+        obj.full_clean()
+        obj.save()
+
+        assert obj.fora_horario_funcionamento_ue is True
+    
+    def test_fora_horario_funcionamento_false(self, intercorrencia_factory):
+        obj = intercorrencia_factory(fora_horario_funcionamento_ue=False)
+        obj.full_clean()
+        obj.save()
+
+        assert obj.fora_horario_funcionamento_ue is False
+
+    def test_fora_horario_funcionamento_none(self, intercorrencia_factory):
+        obj = intercorrencia_factory(fora_horario_funcionamento_ue=None)
+        obj.full_clean()
+        obj.save()
+
+        assert obj.fora_horario_funcionamento_ue is None
