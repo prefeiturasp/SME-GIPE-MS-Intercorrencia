@@ -359,7 +359,7 @@ class TestIntercorrenciaDiretorViewSet:
             "unidade_codigo_eol": "200237",
             "dre_codigo_eol": "108500",
             "declarante": str(declarante.uuid),
-            "comunicacao_seguranca_publica": "sim_gcm",
+            "comunicacao_seguranca_publica": "sim",
             "protocolo_acionado": "ameaca",
         }
         url = f"/api-intercorrencias/v1/diretor/{intercorrencia.uuid}/secao-final/"
