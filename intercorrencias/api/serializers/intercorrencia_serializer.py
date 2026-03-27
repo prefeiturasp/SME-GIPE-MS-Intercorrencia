@@ -231,8 +231,24 @@ class IntercorrenciaSecaoFinalSerializer(IntercorrenciaSerializer):
         choices=Intercorrencia.SEGURANCA_PUBLICA_CHOICES, required=True
     )
     protocolo_acionado = serializers.ChoiceField(
-        choices=Intercorrencia.PROTOCOLO_CHOICES, required=True
+        choices=Intercorrencia.PROTOCOLO_CHOICES, required=False
     )
+
+    def validate(self, attrs):
+        intercorrencia = self.instance
+
+        sobre_furto = attrs.get(
+            "sobre_furto_roubo_invasao_depredacao",
+            getattr(intercorrencia, "sobre_furto_roubo_invasao_depredacao", None)
+        )
+
+        protocolo = attrs.get("protocolo_acionado")
+        if sobre_furto is False and not protocolo:
+            raise serializers.ValidationError({
+                "protocolo_acionado": "Este campo é obrigatório quando a intercorrência é do tipo patrimonial."
+            })
+
+        return attrs
 
     class Meta:
         model = Intercorrencia

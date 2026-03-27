@@ -104,7 +104,7 @@ class TestIntercorrencia:
 
     def test_choices_validos(self, intercorrencia_factory):
         obj = intercorrencia_factory(
-            comunicacao_seguranca_publica="sim_pm", protocolo_acionado="alerta"
+            comunicacao_seguranca_publica="sim", protocolo_acionado="alerta"
         )
         obj.full_clean()
 

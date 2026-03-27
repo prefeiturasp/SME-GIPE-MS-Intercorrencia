@@ -511,12 +511,46 @@ class TestIntercorrenciaSecaoFinalSerializer:
         assert "detail" in exc.value.detail
 
     @patch("intercorrencias.services.unidades_service.get_unidade")
-    def test_is_valid_error_already_has_detail_key(self, mock_get, intercorrencia_obj, declarante_obj, auth_request):
+    def test_protocolo_obrigatorio_quando_nao_furto(
+        self, mock_get, intercorrencia_obj, declarante_obj, auth_request
+    ):
         mock_get.return_value = {
             "codigo_eol": "123",
-            "dre_codigo_eol": "999"
+            "dre_codigo_eol": "456"
         }
-        
+
+        intercorrencia_obj.sobre_furto_roubo_invasao_depredacao = False
+        intercorrencia_obj.save()
+
+        data = {
+            "declarante": str(declarante_obj.uuid),
+            "comunicacao_seguranca_publica": Intercorrencia.SEGURANCA_PUBLICA_CHOICES[0][0],
+            "unidade_codigo_eol": "123",
+            "dre_codigo_eol": "456",
+        }
+
+        serializer = IntercorrenciaSecaoFinalSerializer(
+            instance=intercorrencia_obj,
+            data=data,
+            context={"request": auth_request}
+        )
+
+        assert not serializer.is_valid()
+        assert "detail" in serializer.errors
+        assert "protocolo_acionado" in serializer.errors["detail"]
+
+    @patch("intercorrencias.services.unidades_service.get_unidade")
+    def test_protocolo_presente_quando_nao_furto(
+        self, mock_get, intercorrencia_obj, declarante_obj, auth_request
+    ):
+        mock_get.return_value = {
+            "codigo_eol": "123",
+            "dre_codigo_eol": "456"
+        }
+
+        intercorrencia_obj.sobre_furto_roubo_invasao_depredacao = False
+        intercorrencia_obj.save()
+
         data = {
             "declarante": str(declarante_obj.uuid),
             "comunicacao_seguranca_publica": Intercorrencia.SEGURANCA_PUBLICA_CHOICES[0][0],
@@ -524,18 +558,41 @@ class TestIntercorrenciaSecaoFinalSerializer:
             "unidade_codigo_eol": "123",
             "dre_codigo_eol": "456",
         }
-        
+
         serializer = IntercorrenciaSecaoFinalSerializer(
             instance=intercorrencia_obj,
             data=data,
             context={"request": auth_request}
         )
-        
-        is_valid = serializer.is_valid(raise_exception=False)
-        
-        assert not is_valid
-        assert "detail" in serializer.errors
-        assert "DRE informada não corresponde" in str(serializer.errors["detail"])
+
+        assert serializer.is_valid(), serializer.errors
+    
+    @patch("intercorrencias.services.unidades_service.get_unidade")
+    def test_protocolo_opcional_quando_furto(
+        self, mock_get, intercorrencia_obj, declarante_obj, auth_request
+    ):
+        mock_get.return_value = {
+            "codigo_eol": "123",
+            "dre_codigo_eol": "456"
+        }
+
+        intercorrencia_obj.sobre_furto_roubo_invasao_depredacao = True
+        intercorrencia_obj.save()
+
+        data = {
+            "declarante": str(declarante_obj.uuid),
+            "comunicacao_seguranca_publica": Intercorrencia.SEGURANCA_PUBLICA_CHOICES[0][0],
+            "unidade_codigo_eol": "123",
+            "dre_codigo_eol": "456",
+        }
+
+        serializer = IntercorrenciaSecaoFinalSerializer(
+            instance=intercorrencia_obj,
+            data=data,
+            context={"request": auth_request}
+        )
+
+        assert serializer.is_valid(), serializer.errors
 
 
 @pytest.mark.django_db

@@ -35,10 +35,7 @@ class Intercorrencia(ModeloBase):
     ]
 
     SEGURANCA_PUBLICA_CHOICES = [
-        ("sim_gcm", "Sim, com GCM"),
-        ("sim_pm", "Sim, com a PM"),
-        ("sim_dc", "Sim, com a Defesa civil"),
-        ("sim_cbm", "Sim, com o Bombeiro"),
+        ("sim", "Sim"),
         ("nao", "Não"),
     ]
 
@@ -123,7 +120,7 @@ class Intercorrencia(ModeloBase):
     comunicacao_seguranca_publica = models.CharField(
         max_length=20,
         choices=SEGURANCA_PUBLICA_CHOICES,
-        verbose_name="Houve comunicação com a segurança pública?",
+        verbose_name="A segurança pública foi comunicada?",
         blank=True,
     )
     protocolo_acionado = models.CharField(
