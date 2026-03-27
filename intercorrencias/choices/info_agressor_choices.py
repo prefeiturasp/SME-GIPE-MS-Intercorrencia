@@ -6,21 +6,20 @@ logger = logging.getLogger(__name__)
 
 class MotivoOcorrencia(models.TextChoices):
     BULLYING = "bullying", "Bullying"
-    CYBERBULLYING = "cyberbullying", "Cyberbullying"
-    ATIVIDADES_ILICITAS = "atividades_ilicitas", "Envolvimento com atividades ilícitas"
-    BULLYING_HOMOFOBIA = "bullying_homofobia", "Bullying/Homofobia"
-    IDEOLOGIAS_EXTREMISTAS = "ideologias_extremistas", "Ideologias extremistas (facista, nazista, discurso de ódio)"
-    BULLYING_MISOGINIA = "bullying_misoginia", "Bullying/Misoginia"
-    BULLYING_MACHISMO = "bullying_machismo", "Bullying/Machismo"
-    BULLYING_RACISMO = "bullying_racismo", "Bullying/Racismo"
-    VIOLENCIA_GENERO = "violencia_genero", "Violência de Gênero"
     BULLYING_CAPACITISMO = "bullying_capacitismo", "Bullying/Capacitismo"
-    RELACOES_AFETIVAS = "relacoes_afetivas", "Relações afetivas"
-    USO_DROGAS = "uso_drogas", "Uso de drogas"
-    USO_ALCOOL = "uso_alcool", "Uso de álcool"
-    VINGANCA = "vinganca", "Vingança"
+    BULLYING_HOMOFOBIA = "bullying_homofobia", "Bullying/Homofobia"
+    BULLYING_MACHISMO = "bullying_machismo", "Bullying/Machismo"
+    BULLYING_MISOGINIA = "bullying_misoginia", "Bullying/Misoginia"
+    BULLYING_RACISMO = "bullying_racismo", "Bullying/Racismo"
     BULLYING_XENOFOBIA = "bullying_xenofobia", "Bullying/Xenofobia"
-    OUTROS = "outros", "Outros"
+    CYBERBULLYING = "cyberbullying", "Cyberbullying"
+    ENVOLVIMENTO_COM_ATIVIDADES_ILICITAS = "atividades_ilicitas", "Envolvimento com atividades ilícitas"
+    IDEOLOGIAS_EXTREMISTAS = "ideologias_extremistas", "Ideologias extremistas (discurso de ódio)"
+    RELACOES_AFETIVAS = "relacoes_afetivas", "Relações afetivas"
+    USO_ALCOOL = "uso_alcool", "Uso de álcool"
+    USO_DROGAS = "uso_drogas", "Uso de drogas"
+    VINGANCA = "vinganca", "Vingança"
+    VIOLENCIA_GENERO = "violencia_genero", "Violência de Gênero"
 
 
 class GrupoEtnicoRacial(models.TextChoices):

@@ -6,4 +6,4 @@ from intercorrencias.models.tipos_ocorrencia import TipoOcorrencia
 class TipoOcorrenciaSerializer(serializers.ModelSerializer):
     class Meta:
         model = TipoOcorrencia
-        fields = ("uuid", "nome")
+        fields = ("uuid", "nome", "descricao")
