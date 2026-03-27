@@ -37,17 +37,9 @@ class IntercorrenciaGipeSerializer(IntercorrenciaSerializer):
         queryset=Envolvido.objects.all(),
         required=True
     )
-    envolvido_outros = serializers.CharField(
-        required=False,
-        allow_blank=True
-    )
     motivacao_ocorrencia = serializers.ListField(
         child=serializers.ChoiceField(choices=MotivoOcorrencia.choices),
         allow_empty=False,
-    )
-    motivacao_ocorrencia_outros = serializers.CharField(
-        required=False,
-        allow_blank=True
     )
     tipos_ocorrencia = serializers.SlugRelatedField(
         many=True,
@@ -58,10 +50,6 @@ class IntercorrenciaGipeSerializer(IntercorrenciaSerializer):
     )
     tipos_ocorrencia_detalhes = TipoOcorrenciaSerializer(
         many=True, read_only=True, source="tipos_ocorrencia"
-    )
-    tipos_ocorrencia_outros = serializers.CharField(
-        required=False,
-        allow_blank=True
     )
     etapa_escolar = serializers.ChoiceField(
         choices=EtapaEscolar.choices,
@@ -97,11 +85,8 @@ class IntercorrenciaGipeSerializer(IntercorrenciaSerializer):
             "envolve_arma_ataque",
             "ameaca_realizada_qual_maneira",
             "envolvido",
-            "envolvido_outros",
             "motivacao_ocorrencia",
-            "motivacao_ocorrencia_outros",
             "tipos_ocorrencia",
-            "tipos_ocorrencia_outros",
             "tipos_ocorrencia_detalhes",
             "etapa_escolar",
             "info_sobre_interacoes_virtuais_pessoa_agressora",
