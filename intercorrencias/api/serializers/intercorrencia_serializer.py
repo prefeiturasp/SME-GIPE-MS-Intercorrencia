@@ -37,15 +37,14 @@ class IntercorrenciaSerializer(serializers.ModelSerializer):
     def _get_campos_agressor_vitima(self):
         """Retorna a lista de campos relacionados a informações de agressor/vítima"""
         return [
-            "redes_protecao_acompanhamento",
             "notificado_conselho_tutelar",
-            "acompanhado_naapa",
+            "ocorrencia_acompanhada_pelo",
         ]
 
     def _limpar_campos_agressor_vitima(self, instance, campos):
         """Limpa os campos de agressor/vítima na instância"""
         for campo in campos:
-            if campo in ["notificado_conselho_tutelar", "acompanhado_naapa"]:
+            if campo in ["notificado_conselho_tutelar", "ocorrencia_acompanhada_pelo"]:
                 setattr(instance, campo, None)
             else:
                 setattr(instance, campo, "")
@@ -374,11 +373,7 @@ class IntercorrenciaInfoAgressorSerializer(IntercorrenciaSerializer):
         allow_empty=False,  
     )
     motivacao_ocorrencia_display = serializers.SerializerMethodField(read_only=True)
-    redes_protecao_acompanhamento = serializers.CharField(
-        required=True, allow_blank=False
-    )
     notificado_conselho_tutelar = serializers.BooleanField(required=True)
-    acompanhado_naapa = serializers.BooleanField(required=True)
 
     class Meta:
         model = Intercorrencia
@@ -388,9 +383,8 @@ class IntercorrenciaInfoAgressorSerializer(IntercorrenciaSerializer):
             "dre_codigo_eol",
             "motivacao_ocorrencia",
             "motivacao_ocorrencia_display",
-            "redes_protecao_acompanhamento",
             "notificado_conselho_tutelar",
-            "acompanhado_naapa",
+            "ocorrencia_acompanhada_pelo",
             "pessoas_agressoras",
         )
         read_only_fields = ("uuid",)
@@ -646,9 +640,8 @@ class IntercorrenciaDiretorCompletoSerializer(serializers.ModelSerializer):
             "comunicacao_seguranca_publica",
             "protocolo_acionado",
             "motivacao_ocorrencia_display",
-            "redes_protecao_acompanhamento",
             "notificado_conselho_tutelar",
-            "acompanhado_naapa",
+            "ocorrencia_acompanhada_pelo",
             "protocolo_da_intercorrencia",
             "finalizado_diretor_em",
             "finalizado_diretor_por",
@@ -722,9 +715,8 @@ class IntercorrenciaUpdateDiretorCompletoSerializer(IntercorrenciaSerializer):
             "comunicacao_seguranca_publica",
             "protocolo_acionado",
             "motivacao_ocorrencia",
-            "redes_protecao_acompanhamento",
             "notificado_conselho_tutelar",
-            "acompanhado_naapa",
+            "ocorrencia_acompanhada_pelo",
             "pessoas_agressoras",
         )
         read_only_fields = ("uuid", "status_display")
