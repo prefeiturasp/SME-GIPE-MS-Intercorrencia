@@ -44,7 +44,7 @@ class IntercorrenciaSerializer(serializers.ModelSerializer):
     def _limpar_campos_agressor_vitima(self, instance, campos):
         """Limpa os campos de agressor/vítima na instância"""
         for campo in campos:
-            if campo in ["notificado_conselho_tutelar", "ocorrencia_acompanhada_pelo"]:
+            if campo in ["notificado_conselho_tutelar"]:
                 setattr(instance, campo, None)
             else:
                 setattr(instance, campo, "")
