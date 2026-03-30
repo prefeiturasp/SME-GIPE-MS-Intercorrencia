@@ -517,9 +517,8 @@ class TestIntercorrenciaDiretorViewSet:
             "etapa_escolar": "fundamental_alfabetizacao",
             "frequencia_escolar": "regularizada",
             "interacao_ambiente_escolar": "participa normalmente",
-            "redes_protecao_acompanhamento": "orientação escolar",
             "notificado_conselho_tutelar": True,
-            "acompanhado_naapa": False,
+            "ocorrencia_acompanhada_pelo": "naapa",
             "pessoas_agressoras": [
                 {
                     "nome": "Agressor 1",
@@ -622,9 +621,7 @@ class TestIntercorrenciaDiretorViewSet:
             "etapa_escolar": "fundamental_alfabetizacao",
             "frequencia_escolar": "regularizada",
             "interacao_ambiente_escolar": "participa normalmente",
-            "redes_protecao_acompanhamento": "orientação escolar",
             "notificado_conselho_tutelar": True,
-            "acompanhado_naapa": False,
             "unidade_codigo_eol": "200237",
             "dre_codigo_eol": "108500",
         }

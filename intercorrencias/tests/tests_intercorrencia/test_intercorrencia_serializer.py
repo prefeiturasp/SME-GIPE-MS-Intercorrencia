@@ -722,9 +722,8 @@ class TestIntercorrenciaInfoAgressorSerializer:
             "etapa_escolar": "ensino_medio",
             "frequencia_escolar": "regularizada",
             "interacao_ambiente_escolar": "Interage bem com os colegas.",
-            "redes_protecao_acompanhamento": "CREAS",
             "notificado_conselho_tutelar": True,
-            "acompanhado_naapa": False,
+            "ocorrencia_acompanhada_pelo": "naapa",
             "pessoas_agressoras": [
                 {
                     "nome": "Agressor 1",
@@ -1266,9 +1265,8 @@ class TestIntercorrenciaUpdateDiretorCompletoSerializer:
             sobre_furto_roubo_invasao_depredacao=False,
             tem_info_agressor_ou_vitima="sim",
             motivacao_ocorrencia=["bullying_racismo", "bullying"],
-            redes_protecao_acompanhamento="CREAS",
             notificado_conselho_tutelar=True,
-            acompanhado_naapa=False,
+            ocorrencia_acompanhada_pelo="naapa",
         )
 
     @patch("intercorrencias.services.unidades_service.get_unidade")
