@@ -50,6 +50,13 @@ class Intercorrencia(ModeloBase):
         ("nao", "Não"),
     ]
 
+    OCORRENCIA_ACOMPANHADA_CHOICES = [
+        ("naapa", "NAAPA"),
+        ("comissao_mediacao_conflitos", "Comissão de Mediação de Conflitos"),
+        ("supervisao_escolar", "Supervisão Escolar"),
+        ("cefai", "CEFAI"),
+    ]
+
     data_ocorrencia = models.DateTimeField(
         verbose_name="Data e Hora da Ocorrência",
         help_text="Data e hora em que a intercorrência ocorreu",
@@ -143,21 +150,17 @@ class Intercorrencia(ModeloBase):
         default=list,  # Lista vazia como padrão
         help_text="Selecione uma ou mais motivações"
     )
-    redes_protecao_acompanhamento = models.TextField(
-        verbose_name="Quais redes de proteção estão acompanhando o caso?",
-        blank=True,
-    )
     notificado_conselho_tutelar = models.BooleanField(
-        verbose_name="A ocorrência foi notificada ao Conselho Tutelar?",
+        verbose_name="A ocorrência foi notificada ao CT (Conselho Tutelar?)",
         default=False,
         blank=True,
         null=True,
     )
-    acompanhado_naapa = models.BooleanField(
-        verbose_name="A ocorrência foi acompanhada pelo NAAPA?",
-        default=False,
+    ocorrencia_acompanhada_pelo=models.CharField(
+        max_length=30,
+        choices=OCORRENCIA_ACOMPANHADA_CHOICES,
+        verbose_name="A ocorrência está sendo acompanhada por",
         blank=True,
-        null=True,
     )
     protocolo_da_intercorrencia=models.CharField(
         max_length=100,
