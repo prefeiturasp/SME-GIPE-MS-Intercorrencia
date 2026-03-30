@@ -5,6 +5,7 @@ from config.settings import (
     CODIGO_PERFIL_DIRETOR,
     CODIGO_PERFIL_ASSISTENTE_DIRECAO,
     CODIGO_PERFIL_DRE,
+    CODIGO_PERFIL_GIPE
 )
 
 from rest_framework import viewsets, status, mixins
@@ -14,6 +15,7 @@ from rest_framework.views import exception_handler
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
+from django.db.models import Q
 
 from intercorrencias.models.intercorrencia import Intercorrencia
 from intercorrencias.permissions import (
@@ -71,27 +73,32 @@ class IntercorrenciaDiretorViewSet(
         Retorna as intercorrências com base na unidade do usuário autenticado.
         """
         qs = super().get_queryset()
+        return self._filter_by_role(qs, self.request.user)
 
-        cargo_codigo = getattr(self.request.user, "cargo_codigo", None)
+    def _filter_by_role(self, qs, user):
+        cargo_codigo = getattr(user, "cargo_codigo", None)
+        username = getattr(user, "username", None)
+        unidade = getattr(user, "unidade_codigo_eol", None)
 
-        # Filtra apenas intercorrências da unidade do Diretor/ Assistente
         cargo_str = str(cargo_codigo)
-        if cargo_str in [
-            str(CODIGO_PERFIL_DIRETOR),
-            str(CODIGO_PERFIL_ASSISTENTE_DIRECAO),
-        ]:
-            user_name = getattr(self.request.user, "username", None)
-            if user_name:
-                return qs.filter(user_username=user_name)
+        if cargo_str in (str(CODIGO_PERFIL_DIRETOR), str(CODIGO_PERFIL_ASSISTENTE_DIRECAO)):
+            return qs.filter(user_username=username)
 
-        # Filtra apenas intercorrências da DRE do ponto focal
         if cargo_str == str(CODIGO_PERFIL_DRE):
-            user_unidade = getattr(self.request.user, "unidade_codigo_eol", None)
-            if user_unidade:
-                return qs.filter(dre_codigo_eol=user_unidade)
+            return qs.filter(
+                dre_codigo_eol=unidade
+            ).filter(
+                Q(status="em_preenchimento_diretor", user_username=username)
+                | ~Q(status="em_preenchimento_diretor")
+            )
 
-        # Se não, retorna todos para o perfil GIPE
-        return qs
+        if cargo_str == str(CODIGO_PERFIL_GIPE):
+            return qs.filter(
+                Q(user_username=username)
+                | Q(status__in=["enviado_para_gipe", "finalizada"])
+            )
+
+        return qs.none()
 
     def get_serializer_class(self):
         """
@@ -135,22 +142,19 @@ class IntercorrenciaDiretorViewSet(
 
         try:
             cargo_codigo = getattr(request.user, "cargo_codigo", None)
-
             cargo_str = str(cargo_codigo)
-            if cargo_str not in [
-                str(CODIGO_PERFIL_DIRETOR),
-                str(CODIGO_PERFIL_ASSISTENTE_DIRECAO),
-            ]:
-                raise PermissionDenied(
-                    "Apenas Diretor ou Assistente de Diretor podem criar intercorrências."
-                )
+            data = request.data
 
-            user_unidade = getattr(request.user, "unidade_codigo_eol", None)
-            if not user_unidade:
-                raise ValidationError({"detail": "Usuário sem unidade cadastrada."})
+            if cargo_str == str(CODIGO_PERFIL_GIPE) or cargo_str == str(CODIGO_PERFIL_DRE):
+                user_unidade = data["unidade_codigo_eol"]
+
+            else:
+                user_unidade = getattr(request.user, "unidade_codigo_eol", None)
+                if not user_unidade:
+                    raise ValidationError({"detail": "Usuário sem unidade cadastrada."})
 
             serializer = self.get_serializer(
-                data=request.data, partial=False, context={"request": request}
+                data=data, partial=False, context={"request": request}
             )
             serializer.is_valid(raise_exception=True)
 
@@ -173,6 +177,12 @@ class IntercorrenciaDiretorViewSet(
         try:
             instance = self.get_object()
             user_unidade = getattr(request.user, "unidade_codigo_eol", None)
+            cargo_codigo = getattr(request.user, "cargo_codigo", None)
+            cargo_str = str(cargo_codigo)
+            data = request.data
+
+            if cargo_str == str(CODIGO_PERFIL_GIPE) or cargo_str == str(CODIGO_PERFIL_DRE):
+                user_unidade = data["unidade_codigo_eol"]
 
             if not user_unidade:
                 raise PermissionDenied({"detail": "Usuário sem unidade vinculada."})

@@ -1,5 +1,11 @@
 from django.db import models
 from .modelo_base import ModeloBase
+from intercorrencias.choices.info_agressor_choices import (
+    GrupoEtnicoRacial,
+    Genero,
+    FrequenciaEscolar,
+    EtapaEscolar,
+)
 
 
 class PessoaAgressora(ModeloBase):
@@ -17,6 +23,34 @@ class PessoaAgressora(ModeloBase):
         verbose_name="Idade da pessoa agressora",
         blank=True,
         null=True
+    )
+    genero = models.CharField(
+        max_length=18,
+        choices=Genero.choices,
+        verbose_name="Qual gênero?",
+        blank=True,
+    )
+    grupo_etnico_racial = models.CharField(
+        max_length=8,
+        choices=GrupoEtnicoRacial.choices,
+        verbose_name="Qual grupo étnico-racial?",
+        blank=True,
+    )
+    etapa_escolar = models.CharField(
+        max_length=27,
+        choices=EtapaEscolar.choices,
+        verbose_name="Qual etapa escolar?",
+        blank=True,
+    )
+    frequencia_escolar = models.CharField(
+        max_length=23,
+        choices=FrequenciaEscolar.choices,
+        verbose_name="Qual a frequência escolar?",
+        blank=True,
+    )
+    interacao_ambiente_escolar = models.TextField(
+        verbose_name="Como é a interação da pessoa no ambiente escolar?",
+        blank=True,
     )
     
     class Meta:

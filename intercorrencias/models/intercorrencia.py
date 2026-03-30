@@ -4,16 +4,12 @@ from .modelo_base import ModeloBase
 
 from intercorrencias.choices.info_agressor_choices import (
     MotivoOcorrencia,
-    GrupoEtnicoRacial,
-    Genero,
-    FrequenciaEscolar,
-    EtapaEscolar,
+    EtapaEscolar
 )
 
 from intercorrencias.choices.gipe_choices import (
     EnvolveArmaOuAtaque,
     AmeacaFoiRealizadaDeQualManeira,
-    CicloAprendizagem
 )
 
 
@@ -94,6 +90,11 @@ class Intercorrencia(ModeloBase):
         help_text="Selecione um ou mais tipos de ocorrência",
         blank=True,
     )
+    tipos_ocorrencia_outros = models.TextField(
+        verbose_name="Outros tipos de ocorrência",
+        help_text="Descreva qual é o tipo de ocorrência.",
+        blank=True,
+    )
     descricao_ocorrencia = models.TextField(
         verbose_name="Descrição da Ocorrência",
         help_text="Descreva o fato ocorrido, incluindo informações sobre agressores, vítimas e prejuízos.",
@@ -125,13 +126,16 @@ class Intercorrencia(ModeloBase):
         verbose_name="Qual protocolo foi acionado?",
         blank=True,
     )
-    envolvido = models.ForeignKey(
+    envolvido = models.ManyToManyField(
         "intercorrencias.Envolvido",
         verbose_name="Quem são os envolvidos?",
-        blank=True,
-        null=True,
-        on_delete=models.PROTECT,
         help_text="Selecione quem são os envolvidos",
+        blank=True,
+    )
+    envolvido_outros = models.TextField(
+        verbose_name="Outros envolvidos",
+        help_text="Descreva quem são os envolvidos.",
+        blank=True,
     )
     tem_info_agressor_ou_vitima = models.CharField(
         max_length=3,
@@ -146,32 +150,9 @@ class Intercorrencia(ModeloBase):
         default=list,  # Lista vazia como padrão
         help_text="Selecione uma ou mais motivações"
     )
-    genero_pessoa_agressora = models.CharField(
-        max_length=18,
-        choices=Genero.choices,
-        verbose_name="Qual gênero?",
-        blank=True,
-    )
-    grupo_etnico_racial = models.CharField(
-        max_length=8,
-        choices=GrupoEtnicoRacial.choices,
-        verbose_name="Qual grupo étnico-racial?",
-        blank=True,
-    )
-    etapa_escolar = models.CharField(
-        max_length=27,
-        choices=EtapaEscolar.choices,
-        verbose_name="Qual etapa escolar?",
-        blank=True,
-    )
-    frequencia_escolar = models.CharField(
-        max_length=23,
-        choices=FrequenciaEscolar.choices,
-        verbose_name="Qual a frequência escolar?",
-        blank=True,
-    )
-    interacao_ambiente_escolar = models.TextField(
-        verbose_name="Como é a interação da pessoa agressora no ambiente escolar?",
+    motivacao_ocorrencia_outros = models.TextField(
+        verbose_name="Outra motivação da ocorrência",
+        help_text="Descreva qual foi a motivação.",
         blank=True,
     )
     redes_protecao_acompanhamento = models.TextField(
@@ -271,10 +252,10 @@ class Intercorrencia(ModeloBase):
         verbose_name="Ameaça foi realizada de qual maneira?",
         blank=True,
     )
-    qual_ciclo_aprendizagem = models.CharField(
-        max_length=17,
-        choices=CicloAprendizagem.choices,
-        verbose_name="Qual o ciclo de aprendizagem?",
+    etapa_escolar = models.CharField(
+        max_length=27,
+        choices=EtapaEscolar.choices,
+        verbose_name="Qual etapa escolar?",
         blank=True,
     )
     info_sobre_interacoes_virtuais_pessoa_agressora = models.TextField(

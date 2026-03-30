@@ -20,10 +20,6 @@ from intercorrencias.api.serializers.tipo_ocorrencia_serializer import (
 )
 from intercorrencias.choices.info_agressor_choices import (
     MotivoOcorrencia,
-    GrupoEtnicoRacial,
-    Genero,
-    FrequenciaEscolar,
-    EtapaEscolar,
 )
 
 import logging
@@ -41,11 +37,6 @@ class IntercorrenciaSerializer(serializers.ModelSerializer):
     def _get_campos_agressor_vitima(self):
         """Retorna a lista de campos relacionados a informações de agressor/vítima"""
         return [
-            "genero_pessoa_agressora",
-            "grupo_etnico_racial",
-            "etapa_escolar",
-            "frequencia_escolar",
-            "interacao_ambiente_escolar",
             "redes_protecao_acompanhamento",
             "notificado_conselho_tutelar",
             "acompanhado_naapa",
@@ -95,25 +86,23 @@ class IntercorrenciaSerializer(serializers.ModelSerializer):
             )
 
         return attrs
+    
+    def _get_first_error_message(self, error):
+        if isinstance(error, dict):
+            field, value = next(iter(error.items()))
+            return f"{field}: {self._get_first_error_message(value)}"
+        if isinstance(error, list):
+            return self._get_first_error_message(error[0])
+        return str(error)
 
     def is_valid(self, raise_exception=False):
 
         valid = super().is_valid(raise_exception=False)
         if not valid:
-            first_field, first_error_list = next(iter(self.errors.items()))
-            message = (
-                first_error_list[0]
-                if isinstance(first_error_list, list)
-                else str(first_error_list)
-            )
+            first_field, first_error = next(iter(self.errors.items()))
+            message = self._get_first_error_message(first_error)
 
-            if isinstance(self._errors, dict) and "detail" in self._errors:
-                error_dict = self._errors
-            else:
-                error_dict = {"detail": f"{first_field}: {message}"}
-
-            self._errors = error_dict
-
+            self._errors = {"detail": f"{first_field}: {message}"}
             if raise_exception:
                 raise serializers.ValidationError(self._errors)
 
@@ -153,6 +142,10 @@ class IntercorrenciaFurtoRouboSerializer(IntercorrenciaSerializer):
     tipos_ocorrencia_detalhes = TipoOcorrenciaSerializer(
         many=True, read_only=True, source="tipos_ocorrencia"
     )
+    tipos_ocorrencia_outros = serializers.CharField(
+        required=False,
+        allow_blank=True
+    )
     descricao_ocorrencia = serializers.CharField(required=True, allow_blank=False)
     smart_sampa_situacao = serializers.ChoiceField(
         required=True, allow_blank=False, choices=Intercorrencia.SMART_SAMPA_CHOICES
@@ -164,6 +157,7 @@ class IntercorrenciaFurtoRouboSerializer(IntercorrenciaSerializer):
             "uuid",
             "tipos_ocorrencia",
             "tipos_ocorrencia_detalhes",
+            "tipos_ocorrencia_outros",
             "descricao_ocorrencia",
             "smart_sampa_situacao",
             "status_display",
@@ -268,14 +262,27 @@ class IntercorrenciaNaoFurtoRouboSerializer(IntercorrenciaSerializer):
     tipos_ocorrencia_detalhes = TipoOcorrenciaSerializer(
         many=True, read_only=True, source="tipos_ocorrencia"
     )
+    tipos_ocorrencia_outros = serializers.CharField(
+        required=False,
+        allow_blank=True
+    )
     descricao_ocorrencia = serializers.CharField(required=True, allow_blank=False)
     envolvido = serializers.SlugRelatedField(
+        many=True,
         slug_field="uuid",
         queryset=Envolvido.objects.all(),
         required=True,
         write_only=True,
     )
-    envolvido_detalhes = EnvolvidoSerializer(read_only=True, source="envolvido")
+    envolvido_detalhes = EnvolvidoSerializer(
+        many=True,
+        read_only=True,
+        source="envolvido"
+    )
+    envolvido_outros = serializers.CharField(
+        required=False,
+        allow_blank=True
+    )
     tem_info_agressor_ou_vitima = serializers.ChoiceField(
         choices=Intercorrencia.INFORMACOES_AGRESSOR_VITIMA_CHOICES, required=True
     )
@@ -286,9 +293,11 @@ class IntercorrenciaNaoFurtoRouboSerializer(IntercorrenciaSerializer):
             "uuid",
             "tipos_ocorrencia",
             "tipos_ocorrencia_detalhes",
+            "tipos_ocorrencia_outros",
             "descricao_ocorrencia",
             "envolvido",
             "envolvido_detalhes",
+            "envolvido_outros",
             "tem_info_agressor_ou_vitima",
             "status_display",
             "status_extra",
@@ -299,6 +308,13 @@ class IntercorrenciaNaoFurtoRouboSerializer(IntercorrenciaSerializer):
         if not value:
             raise serializers.ValidationError(
                 "Este campo é obrigatório e não pode estar vazio."
+            )
+        return value
+
+    def validate_envolvido(self, value):
+        if not value:
+            raise serializers.ValidationError(
+                "Este campo é obrigatório, e não pode estar vazio."
             )
         return value
 
@@ -356,17 +372,10 @@ class IntercorrenciaInfoAgressorSerializer(IntercorrenciaSerializer):
         allow_empty=False,  
     )
     motivacao_ocorrencia_display = serializers.SerializerMethodField(read_only=True)
-    genero_pessoa_agressora = serializers.ChoiceField(
-        choices=Genero.choices, required=True
+    motivacao_ocorrencia_outros = serializers.CharField(
+        required=False,
+        allow_blank=True
     )
-    grupo_etnico_racial = serializers.ChoiceField(
-        choices=GrupoEtnicoRacial.choices, required=True
-    )
-    etapa_escolar = serializers.ChoiceField(choices=EtapaEscolar.choices, required=True)
-    frequencia_escolar = serializers.ChoiceField(
-        choices=FrequenciaEscolar.choices, required=True
-    )
-    interacao_ambiente_escolar = serializers.CharField(required=True, allow_blank=False)
     redes_protecao_acompanhamento = serializers.CharField(
         required=True, allow_blank=False
     )
@@ -381,11 +390,7 @@ class IntercorrenciaInfoAgressorSerializer(IntercorrenciaSerializer):
             "dre_codigo_eol",
             "motivacao_ocorrencia",
             "motivacao_ocorrencia_display",
-            "genero_pessoa_agressora",
-            "grupo_etnico_racial",
-            "etapa_escolar",
-            "frequencia_escolar",
-            "interacao_ambiente_escolar",
+            "motivacao_ocorrencia_outros",
             "redes_protecao_acompanhamento",
             "notificado_conselho_tutelar",
             "acompanhado_naapa",
@@ -577,7 +582,7 @@ class IntercorrenciaDiretorCompletoSerializer(serializers.ModelSerializer):
     declarante_detalhes = DeclaranteSerializer(source="declarante", read_only=True)
     nome_unidade = serializers.SerializerMethodField()
     nome_dre = serializers.SerializerMethodField()
-    envolvido = EnvolvidoSerializer(read_only=True)
+    envolvido = EnvolvidoSerializer(many=True)
     motivacao_ocorrencia_display = serializers.SerializerMethodField(read_only=True)
     pessoas_agressoras = PessoaAgressoraSerializer(many=True, read_only=True)
 
@@ -633,9 +638,11 @@ class IntercorrenciaDiretorCompletoSerializer(serializers.ModelSerializer):
             "nome_dre",
             "user_username",
             "envolvido",
+            "envolvido_outros",
             "tem_info_agressor_ou_vitima",
             "sobre_furto_roubo_invasao_depredacao",
             "tipos_ocorrencia",
+            "tipos_ocorrencia_outros",
             "descricao_ocorrencia",
             "smart_sampa_situacao",
             "smart_sampa_situacao_display",
@@ -643,11 +650,7 @@ class IntercorrenciaDiretorCompletoSerializer(serializers.ModelSerializer):
             "comunicacao_seguranca_publica",
             "protocolo_acionado",
             "motivacao_ocorrencia_display",
-            "genero_pessoa_agressora",
-            "grupo_etnico_racial",
-            "etapa_escolar",
-            "frequencia_escolar",
-            "interacao_ambiente_escolar",
+            "motivacao_ocorrencia_outros",
             "redes_protecao_acompanhamento",
             "notificado_conselho_tutelar",
             "acompanhado_naapa",
@@ -673,19 +676,25 @@ class IntercorrenciaUpdateDiretorCompletoSerializer(IntercorrenciaSerializer):
         required=False,
         write_only=True,
     )
-
+    tipos_ocorrencia_outros = serializers.CharField(
+        required=False,
+        allow_blank=True
+    )
     descricao_ocorrencia = serializers.CharField(required=False, allow_blank=True)
     smart_sampa_situacao = serializers.ChoiceField(
         required=False, allow_blank=True, choices=Intercorrencia.SMART_SAMPA_CHOICES
     )
     envolvido = serializers.SlugRelatedField(
+        many=True,
         slug_field="uuid",
         queryset=Envolvido.objects.all(),
         required=False,
-        allow_null=True,
         write_only=True,
     )
-
+    envolvido_outros = serializers.CharField(
+        required=False,
+        allow_blank=True
+    )
     tem_info_agressor_ou_vitima = serializers.ChoiceField(
         choices=Intercorrencia.INFORMACOES_AGRESSOR_VITIMA_CHOICES,
         required=False,
@@ -698,7 +707,6 @@ class IntercorrenciaUpdateDiretorCompletoSerializer(IntercorrenciaSerializer):
         allow_null=True,
         write_only=True,
     )
-
     comunicacao_seguranca_publica = serializers.ChoiceField(
         choices=Intercorrencia.SEGURANCA_PUBLICA_CHOICES,
         required=False,
@@ -707,7 +715,6 @@ class IntercorrenciaUpdateDiretorCompletoSerializer(IntercorrenciaSerializer):
     protocolo_acionado = serializers.ChoiceField(
         choices=Intercorrencia.PROTOCOLO_CHOICES, required=False, allow_blank=True
     )
-    
     pessoas_agressoras = PessoaAgressoraSerializer(many=True, required=False)
 
     class Meta:
@@ -719,19 +726,17 @@ class IntercorrenciaUpdateDiretorCompletoSerializer(IntercorrenciaSerializer):
             "dre_codigo_eol",
             "sobre_furto_roubo_invasao_depredacao",
             "tipos_ocorrencia",
+            "tipos_ocorrencia_outros",
             "descricao_ocorrencia",
             "smart_sampa_situacao",
             "envolvido",
+            "envolvido_outros",
             "tem_info_agressor_ou_vitima",
             "declarante",
             "comunicacao_seguranca_publica",
             "protocolo_acionado",
             "motivacao_ocorrencia",
-            "genero_pessoa_agressora",
-            "grupo_etnico_racial",
-            "etapa_escolar",
-            "frequencia_escolar",
-            "interacao_ambiente_escolar",
+            "motivacao_ocorrencia_outros",
             "redes_protecao_acompanhamento",
             "notificado_conselho_tutelar",
             "acompanhado_naapa",

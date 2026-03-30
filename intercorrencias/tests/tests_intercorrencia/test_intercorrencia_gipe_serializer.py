@@ -8,9 +8,8 @@ from intercorrencias.api.serializers.intercorrencia_gipe_serializer import Inter
 from intercorrencias.choices.gipe_choices import (
     EnvolveArmaOuAtaque,
     AmeacaFoiRealizadaDeQualManeira,
-    CicloAprendizagem,
 )
-from intercorrencias.choices.info_agressor_choices import MotivoOcorrencia
+from intercorrencias.choices.info_agressor_choices import MotivoOcorrencia, EtapaEscolar
 
 
 @pytest.fixture
@@ -56,10 +55,10 @@ class TestIntercorrenciaGipeSerializer:
         self.valid_data = {
             "envolve_arma_ataque": EnvolveArmaOuAtaque.SIM,
             "ameaca_realizada_qual_maneira": AmeacaFoiRealizadaDeQualManeira.VIRTUALMENTE,
-            "envolvido": str(self.envolvido.uuid),
+            "envolvido": [str(self.envolvido.uuid)],
             "motivacao_ocorrencia": [MotivoOcorrencia.BULLYING],
             "tipos_ocorrencia": [str(self.tipo1.uuid), str(self.tipo2.uuid)],
-            "qual_ciclo_aprendizagem": CicloAprendizagem.ALFABETIZACAO,
+            "etapa_escolar": EtapaEscolar.FUNDAMENTAL_ALFABETIZACAO,
             "info_sobre_interacoes_virtuais_pessoa_agressora": "Informações",
             "encaminhamentos_gipe": "Encaminhamento X",
             "unidade_codigo_eol": "123",
