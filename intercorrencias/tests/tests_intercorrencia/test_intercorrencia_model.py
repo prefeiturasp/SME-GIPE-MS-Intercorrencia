@@ -125,11 +125,9 @@ class TestIntercorrencia:
     def test_booleanos_funcionam(self, intercorrencia_factory):
         obj = intercorrencia_factory(
             notificado_conselho_tutelar=True,
-            acompanhado_naapa=False,
         )
         obj.full_clean()
         assert obj.notificado_conselho_tutelar is True
-        assert obj.acompanhado_naapa is False
 
     def test_campos_dre(self, intercorrencia_factory):
         obj = intercorrencia_factory(

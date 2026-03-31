@@ -23,11 +23,12 @@ class MotivoOcorrencia(models.TextChoices):
 
 
 class GrupoEtnicoRacial(models.TextChoices):
-    AMARELO = "amarelo", "Amarelo"
-    BRANCO = "branco", "Branco"
+    AMARELA = "amarela", "Amarela"
+    BRANCA = "branca", "Branca"
     INDIGENA = "indigena", "Indígena"
-    PRETO = "preto", "Preto"
-    PARDO = "pardo", "Pardo"
+    PRETA = "preta", "Preta"
+    PARDA = "parda", "Parda"
+    NAO_DECLARADA = "nao_declarada", "Não declarada"
 
 
 class Genero(models.TextChoices):
