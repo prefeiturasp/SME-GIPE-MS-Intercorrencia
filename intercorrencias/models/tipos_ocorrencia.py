@@ -16,6 +16,11 @@ class TipoOcorrencia(ModeloBase):
         choices=TipoChoices.choices,
         default=TipoChoices.TODOS
     )
+    descricao = models.TextField(
+        verbose_name="Descrição do tipo de ocorrência",
+        help_text="Descreva o tipo de ocorrência, para que ele possa ser identificado e diferenciado dos outros tipos.",
+        blank=True,
+    )
     ativo = models.BooleanField(default=True)
 
     class Meta:

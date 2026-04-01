@@ -35,10 +35,7 @@ class Intercorrencia(ModeloBase):
     ]
 
     SEGURANCA_PUBLICA_CHOICES = [
-        ("sim_gcm", "Sim, com GCM"),
-        ("sim_pm", "Sim, com a PM"),
-        ("sim_dc", "Sim, com a Defesa civil"),
-        ("sim_cbm", "Sim, com o Bombeiro"),
+        ("sim", "Sim"),
         ("nao", "Não"),
     ]
 
@@ -53,9 +50,22 @@ class Intercorrencia(ModeloBase):
         ("nao", "Não"),
     ]
 
+    OCORRENCIA_ACOMPANHADA_CHOICES = [
+        ("naapa", "NAAPA"),
+        ("comissao_mediacao_conflitos", "Comissão de Mediação de Conflitos"),
+        ("supervisao_escolar", "Supervisão Escolar"),
+        ("cefai", "CEFAI"),
+    ]
+
     data_ocorrencia = models.DateTimeField(
         verbose_name="Data e Hora da Ocorrência",
         help_text="Data e hora em que a intercorrência ocorreu",
+    )
+    fora_horario_funcionamento_ue = models.BooleanField(
+        verbose_name="A ocorrência aconteceu fora do horario de funcionamento da UE?",
+        default=False,
+        blank=True,
+        null=True,
     )
     user_username = models.CharField(
         max_length=150,
@@ -90,11 +100,6 @@ class Intercorrencia(ModeloBase):
         help_text="Selecione um ou mais tipos de ocorrência",
         blank=True,
     )
-    tipos_ocorrencia_outros = models.TextField(
-        verbose_name="Outros tipos de ocorrência",
-        help_text="Descreva qual é o tipo de ocorrência.",
-        blank=True,
-    )
     descricao_ocorrencia = models.TextField(
         verbose_name="Descrição da Ocorrência",
         help_text="Descreva o fato ocorrido, incluindo informações sobre agressores, vítimas e prejuízos.",
@@ -117,7 +122,7 @@ class Intercorrencia(ModeloBase):
     comunicacao_seguranca_publica = models.CharField(
         max_length=20,
         choices=SEGURANCA_PUBLICA_CHOICES,
-        verbose_name="Houve comunicação com a segurança pública?",
+        verbose_name="A segurança pública foi comunicada?",
         blank=True,
     )
     protocolo_acionado = models.CharField(
@@ -130,11 +135,6 @@ class Intercorrencia(ModeloBase):
         "intercorrencias.Envolvido",
         verbose_name="Quem são os envolvidos?",
         help_text="Selecione quem são os envolvidos",
-        blank=True,
-    )
-    envolvido_outros = models.TextField(
-        verbose_name="Outros envolvidos",
-        help_text="Descreva quem são os envolvidos.",
         blank=True,
     )
     tem_info_agressor_ou_vitima = models.CharField(
@@ -150,26 +150,17 @@ class Intercorrencia(ModeloBase):
         default=list,  # Lista vazia como padrão
         help_text="Selecione uma ou mais motivações"
     )
-    motivacao_ocorrencia_outros = models.TextField(
-        verbose_name="Outra motivação da ocorrência",
-        help_text="Descreva qual foi a motivação.",
-        blank=True,
-    )
-    redes_protecao_acompanhamento = models.TextField(
-        verbose_name="Quais redes de proteção estão acompanhando o caso?",
-        blank=True,
-    )
     notificado_conselho_tutelar = models.BooleanField(
-        verbose_name="A ocorrência foi notificada ao Conselho Tutelar?",
+        verbose_name="A ocorrência foi notificada ao CT (Conselho Tutelar?)",
         default=False,
         blank=True,
         null=True,
     )
-    acompanhado_naapa = models.BooleanField(
-        verbose_name="A ocorrência foi acompanhada pelo NAAPA?",
-        default=False,
+    ocorrencia_acompanhada_pelo=models.CharField(
+        max_length=30,
+        choices=OCORRENCIA_ACOMPANHADA_CHOICES,
+        verbose_name="A ocorrência está sendo acompanhada por",
         blank=True,
-        null=True,
     )
     protocolo_da_intercorrencia=models.CharField(
         max_length=100,

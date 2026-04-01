@@ -27,6 +27,7 @@ class IntercorrenciaFactory(factory.django.DjangoModelFactory):
 
     uuid = factory.Faker('uuid4')
     data_ocorrencia = factory.LazyFunction(timezone.now)
+    fora_horario_funcionamento_ue = False
     sobre_furto_roubo_invasao_depredacao = factory.Faker('boolean')
     unidade_codigo_eol = factory.Faker('bothify', text='??????')
     dre_codigo_eol = factory.Faker('bothify', text='??????')

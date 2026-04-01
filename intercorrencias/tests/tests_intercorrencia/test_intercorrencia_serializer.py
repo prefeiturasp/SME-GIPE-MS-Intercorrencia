@@ -31,6 +31,7 @@ from intercorrencias.services import unidades_service
 def intercorrencia_data():
     return {
         "data_ocorrencia": timezone.now(),
+        "fora_horario_funcionamento_ue": False,
         "unidade_codigo_eol": "123",
         "dre_codigo_eol": "456",
         "user_username": "diretor1",
@@ -510,12 +511,46 @@ class TestIntercorrenciaSecaoFinalSerializer:
         assert "detail" in exc.value.detail
 
     @patch("intercorrencias.services.unidades_service.get_unidade")
-    def test_is_valid_error_already_has_detail_key(self, mock_get, intercorrencia_obj, declarante_obj, auth_request):
+    def test_protocolo_obrigatorio_quando_nao_furto(
+        self, mock_get, intercorrencia_obj, declarante_obj, auth_request
+    ):
         mock_get.return_value = {
             "codigo_eol": "123",
-            "dre_codigo_eol": "999"
+            "dre_codigo_eol": "456"
         }
-        
+
+        intercorrencia_obj.sobre_furto_roubo_invasao_depredacao = False
+        intercorrencia_obj.save()
+
+        data = {
+            "declarante": str(declarante_obj.uuid),
+            "comunicacao_seguranca_publica": Intercorrencia.SEGURANCA_PUBLICA_CHOICES[0][0],
+            "unidade_codigo_eol": "123",
+            "dre_codigo_eol": "456",
+        }
+
+        serializer = IntercorrenciaSecaoFinalSerializer(
+            instance=intercorrencia_obj,
+            data=data,
+            context={"request": auth_request}
+        )
+
+        assert not serializer.is_valid()
+        assert "detail" in serializer.errors
+        assert "protocolo_acionado" in serializer.errors["detail"]
+
+    @patch("intercorrencias.services.unidades_service.get_unidade")
+    def test_protocolo_presente_quando_nao_furto(
+        self, mock_get, intercorrencia_obj, declarante_obj, auth_request
+    ):
+        mock_get.return_value = {
+            "codigo_eol": "123",
+            "dre_codigo_eol": "456"
+        }
+
+        intercorrencia_obj.sobre_furto_roubo_invasao_depredacao = False
+        intercorrencia_obj.save()
+
         data = {
             "declarante": str(declarante_obj.uuid),
             "comunicacao_seguranca_publica": Intercorrencia.SEGURANCA_PUBLICA_CHOICES[0][0],
@@ -523,18 +558,41 @@ class TestIntercorrenciaSecaoFinalSerializer:
             "unidade_codigo_eol": "123",
             "dre_codigo_eol": "456",
         }
-        
+
         serializer = IntercorrenciaSecaoFinalSerializer(
             instance=intercorrencia_obj,
             data=data,
             context={"request": auth_request}
         )
-        
-        is_valid = serializer.is_valid(raise_exception=False)
-        
-        assert not is_valid
-        assert "detail" in serializer.errors
-        assert "DRE informada não corresponde" in str(serializer.errors["detail"])
+
+        assert serializer.is_valid(), serializer.errors
+    
+    @patch("intercorrencias.services.unidades_service.get_unidade")
+    def test_protocolo_opcional_quando_furto(
+        self, mock_get, intercorrencia_obj, declarante_obj, auth_request
+    ):
+        mock_get.return_value = {
+            "codigo_eol": "123",
+            "dre_codigo_eol": "456"
+        }
+
+        intercorrencia_obj.sobre_furto_roubo_invasao_depredacao = True
+        intercorrencia_obj.save()
+
+        data = {
+            "declarante": str(declarante_obj.uuid),
+            "comunicacao_seguranca_publica": Intercorrencia.SEGURANCA_PUBLICA_CHOICES[0][0],
+            "unidade_codigo_eol": "123",
+            "dre_codigo_eol": "456",
+        }
+
+        serializer = IntercorrenciaSecaoFinalSerializer(
+            instance=intercorrencia_obj,
+            data=data,
+            context={"request": auth_request}
+        )
+
+        assert serializer.is_valid(), serializer.errors
 
 
 @pytest.mark.django_db
@@ -664,9 +722,8 @@ class TestIntercorrenciaInfoAgressorSerializer:
             "etapa_escolar": "ensino_medio",
             "frequencia_escolar": "regularizada",
             "interacao_ambiente_escolar": "Interage bem com os colegas.",
-            "redes_protecao_acompanhamento": "CREAS",
             "notificado_conselho_tutelar": True,
-            "acompanhado_naapa": False,
+            "ocorrencia_acompanhada_pelo": "naapa",
             "pessoas_agressoras": [
                 {
                     "nome": "Agressor 1",
@@ -1208,9 +1265,8 @@ class TestIntercorrenciaUpdateDiretorCompletoSerializer:
             sobre_furto_roubo_invasao_depredacao=False,
             tem_info_agressor_ou_vitima="sim",
             motivacao_ocorrencia=["bullying_racismo", "bullying"],
-            redes_protecao_acompanhamento="CREAS",
             notificado_conselho_tutelar=True,
-            acompanhado_naapa=False,
+            ocorrencia_acompanhada_pelo="naapa",
         )
 
     @patch("intercorrencias.services.unidades_service.get_unidade")
