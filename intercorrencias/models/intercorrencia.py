@@ -249,10 +249,6 @@ class Intercorrencia(ModeloBase):
         verbose_name="Qual etapa escolar?",
         blank=True,
     )
-    info_sobre_interacoes_virtuais_pessoa_agressora = models.TextField(
-        verbose_name="Existe informações sobre as interações virtuais da pessoa agressora?",
-        blank=True,
-    )
     encaminhamentos_gipe = models.TextField(
         verbose_name="São informações após a análise feita pelo GIPE.",
         blank=True,
