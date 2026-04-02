@@ -236,7 +236,6 @@ class TestIntercorrencia:
             envolve_arma_ataque="",
             ameaca_realizada_qual_maneira="",
             etapa_escolar="",
-            info_sobre_interacoes_virtuais_pessoa_agressora="",
             encaminhamentos_gipe="",
         )
         obj.full_clean()
@@ -244,7 +243,6 @@ class TestIntercorrencia:
         assert obj.envolve_arma_ataque == ""
         assert obj.ameaca_realizada_qual_maneira == ""
         assert obj.etapa_escolar == ""
-        assert obj.info_sobre_interacoes_virtuais_pessoa_agressora == ""
         assert obj.encaminhamentos_gipe == ""
 
     def test_campos_gipe_max_length(self):
@@ -268,9 +266,6 @@ class TestIntercorrencia:
 
     def test_campos_gipe_texto_opcionais(self, intercorrencia_factory):
         obj = intercorrencia_factory(
-            info_sobre_interacoes_virtuais_pessoa_agressora=(
-                "Agressor mantém contatos frequentes por redes sociais."
-            ),
             encaminhamentos_gipe=(
                 "Após análise, GIPE recomendou acompanhamento semanal."
             ),
@@ -279,7 +274,6 @@ class TestIntercorrencia:
         obj.full_clean()
         obj.save()
 
-        assert "redes sociais" in obj.info_sobre_interacoes_virtuais_pessoa_agressora
         assert "acompanhamento semanal" in obj.encaminhamentos_gipe
 
     def test_campos_encerramento_gipe(self, intercorrencia_factory):
