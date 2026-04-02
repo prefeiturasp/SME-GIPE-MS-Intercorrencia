@@ -1,7 +1,6 @@
 import logging
 from rest_framework import serializers
 
-from intercorrencias.models.envolvido import Envolvido
 from intercorrencias.models.intercorrencia import Intercorrencia
 from intercorrencias.models.tipos_ocorrencia import TipoOcorrencia
 from intercorrencias.api.serializers.intercorrencia_serializer import IntercorrenciaSerializer
@@ -9,10 +8,6 @@ from intercorrencias.api.serializers.tipo_ocorrencia_serializer import TipoOcorr
 from intercorrencias.choices.gipe_choices import (
     EnvolveArmaOuAtaque,
     AmeacaFoiRealizadaDeQualManeira,
-)
-from intercorrencias.choices.info_agressor_choices import (
-    MotivoOcorrencia,
-    EtapaEscolar
 )
 
 logger = logging.getLogger(__name__)
@@ -31,16 +26,6 @@ class IntercorrenciaGipeSerializer(IntercorrenciaSerializer):
         required=True,
         allow_blank=False
     )
-    envolvido = serializers.SlugRelatedField(
-        many=True,
-        slug_field="uuid",
-        queryset=Envolvido.objects.all(),
-        required=True
-    )
-    motivacao_ocorrencia = serializers.ListField(
-        child=serializers.ChoiceField(choices=MotivoOcorrencia.choices),
-        allow_empty=False,
-    )
     tipos_ocorrencia = serializers.SlugRelatedField(
         many=True,
         slug_field="uuid",
@@ -51,12 +36,6 @@ class IntercorrenciaGipeSerializer(IntercorrenciaSerializer):
     tipos_ocorrencia_detalhes = TipoOcorrenciaSerializer(
         many=True, read_only=True, source="tipos_ocorrencia"
     )
-    etapa_escolar = serializers.ChoiceField(
-        choices=EtapaEscolar.choices,
-        required=True,
-        allow_blank=False,
-    )
-    info_sobre_interacoes_virtuais_pessoa_agressora = serializers.CharField(required=False, allow_blank=True)
     encaminhamentos_gipe = serializers.CharField(required=True, allow_blank=False)
     
     status_display = serializers.CharField(source="get_status_display", read_only=True)
@@ -84,12 +63,8 @@ class IntercorrenciaGipeSerializer(IntercorrenciaSerializer):
             "status_extra",
             "envolve_arma_ataque",
             "ameaca_realizada_qual_maneira",
-            "envolvido",
-            "motivacao_ocorrencia",
             "tipos_ocorrencia",
             "tipos_ocorrencia_detalhes",
-            "etapa_escolar",
-            "info_sobre_interacoes_virtuais_pessoa_agressora",
             "encaminhamentos_gipe",
         )
 
