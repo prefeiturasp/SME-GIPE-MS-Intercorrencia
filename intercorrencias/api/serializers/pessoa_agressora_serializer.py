@@ -10,6 +10,7 @@ class PessoaAgressoraSerializer(serializers.ModelSerializer):
             "uuid",
             "nome",
             "idade",
+            "idade_em_meses",
             "genero",
             "grupo_etnico_racial",
             "etapa_escolar",
