@@ -177,50 +177,21 @@ class Intercorrencia(ModeloBase):
         blank=True
     )
     acionamento_seguranca_publica = models.BooleanField(
-        verbose_name="Houve acionamento da Secretaria de Segurança Pública ou Forças de Segurança?",
+        verbose_name="A ronda escolar foi acionada?",
         default=False,
         blank=True,
         null=True,
-    )
-    interlocucao_sts = models.BooleanField(
-        verbose_name="Houve interlocução com a Supervisão Técnica de Saúde (STS)?",
-        default=False,
-        blank=True,
-        null=True,
-    )
-    info_complementar_sts = models.TextField(
-        verbose_name="Informação complementar da atuação conjunta entre DRE e STS",
-        blank=True,
-    )
-    interlocucao_cpca = models.BooleanField(
-        verbose_name="Houve interlocução com a Coordenação de Políticas para Criança e Adolescente (CPCA)?",
-        default=False,
-        blank=True,
-        null=True,
-    )
-    info_complementar_cpca = models.TextField(
-        verbose_name="Informação complementar da atuação conjunta entre DRE e CPCA",
-        blank=True,
     )
     interlocucao_supervisao_escolar = models.BooleanField(
-        verbose_name="Houve interlocução com a Supervisão Escolar?",
+        verbose_name="A supervisão escolar foi comunicada?",
         default=False,
         blank=True,
         null=True, 
     )
-    info_complementar_supervisao_escolar = models.TextField(
-        verbose_name="Informação complementar da atuação conjunta entre DRE e Supervisão Escolar",
-        blank=True,
-    )
-    interlocucao_naapa = models.BooleanField(
-        verbose_name="Houve interlocução com o Núcleo de Apoio e Acompanhamento para a Aprendizagem (NAAPA)?",
-        default=False,
-        blank=True,
-        null=True,
-    )
-    info_complementar_naapa = models.TextField(
-        verbose_name="Informação complementar da atuação conjunta entre DRE e NAAPA",
-        blank=True,
+    nr_processo_sei = models.CharField(
+        max_length=25,
+        verbose_name="Numero do processo SEI",
+        blank=True
     )
     finalizado_dre_em = models.DateTimeField(
         verbose_name="Finalizado DRE em",
