@@ -156,11 +156,11 @@ class Intercorrencia(ModeloBase):
         blank=True,
         null=True,
     )
-    ocorrencia_acompanhada_pelo=models.CharField(
-        max_length=30,
-        choices=OCORRENCIA_ACOMPANHADA_CHOICES,
+    ocorrencia_acompanhada_pelo = ArrayField(
+        models.CharField(max_length=30, choices=OCORRENCIA_ACOMPANHADA_CHOICES),
         verbose_name="A ocorrência está sendo acompanhada por",
         blank=True,
+        default=list,
     )
     protocolo_da_intercorrencia=models.CharField(
         max_length=100,

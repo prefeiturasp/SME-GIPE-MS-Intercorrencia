@@ -24,6 +24,12 @@ class PessoaAgressora(ModeloBase):
         blank=True,
         null=True
     )
+    idade_em_meses = models.BooleanField(
+        verbose_name="A idade está em meses?",
+        default=False,
+        blank=True,
+        null=True,
+    )
     genero = models.CharField(
         max_length=18,
         choices=Genero.choices,
