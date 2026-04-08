@@ -46,6 +46,8 @@ class IntercorrenciaSerializer(serializers.ModelSerializer):
         for campo in campos:
             if campo in ["notificado_conselho_tutelar"]:
                 setattr(instance, campo, None)
+            if campo in ["ocorrencia_acompanhada_pelo"]:
+                setattr(instance, campo, [])
             else:
                 setattr(instance, campo, "")
                 

@@ -723,7 +723,7 @@ class TestIntercorrenciaInfoAgressorSerializer:
             "frequencia_escolar": "regularizada",
             "interacao_ambiente_escolar": "Interage bem com os colegas.",
             "notificado_conselho_tutelar": True,
-            "ocorrencia_acompanhada_pelo": "naapa",
+            "ocorrencia_acompanhada_pelo": ["naapa"],
             "pessoas_agressoras": [
                 {
                     "nome": "Agressor 1",
@@ -1266,7 +1266,7 @@ class TestIntercorrenciaUpdateDiretorCompletoSerializer:
             tem_info_agressor_ou_vitima="sim",
             motivacao_ocorrencia=["bullying_racismo", "bullying"],
             notificado_conselho_tutelar=True,
-            ocorrencia_acompanhada_pelo="naapa",
+            ocorrencia_acompanhada_pelo=["naapa"],
         )
 
     @patch("intercorrencias.services.unidades_service.get_unidade")

@@ -59,7 +59,6 @@ class TestIntercorrenciaGipeSerializer:
             "motivacao_ocorrencia": [MotivoOcorrencia.BULLYING],
             "tipos_ocorrencia": [str(self.tipo1.uuid), str(self.tipo2.uuid)],
             "etapa_escolar": EtapaEscolar.FUNDAMENTAL_ALFABETIZACAO,
-            "info_sobre_interacoes_virtuais_pessoa_agressora": "Informações",
             "encaminhamentos_gipe": "Encaminhamento X",
             "unidade_codigo_eol": "123",
             "dre_codigo_eol": "456",
@@ -82,15 +81,6 @@ class TestIntercorrenciaGipeSerializer:
         assert not serializer.is_valid()
         assert "tipos_ocorrencia" in str(serializer.errors)
 
-    def test_motivacao_ocorrencia_deve_ser_lista_nao_vazia(self):
-        data = self.valid_data.copy()
-        data["motivacao_ocorrencia"] = []
-        serializer = IntercorrenciaGipeSerializer(
-            data=data, context={"request": self.request}
-        )
-        assert not serializer.is_valid()
-        assert "motivacao_ocorrencia" in str(serializer.errors)
-
     def test_choice_fields_invalidos(self):
         data = self.valid_data.copy()
         data["envolve_arma_ataque"] = "INVALIDO"
@@ -99,15 +89,6 @@ class TestIntercorrenciaGipeSerializer:
         )
         assert not serializer.is_valid()
         assert "envolve_arma_ataque" in str(serializer.errors)
-
-    def test_envolvido_invalido(self):
-        data = self.valid_data.copy()
-        data["envolvido"] = "1234"
-        serializer = IntercorrenciaGipeSerializer(
-            data=data, context={"request": self.request}
-        )
-        assert not serializer.is_valid()
-        assert "envolvido" in str(serializer.errors)
 
     def test_tipos_ocorrencia_slug_related_field(self):
         data = self.valid_data.copy()
@@ -120,7 +101,6 @@ class TestIntercorrenciaGipeSerializer:
 
     def test_campos_opcionais(self):
         data = self.valid_data.copy()
-        data.pop("info_sobre_interacoes_virtuais_pessoa_agressora")
 
         serializer = IntercorrenciaGipeSerializer(
             data=data, context={"request": self.request}

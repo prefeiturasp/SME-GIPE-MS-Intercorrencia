@@ -518,7 +518,7 @@ class TestIntercorrenciaDiretorViewSet:
             "frequencia_escolar": "regularizada",
             "interacao_ambiente_escolar": "participa normalmente",
             "notificado_conselho_tutelar": True,
-            "ocorrencia_acompanhada_pelo": "naapa",
+            "ocorrencia_acompanhada_pelo": ["naapa"],
             "pessoas_agressoras": [
                 {
                     "nome": "Agressor 1",
