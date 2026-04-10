@@ -9,6 +9,7 @@ from intercorrencias.services.analytics_service import (
     IntercorrenciaRepository,
     AnalyticsTransformer,
     AnalyticsService,
+    AnalyticsPresenter,
 )
 
 
@@ -190,3 +191,87 @@ class TestAnalyticsPipeline:
         df = service.execute_pipeline({})
 
         assert df.is_empty()
+
+    def test_format_records(self):
+        df = pl.DataFrame([
+            {
+                "uuid": "123",
+                "ano": 2024,
+                "mes": 1,
+                "status": "ativo"
+            }
+        ])
+
+        presenter = AnalyticsPresenter()
+        result = presenter.format_records(df)
+
+        assert isinstance(result, list)
+        assert "123" in result[0]
+        assert result[0]["123"]["ano"] == 2024
+        assert "uuid" not in result[0]["123"]
+
+    def test_cards_totalizadores_com_dados(self):
+        df = pl.DataFrame([
+            {"mes": 1, "sobre_furto_roubo_invasao_depredacao": True},
+            {"mes": 1, "sobre_furto_roubo_invasao_depredacao": False},
+            {"mes": 2, "sobre_furto_roubo_invasao_depredacao": True},
+        ])
+
+        presenter = AnalyticsPresenter()
+        result = presenter.cards_totalizadores(df)
+
+        assert result[0]["total_intercorrencia"] == 3
+        assert result[1]["intercorrencias_patrimoniais"] == 2
+        assert result[2]["intercorrencias_interpessoais"] == 1
+        assert result[3]["media_mensal"] == 2  # ceil(3/2)
+
+    def test_cards_totalizadores_vazio(self):
+        df = pl.DataFrame([])
+
+        presenter = AnalyticsPresenter()
+        result = presenter.cards_totalizadores(df)
+
+        assert result == [
+            {"total_intercorrencia": 0},
+            {"intercorrencias_patrimoniais": 0},
+            {"intercorrencias_interpessoais": 0},
+            {"media_mensal": 0},
+        ]
+
+    def test_execute_pipeline_json_com_dados(self):
+
+        self._create_intercorrencia(datetime(2024, 1, 1))
+
+        service = AnalyticsService()
+
+        result = service.execute_pipeline_json({})
+
+        assert "data" in result
+        assert "cards" in result
+        assert isinstance(result["data"], list)
+        assert isinstance(result["cards"], list)
+
+    def test_execute_pipeline_json_sem_dados(self):
+        service = AnalyticsService()
+
+        result = service.execute_pipeline_json({})
+
+        assert result["data"] == []
+        assert result["cards"] == [
+            {"total_intercorrencia": 0},
+            {"intercorrencias_patrimoniais": 0},
+            {"intercorrencias_interpessoais": 0},
+            {"media_mensal": 0},
+        ]
+
+    def test_execute_pipeline_json_filtros_none(self):
+        
+        self._create_intercorrencia(datetime.now())
+
+        service = AnalyticsService()
+
+        result = service.execute_pipeline_json({})
+
+        assert "data" in result
+        assert "cards" in result
+        assert isinstance(result["data"], list)

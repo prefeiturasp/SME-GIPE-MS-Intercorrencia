@@ -1,6 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
+from intercorrencias.api.views.analytics_viewset import AnalyticsViewSet
 from intercorrencias.api.views.envolvidos_viewset import EnvolvidoViewSet
 from intercorrencias.api.views.declarante_viewset import DeclaranteViewSet
 from intercorrencias.api.views.tipo_ocorrencia import TipoOcorrenciaViewSet
@@ -19,5 +20,6 @@ router.register(r"envolvidos", EnvolvidoViewSet, basename="envolvido")
 router.register(r"verify-intercorrencia", VerifyIntercorrenciaViewSet, basename="verify-intercorrencia")
 router.register(r'dre', IntercorrenciaDreViewSet, basename='intercorrencia-dre')
 router.register(r'gipe', IntercorrenciaGipeViewSet, basename='intercorrencia-gipe')
+router.register(r'analytics', AnalyticsViewSet, basename='analytics')
 
 urlpatterns = [path("", include(router.urls))]
