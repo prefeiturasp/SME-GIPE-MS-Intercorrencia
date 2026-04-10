@@ -231,7 +231,12 @@ class TestAnalyticsPipeline:
         presenter = AnalyticsPresenter()
         result = presenter.cards_totalizadores(df)
 
-        assert result == []
+        assert result == [
+            {"total_intercorrencia": 0},
+            {"intercorrencias_patrimoniais": 0},
+            {"intercorrencias_interpessoais": 0},
+            {"media_mensal": 0},
+        ]
 
     def test_execute_pipeline_json_com_dados(self):
 
@@ -252,7 +257,12 @@ class TestAnalyticsPipeline:
         result = service.execute_pipeline_json({})
 
         assert result["data"] == []
-        assert result["cards"] == []
+        assert result["cards"] == [
+            {"total_intercorrencia": 0},
+            {"intercorrencias_patrimoniais": 0},
+            {"intercorrencias_interpessoais": 0},
+            {"media_mensal": 0},
+        ]
 
     def test_execute_pipeline_json_filtros_none(self):
         
