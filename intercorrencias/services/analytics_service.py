@@ -1,6 +1,8 @@
-import polars as pl
+import math
+from datetime import datetime
 from typing import Any
 
+import polars as pl
 from django.db.models import OuterRef, Exists
 
 from intercorrencias.models import Intercorrencia, PessoaAgressora
@@ -69,11 +71,42 @@ class AnalyticsTransformer:
         return df
 
 
+class AnalyticsPresenter:
+
+    def format_records(self, df: pl.DataFrame) -> list[dict]:
+        return [
+            {str(row["uuid"]): {k: v for k, v in row.items() if k != "uuid"}}
+            for row in df.iter_rows(named=True)
+        ]
+
+    def cards_totalizadores(self, df: pl.DataFrame) -> list[dict]:
+
+        if df.is_empty():
+            return []
+        
+        resultado = df.select([
+            pl.count().alias("total"),
+            (pl.col("sobre_furto_roubo_invasao_depredacao") == True).sum().alias("patrimoniais"),
+            (pl.col("sobre_furto_roubo_invasao_depredacao") == False).sum().alias("interpessoais"),
+        ]).to_dicts()[0]
+
+        total = resultado["total"]
+        meses = df.select(pl.col("mes").unique()).shape[0] or 1
+
+        return [
+            {"total_intercorrencia": total},
+            {"intercorrencias_patrimoniais": resultado["patrimoniais"]},
+            {"intercorrencias_interpessoais": resultado["interpessoais"]},
+            {"media_mensal": math.ceil(total / meses) if total else 0},
+        ]
+
+
 class AnalyticsService:
 
     def __init__(self):
         self.repository = IntercorrenciaRepository()
         self.transformer = AnalyticsTransformer()
+        self.presenter = AnalyticsPresenter()
 
     def execute_pipeline(
         self,
@@ -115,3 +148,16 @@ class AnalyticsService:
         df = df_lazy.collect()
 
         return df
+
+    def execute_pipeline_json(self, filtros: dict[str, Any]) -> dict[str, Any]:
+
+        if not filtros:
+            filtros = {
+                "ano": [str(datetime.now().year)],
+            }
+
+        df = self.execute_pipeline(filtros)
+        return {
+            "data": self.presenter.format_records(df),
+            "cards": self.presenter.cards_totalizadores(df),
+        }
