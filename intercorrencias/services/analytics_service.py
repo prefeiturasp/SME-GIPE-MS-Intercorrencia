@@ -82,7 +82,12 @@ class AnalyticsPresenter:
     def cards_totalizadores(self, df: pl.DataFrame) -> list[dict]:
 
         if df.is_empty():
-            return []
+            return [
+                {"total_intercorrencia": 0},
+                {"intercorrencias_patrimoniais": 0},
+                {"intercorrencias_interpessoais": 0},
+                {"media_mensal": 0},
+            ]
         
         resultado = df.select([
             pl.count().alias("total"),
