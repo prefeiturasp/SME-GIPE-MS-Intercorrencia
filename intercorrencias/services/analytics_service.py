@@ -73,10 +73,29 @@ class AnalyticsTransformer:
 
 class AnalyticsPresenter:
 
-    def format_records(self, df: pl.DataFrame) -> list[dict]:
+    def intercorrencias_por_dre(self, df: pl.DataFrame) -> list[dict]:
+
+        if df.is_empty():
+            return []
+        
+        resultado = (
+            df.group_by("dre_codigo_eol")
+            .agg([
+                pl.count().alias("total"),
+                (pl.col("sobre_furto_roubo_invasao_depredacao") == True).sum().alias("patrimonial"),
+                (pl.col("sobre_furto_roubo_invasao_depredacao") == False).sum().alias("interpessoal"),
+            ])
+            .sort("total", descending=True)
+        )
+
         return [
-            {str(row["uuid"]): {k: v for k, v in row.items() if k != "uuid"}}
-            for row in df.iter_rows(named=True)
+            {
+                "codigo_eol": row["dre_codigo_eol"],
+                "total": row["total"],
+                "patrimonial": row["patrimonial"],
+                "interpessoal": row["interpessoal"],
+            }
+            for row in resultado.iter_rows(named=True)
         ]
 
     def cards_totalizadores(self, df: pl.DataFrame) -> list[dict]:
@@ -163,6 +182,6 @@ class AnalyticsService:
 
         df = self.execute_pipeline(filtros)
         return {
-            "data": self.presenter.format_records(df),
+            "intercorrencias_dre": self.presenter.intercorrencias_por_dre(df),
             "cards": self.presenter.cards_totalizadores(df),
         }
