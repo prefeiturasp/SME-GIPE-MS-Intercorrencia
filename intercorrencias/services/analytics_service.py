@@ -100,7 +100,7 @@ class AnalyticsPresenter:
     
     def intercorrencias_por_status(self, df: pl.DataFrame) -> list[dict]:
 
-        STATUS_MAP = dict(Intercorrencia.STATUS_CHOICES)
+        STATUS_MAP = dict(Intercorrencia.STATUS_EXTRA_LABELS)
 
         base = {
             status: {"total": 0, "patrimonial": 0, "interpessoal": 0}
