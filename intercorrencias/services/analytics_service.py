@@ -103,22 +103,33 @@ class AnalyticsPresenter:
         STATUS_MAP = dict(Intercorrencia.STATUS_EXTRA_LABELS)
 
         base = {
-            status: {"total": 0, "patrimonial": 0, "interpessoal": 0}
-            for status in STATUS_MAP.keys()
+            label: {"total": 0, "patrimonial": 0, "interpessoal": 0}
+            for label in set(STATUS_MAP.values())
         }
 
         if not df.is_empty():
+
+            df = df.with_columns(
+                pl.col("status")
+                .replace(STATUS_MAP)
+                .alias("status_normalizado")
+            )
+
             resultado = (
-                df.group_by("status")
+                df.group_by("status_normalizado")
                 .agg([
                     pl.len().alias("total"),
-                    (pl.col("sobre_furto_roubo_invasao_depredacao") == True).sum().alias("patrimonial"),
-                    (pl.col("sobre_furto_roubo_invasao_depredacao") == False).sum().alias("interpessoal"),
+                    (pl.col("sobre_furto_roubo_invasao_depredacao") == True)
+                    .sum()
+                    .alias("patrimonial"),
+                    (pl.col("sobre_furto_roubo_invasao_depredacao") == False)
+                    .sum()
+                    .alias("interpessoal"),
                 ])
             )
 
             for row in resultado.iter_rows(named=True):
-                base[row["status"]] = {
+                base[row["status_normalizado"]] = {
                     "total": row["total"],
                     "patrimonial": row["patrimonial"],
                     "interpessoal": row["interpessoal"],
@@ -126,7 +137,7 @@ class AnalyticsPresenter:
 
         return [
             {
-                "status": STATUS_MAP.get(status, status),
+                "status": status,
                 **valores
             }
             for status, valores in base.items()
