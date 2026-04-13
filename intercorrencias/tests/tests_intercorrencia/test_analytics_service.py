@@ -192,24 +192,6 @@ class TestAnalyticsPipeline:
 
         assert df.is_empty()
 
-    def test_format_records(self):
-        df = pl.DataFrame([
-            {
-                "uuid": "123",
-                "ano": 2024,
-                "mes": 1,
-                "status": "ativo"
-            }
-        ])
-
-        presenter = AnalyticsPresenter()
-        result = presenter.format_records(df)
-
-        assert isinstance(result, list)
-        assert "123" in result[0]
-        assert result[0]["123"]["ano"] == 2024
-        assert "uuid" not in result[0]["123"]
-
     def test_cards_totalizadores_com_dados(self):
         df = pl.DataFrame([
             {"mes": 1, "sobre_furto_roubo_invasao_depredacao": True},
@@ -246,9 +228,7 @@ class TestAnalyticsPipeline:
 
         result = service.execute_pipeline_json({})
 
-        assert "data" in result
         assert "cards" in result
-        assert isinstance(result["data"], list)
         assert isinstance(result["cards"], list)
 
     def test_execute_pipeline_json_sem_dados(self):
@@ -256,7 +236,6 @@ class TestAnalyticsPipeline:
 
         result = service.execute_pipeline_json({})
 
-        assert result["data"] == []
         assert result["cards"] == [
             {"total_intercorrencia": 0},
             {"intercorrencias_patrimoniais": 0},
@@ -269,9 +248,83 @@ class TestAnalyticsPipeline:
         self._create_intercorrencia(datetime.now())
 
         service = AnalyticsService()
-
         result = service.execute_pipeline_json({})
 
-        assert "data" in result
         assert "cards" in result
-        assert isinstance(result["data"], list)
+    
+    def test_intercorrencias_por_dre_vazio(self):
+        df = pl.DataFrame([])
+
+        presenter = AnalyticsPresenter()
+        result = presenter.intercorrencias_por_dre(df)
+
+        assert result == []
+    
+    def test_intercorrencias_por_dre_simples(self):
+        df = pl.DataFrame([
+            {
+                "dre_codigo_eol": 100,
+                "sobre_furto_roubo_invasao_depredacao": True
+            },
+            {
+                "dre_codigo_eol": 100,
+                "sobre_furto_roubo_invasao_depredacao": False
+            },
+        ])
+
+        presenter = AnalyticsPresenter()
+        result = presenter.intercorrencias_por_dre(df)
+
+        assert result == [
+            {
+                "codigo_eol": 100,
+                "total": 2,
+                "patrimonial": 1,
+                "interpessoal": 1,
+            }
+        ]
+    
+    def test_intercorrencias_por_dre_multiplos(self):
+        df = pl.DataFrame([
+            {"dre_codigo_eol": 100, "sobre_furto_roubo_invasao_depredacao": True},
+            {"dre_codigo_eol": 100, "sobre_furto_roubo_invasao_depredacao": False},
+            {"dre_codigo_eol": 200, "sobre_furto_roubo_invasao_depredacao": True},
+        ])
+
+        presenter = AnalyticsPresenter()
+        result = presenter.intercorrencias_por_dre(df)
+
+        assert len(result) == 2
+
+        assert result[0]["codigo_eol"] == 100
+        assert result[0]["total"] == 2
+
+        assert result[1]["codigo_eol"] == 200
+        assert result[1]["total"] == 1
+    
+    def test_intercorrencias_por_dre_contadores(self):
+        df = pl.DataFrame([
+            {"dre_codigo_eol": 300, "sobre_furto_roubo_invasao_depredacao": True},
+            {"dre_codigo_eol": 300, "sobre_furto_roubo_invasao_depredacao": True},
+            {"dre_codigo_eol": 300, "sobre_furto_roubo_invasao_depredacao": False},
+        ])
+
+        presenter = AnalyticsPresenter()
+        result = presenter.intercorrencias_por_dre(df)
+
+        assert result[0]["total"] == 3
+        assert result[0]["patrimonial"] == 2
+        assert result[0]["interpessoal"] == 1
+    
+    def test_intercorrencias_por_dre_ordenacao(self):
+        df = pl.DataFrame([
+            {"dre_codigo_eol": 1, "sobre_furto_roubo_invasao_depredacao": True},
+            {"dre_codigo_eol": 2, "sobre_furto_roubo_invasao_depredacao": True},
+            {"dre_codigo_eol": 2, "sobre_furto_roubo_invasao_depredacao": False},
+        ])
+
+        presenter = AnalyticsPresenter()
+        result = presenter.intercorrencias_por_dre(df)
+
+        assert result[0]["codigo_eol"] == 2
+        assert result[1]["codigo_eol"] == 1
