@@ -81,7 +81,7 @@ class AnalyticsPresenter:
         resultado = (
             df.group_by("dre_codigo_eol")
             .agg([
-                pl.count().alias("total"),
+                pl.len().alias("total"),
                 (pl.col("sobre_furto_roubo_invasao_depredacao") == True).sum().alias("patrimonial"),
                 (pl.col("sobre_furto_roubo_invasao_depredacao") == False).sum().alias("interpessoal"),
             ])
@@ -97,6 +97,51 @@ class AnalyticsPresenter:
             }
             for row in resultado.iter_rows(named=True)
         ]
+    
+    def intercorrencias_por_status(self, df: pl.DataFrame) -> list[dict]:
+
+        STATUS_MAP = dict(Intercorrencia.STATUS_EXTRA_LABELS)
+
+        base = {
+            label: {"total": 0, "patrimonial": 0, "interpessoal": 0}
+            for label in set(STATUS_MAP.values())
+        }
+
+        if not df.is_empty():
+
+            df = df.with_columns(
+                pl.col("status")
+                .replace(STATUS_MAP)
+                .alias("status_normalizado")
+            )
+
+            resultado = (
+                df.group_by("status_normalizado")
+                .agg([
+                    pl.len().alias("total"),
+                    (pl.col("sobre_furto_roubo_invasao_depredacao") == True)
+                    .sum()
+                    .alias("patrimonial"),
+                    (pl.col("sobre_furto_roubo_invasao_depredacao") == False)
+                    .sum()
+                    .alias("interpessoal"),
+                ])
+            )
+
+            for row in resultado.iter_rows(named=True):
+                base[row["status_normalizado"]] = {
+                    "total": row["total"],
+                    "patrimonial": row["patrimonial"],
+                    "interpessoal": row["interpessoal"],
+                }
+
+        return [
+            {
+                "status": status,
+                **valores
+            }
+            for status, valores in base.items()
+        ]
 
     def cards_totalizadores(self, df: pl.DataFrame) -> list[dict]:
 
@@ -109,7 +154,7 @@ class AnalyticsPresenter:
             ]
         
         resultado = df.select([
-            pl.count().alias("total"),
+            pl.len().alias("total"),
             (pl.col("sobre_furto_roubo_invasao_depredacao") == True).sum().alias("patrimoniais"),
             (pl.col("sobre_furto_roubo_invasao_depredacao") == False).sum().alias("interpessoais"),
         ]).to_dicts()[0]
@@ -183,5 +228,6 @@ class AnalyticsService:
         df = self.execute_pipeline(filtros)
         return {
             "intercorrencias_dre": self.presenter.intercorrencias_por_dre(df),
+            "intercorrencias_status": self.presenter.intercorrencias_por_status(df),
             "cards": self.presenter.cards_totalizadores(df),
         }

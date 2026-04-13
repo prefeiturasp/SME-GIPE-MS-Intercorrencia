@@ -328,3 +328,80 @@ class TestAnalyticsPipeline:
 
         assert result[0]["codigo_eol"] == 2
         assert result[1]["codigo_eol"] == 1
+    
+    def test_intercorrencias_por_status_vazio(self):
+        df = pl.DataFrame([])
+
+        presenter = AnalyticsPresenter()
+        result = presenter.intercorrencias_por_status(df)
+
+        assert len(result) > 0
+
+        for item in result:
+            assert item["total"] == 0
+            assert item["patrimonial"] == 0
+            assert item["interpessoal"] == 0
+
+    def test_intercorrencias_por_status_simples(self):
+        df = pl.DataFrame([
+            {"status": "incompleta", "sobre_furto_roubo_invasao_depredacao": True},
+            {"status": "incompleta", "sobre_furto_roubo_invasao_depredacao": False},
+        ])
+
+        presenter = AnalyticsPresenter()
+        result = presenter.intercorrencias_por_status(df)
+
+        item = next(item for item in result if item["total"] > 0)
+
+        assert item["total"] == 2
+        assert item["patrimonial"] == 1
+        assert item["interpessoal"] == 1
+
+    def test_intercorrencias_por_status_multiplos(self):
+        df = pl.DataFrame([
+            {"status": "incompleta", "sobre_furto_roubo_invasao_depredacao": True},
+            {"status": "finalizado", "sobre_furto_roubo_invasao_depredacao": False},
+            {"status": "incompleta", "sobre_furto_roubo_invasao_depredacao": True},
+        ])
+
+        presenter = AnalyticsPresenter()
+        result = presenter.intercorrencias_por_status(df)
+
+        itens_com_dados = [item for item in result if item["total"] > 0]
+
+        assert len(itens_com_dados) == 2
+
+        totais = sorted([item["total"] for item in itens_com_dados], reverse=True)
+
+        assert totais == [2, 1]
+
+    def test_intercorrencias_por_status_status_nao_mapeado(self):
+        df = pl.DataFrame([
+            {"status": "desconhecido", "sobre_furto_roubo_invasao_depredacao": True},
+        ])
+
+        presenter = AnalyticsPresenter()
+        result = presenter.intercorrencias_por_status(df)
+
+        item = next(item for item in result if item["total"] > 0)
+
+        assert item["total"] == 1
+        assert item["patrimonial"] == 1
+        assert item["interpessoal"] == 0
+
+    def test_intercorrencias_por_status_parcial(self):
+        df = pl.DataFrame([
+            {"status": "incompleta", "sobre_furto_roubo_invasao_depredacao": True},
+        ])
+
+        presenter = AnalyticsPresenter()
+        result = presenter.intercorrencias_por_status(df)
+
+        itens_com_dados = [item for item in result if item["total"] > 0]
+        itens_zerados = [item for item in result if item["total"] == 0]
+
+        assert len(itens_com_dados) == 1
+        assert itens_com_dados[0]["total"] == 1
+
+        for item in itens_zerados:
+            assert item["total"] == 0
