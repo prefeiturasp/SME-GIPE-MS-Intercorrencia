@@ -405,3 +405,89 @@ class TestAnalyticsPipeline:
 
         for item in itens_zerados:
             assert item["total"] == 0
+        
+    def test_evolucao_mensal_vazio(self):
+        df = pl.DataFrame([])
+
+        presenter = AnalyticsPresenter()
+        result = presenter.evolucao_mensal(df)
+
+        assert len(result) == 12
+
+        for item in result:
+            assert item["total"] == 0
+            assert item["patrimonial"] == 0
+            assert item["interpessoal"] == 0
+    
+    def test_evolucao_mensal_simples(self):
+        df = pl.DataFrame([
+            {"mes": 1, "sobre_furto_roubo_invasao_depredacao": True},
+            {"mes": 1, "sobre_furto_roubo_invasao_depredacao": False},
+        ])
+
+        presenter = AnalyticsPresenter()
+        result = presenter.evolucao_mensal(df)
+
+        janeiro = next(item for item in result if item["mes"] == 1)
+
+        assert janeiro["total"] == 2
+        assert janeiro["patrimonial"] == 1
+        assert janeiro["interpessoal"] == 1
+    
+    def test_evolucao_mensal_multiplos(self):
+        df = pl.DataFrame([
+            {"mes": 1, "sobre_furto_roubo_invasao_depredacao": True},
+            {"mes": 2, "sobre_furto_roubo_invasao_depredacao": True},
+            {"mes": 2, "sobre_furto_roubo_invasao_depredacao": False},
+        ])
+
+        presenter = AnalyticsPresenter()
+        result = presenter.evolucao_mensal(df)
+
+        jan = next(item for item in result if item["mes"] == 1)
+        fev = next(item for item in result if item["mes"] == 2)
+
+        assert jan["total"] == 1
+        assert fev["total"] == 2
+    
+    def test_evolucao_mensal_parcial(self):
+        df = pl.DataFrame([
+            {"mes": 3, "sobre_furto_roubo_invasao_depredacao": True},
+        ])
+
+        presenter = AnalyticsPresenter()
+        result = presenter.evolucao_mensal(df)
+
+        marco = next(item for item in result if item["mes"] == 3)
+        janeiro = next(item for item in result if item["mes"] == 1)
+
+        assert marco["total"] == 1
+        assert janeiro["total"] == 0
+    
+    def test_evolucao_mensal_contadores(self):
+        df = pl.DataFrame([
+            {"mes": 5, "sobre_furto_roubo_invasao_depredacao": True},
+            {"mes": 5, "sobre_furto_roubo_invasao_depredacao": True},
+            {"mes": 5, "sobre_furto_roubo_invasao_depredacao": False},
+        ])
+
+        presenter = AnalyticsPresenter()
+        result = presenter.evolucao_mensal(df)
+
+        maio = next(item for item in result if item["mes"] == 5)
+
+        assert maio["total"] == 3
+        assert maio["patrimonial"] == 2
+        assert maio["interpessoal"] == 1
+    
+    def test_evolucao_mensal_sempre_12_meses(self):
+        df = pl.DataFrame([
+            {"mes": 1, "sobre_furto_roubo_invasao_depredacao": True},
+        ])
+
+        presenter = AnalyticsPresenter()
+        result = presenter.evolucao_mensal(df)
+
+        meses = [item["mes"] for item in result]
+
+        assert meses == list(range(1, 13))
