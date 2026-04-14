@@ -143,6 +143,37 @@ class AnalyticsPresenter:
             for status, valores in base.items()
         ]
 
+    def evolucao_mensal(self, df: pl.DataFrame) -> list[dict]:
+
+        meses = list(range(1, 13))
+
+        base = {
+            mes: {"total": 0, "patrimonial": 0, "interpessoal": 0}
+            for mes in meses
+        }
+
+        if not df.is_empty():
+            resultado = (
+                df.group_by("mes")
+                .agg([
+                    pl.len().alias("total"),
+                    (pl.col("sobre_furto_roubo_invasao_depredacao") == True).sum().alias("patrimonial"),
+                    (pl.col("sobre_furto_roubo_invasao_depredacao") == False).sum().alias("interpessoal"),
+                ])
+            )
+
+            for row in resultado.iter_rows(named=True):
+                base[row["mes"]] = {
+                    "total": row["total"],
+                    "patrimonial": row["patrimonial"],
+                    "interpessoal": row["interpessoal"],
+                }
+
+        return [
+            {"mes": mes, **valores}
+            for mes, valores in base.items()
+        ]
+
     def cards_totalizadores(self, df: pl.DataFrame) -> list[dict]:
 
         if df.is_empty():
@@ -229,5 +260,6 @@ class AnalyticsService:
         return {
             "intercorrencias_dre": self.presenter.intercorrencias_por_dre(df),
             "intercorrencias_status": self.presenter.intercorrencias_por_status(df),
+            "evolucao_mensal": self.presenter.evolucao_mensal(df),
             "cards": self.presenter.cards_totalizadores(df),
         }
