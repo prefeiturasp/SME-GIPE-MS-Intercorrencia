@@ -3,6 +3,7 @@ import polars as pl
 from datetime import datetime
 
 from django.utils import timezone
+from unittest.mock import patch, Mock
 
 from intercorrencias.models import Intercorrencia, PessoaAgressora
 from intercorrencias.services.analytics_service import (
@@ -491,3 +492,169 @@ class TestAnalyticsPipeline:
         meses = [item["mes"] for item in result]
 
         assert meses == list(range(1, 13))
+
+    def test_intercorrencias_por_tipos_vazio(self):
+        with patch("intercorrencias.services.analytics_service.TipoOcorrencia.objects.filter") as mock_filter:
+            mock_qs = Mock()
+            mock_qs.values_list.side_effect = [
+                ["furto", "roubo"],
+                ["ataque_violento", "agressao_fisica"],
+            ]
+            mock_filter.return_value = mock_qs
+
+            df = pl.DataFrame([])
+
+            presenter = AnalyticsPresenter()
+            result = presenter.intercorrencias_por_tipos(df)
+
+            assert result["patrimonial"] == {"furto": 0, "roubo": 0}
+            assert result["interpessoal"] == {"ataque_violento": 0, "agressao_fisica": 0}
+
+    def test_intercorrencias_por_tipos_com_dados(self):
+        with patch("intercorrencias.services.analytics_service.TipoOcorrencia.objects.filter") as mock_filter:
+            mock_qs = Mock()
+            mock_qs.values_list.side_effect = [
+                ["Furto", "Roubo"],
+                ["Agressão", "Bullying"],
+            ]
+            mock_filter.return_value = mock_qs
+
+            df = pl.DataFrame([
+                {
+                    "tipos_ocorrencia": ["Furto", "Roubo"],
+                    "sobre_furto_roubo_invasao_depredacao": True,
+                },
+                {
+                    "tipos_ocorrencia": ["Agressão"],
+                    "sobre_furto_roubo_invasao_depredacao": False,
+                },
+            ])
+
+            presenter = AnalyticsPresenter()
+            result = presenter.intercorrencias_por_tipos(df)
+
+            assert result["patrimonial"]["Furto"] == 1
+            assert result["patrimonial"]["Roubo"] == 1
+            assert result["interpessoal"]["Agressão"] == 1
+
+    def test_intercorrencias_por_tipos_ignora_nao_mapeados(self):
+        with patch("intercorrencias.services.analytics_service.TipoOcorrencia.objects.filter") as mock_filter:
+            mock_qs = Mock()
+            mock_qs.values_list.side_effect = [
+                ["Furto"],
+                ["Agressão"],
+            ]
+            mock_filter.return_value = mock_qs
+
+            df = pl.DataFrame([
+                {
+                    "tipos_ocorrencia": ["OutroTipo"],
+                    "sobre_furto_roubo_invasao_depredacao": True,
+                }
+            ])
+
+            presenter = AnalyticsPresenter()
+            result = presenter.intercorrencias_por_tipos(df)
+
+            assert result["patrimonial"]["Furto"] == 0
+
+    def test_intercorrencias_por_tipos_explode(self):
+        with patch("intercorrencias.services.analytics_service.TipoOcorrencia.objects.filter") as mock_filter:
+            mock_qs = Mock()
+            mock_qs.values_list.side_effect = [
+                ["Furto", "Roubo"],
+                ["Agressão"],
+            ]
+            mock_filter.return_value = mock_qs
+
+            df = pl.DataFrame([
+                {
+                    "tipos_ocorrencia": ["Furto", "Roubo"],
+                    "sobre_furto_roubo_invasao_depredacao": True,
+                }
+            ])
+
+            presenter = AnalyticsPresenter()
+            result = presenter.intercorrencias_por_tipos(df)
+
+            assert result["patrimonial"]["Furto"] == 1
+            assert result["patrimonial"]["Roubo"] == 1
+    
+    def test_total_por_motivo_vazio(self):
+        df = pl.DataFrame([])
+
+        presenter = AnalyticsPresenter()
+
+        with patch("intercorrencias.services.analytics_service.MotivoOcorrencia") as mock_motivo:
+            mock_motivo.choices = []
+
+            result = presenter.total_por_motivo(df)
+
+        assert result == {}
+
+    def test_total_por_motivo_com_dados(self):
+        with patch("intercorrencias.services.analytics_service.MotivoOcorrencia") as mock_motivo:
+            mock_motivo.choices = [
+                ("FURTO", "Furto"),
+                ("ROUBO", "Roubo"),
+            ]
+
+            df = pl.DataFrame([
+                {"motivacao_ocorrencia": ["FURTO", "ROUBO"]},
+                {"motivacao_ocorrencia": ["FURTO"]},
+            ])
+
+            presenter = AnalyticsPresenter()
+            result = presenter.total_por_motivo(df)
+
+            assert result["Furto"] == 2
+            assert result["Roubo"] == 1
+
+    def test_total_por_motivo_ignora_null(self):
+        with patch("intercorrencias.services.analytics_service.MotivoOcorrencia") as mock_motivo:
+            mock_motivo.choices = [
+                ("FURTO", "Furto"),
+            ]
+
+            df = pl.DataFrame([
+                {"motivacao_ocorrencia": ["FURTO", None]},
+            ])
+
+            presenter = AnalyticsPresenter()
+            result = presenter.total_por_motivo(df)
+
+            assert result["Furto"] == 1
+
+    def test_total_por_motivo_ignora_nao_mapeados(self):
+        with patch("intercorrencias.services.analytics_service.MotivoOcorrencia") as mock_motivo:
+            mock_motivo.choices = [
+                ("FURTO", "Furto"),
+            ]
+
+            df = pl.DataFrame([
+                {"motivacao_ocorrencia": ["OUTRO"]},
+            ])
+
+            presenter = AnalyticsPresenter()
+            result = presenter.total_por_motivo(df)
+
+            assert result["Furto"] == 0
+
+    def test_total_por_motivo_garante_todos_motivos(self):
+        with patch("intercorrencias.services.analytics_service.MotivoOcorrencia") as mock_motivo:
+            mock_motivo.choices = [
+                ("FURTO", "Furto"),
+                ("ROUBO", "Roubo"),
+            ]
+
+            df = pl.DataFrame([
+                {"motivacao_ocorrencia": ["FURTO"]},
+            ])
+
+            presenter = AnalyticsPresenter()
+            result = presenter.total_por_motivo(df)
+
+            assert result == {
+                "Furto": 1,
+                "Roubo": 0,
+            }
