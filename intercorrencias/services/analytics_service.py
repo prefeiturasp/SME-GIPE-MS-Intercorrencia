@@ -6,6 +6,8 @@ import polars as pl
 from django.db.models import OuterRef, Exists
 
 from intercorrencias.models import Intercorrencia, PessoaAgressora
+from intercorrencias.models.tipos_ocorrencia import TipoOcorrencia
+from intercorrencias.choices.info_agressor_choices import MotivoOcorrencia
 
 
 class IntercorrenciaRepository:
@@ -174,6 +176,88 @@ class AnalyticsPresenter:
             for mes, valores in base.items()
         ]
 
+    def intercorrencias_por_tipos(self, df: pl.DataFrame) -> dict[str, dict[str, int]]:
+
+        tipos_patrimonial = list(
+            TipoOcorrencia.objects.filter(
+                ativo=True,
+                tipo_formulario__in=[
+                    TipoOcorrencia.TipoChoices.TODOS,
+                    TipoOcorrencia.TipoChoices.PATRIMONIAL,
+                ]
+            ).values_list("nome", flat=True)
+        )
+
+        tipos_interpessoal = list(
+            TipoOcorrencia.objects.filter(
+                ativo=True,
+                tipo_formulario__in=[
+                    TipoOcorrencia.TipoChoices.TODOS,
+                    TipoOcorrencia.TipoChoices.GERAL,
+                ]
+            ).values_list("nome", flat=True)
+        )
+
+        base_patrimonial = dict.fromkeys(tipos_patrimonial, 0)
+        base_interpessoal = dict.fromkeys(tipos_interpessoal, 0)
+
+        if not df.is_empty():
+            df_exploded = df.explode("tipos_ocorrencia").filter(
+                pl.col("tipos_ocorrencia").is_not_null()
+            )
+
+            df_patrimonial = (
+                df_exploded
+                .filter(pl.col("sobre_furto_roubo_invasao_depredacao") == True)
+                .group_by("tipos_ocorrencia")
+                .agg(pl.len().alias("total"))
+            )
+
+            df_interpessoal = (
+                df_exploded
+                .filter(pl.col("sobre_furto_roubo_invasao_depredacao") == False)
+                .group_by("tipos_ocorrencia")
+                .agg(pl.len().alias("total"))
+            )
+
+            for row in df_patrimonial.iter_rows(named=True):
+                if row["tipos_ocorrencia"] in base_patrimonial:
+                    base_patrimonial[row["tipos_ocorrencia"]] = row["total"]
+
+            for row in df_interpessoal.iter_rows(named=True):
+                if row["tipos_ocorrencia"] in base_interpessoal:
+                    base_interpessoal[row["tipos_ocorrencia"]] = row["total"]
+
+        return {
+            "patrimonial": base_patrimonial,
+            "interpessoal": base_interpessoal,
+        }    
+
+    def total_por_motivo(self, df: pl.DataFrame) -> dict[str, int]:
+
+        MOTIVOS_MAP = dict(MotivoOcorrencia.choices)
+
+        base = dict.fromkeys(MOTIVOS_MAP.values(), 0)
+
+        if not df.is_empty():
+            df_exploded = (
+                df.explode("motivacao_ocorrencia")
+                .filter(pl.col("motivacao_ocorrencia").is_not_null())
+            )
+
+            resultado = (
+                df_exploded
+                .group_by("motivacao_ocorrencia")
+                .agg(pl.len().alias("total"))
+            )
+
+            for row in resultado.iter_rows(named=True):
+                label = MOTIVOS_MAP.get(row["motivacao_ocorrencia"])
+                if label:
+                    base[label] = row["total"]
+
+        return base
+
     def cards_totalizadores(self, df: pl.DataFrame) -> list[dict]:
 
         if df.is_empty():
@@ -261,5 +345,7 @@ class AnalyticsService:
             "intercorrencias_dre": self.presenter.intercorrencias_por_dre(df),
             "intercorrencias_status": self.presenter.intercorrencias_por_status(df),
             "evolucao_mensal": self.presenter.evolucao_mensal(df),
+            "intercorrencias_tipos": self.presenter.intercorrencias_por_tipos(df),
+            "total_por_motivo": self.presenter.total_por_motivo(df),
             "cards": self.presenter.cards_totalizadores(df),
         }
