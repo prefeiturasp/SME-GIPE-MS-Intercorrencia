@@ -10,10 +10,11 @@ logger = logging.getLogger(__name__)
 
 class IntercorrenciaDreSerializer(IntercorrenciaSerializer):
     """Serializer completo para DRE - preenche campos próprios"""
-    
-    # Campos booleanos obrigatórios
-    acionamento_seguranca_publica = serializers.BooleanField(required=True)
-    interlocucao_supervisao_escolar = serializers.BooleanField(required=True)
+
+    quais_orgaos_acionados_dre = serializers.ListField(
+        child=serializers.ChoiceField(choices=Intercorrencia.ORGAOS_ACIONADOS_PELA_DRE_CHOICES),
+        allow_empty=False,  
+    )
     
     status_display = serializers.CharField(source="get_status_display", read_only=True)
     status_extra = serializers.SerializerMethodField()
@@ -28,8 +29,7 @@ class IntercorrenciaDreSerializer(IntercorrenciaSerializer):
             "id", "uuid", "unidade_codigo_eol", "dre_codigo_eol", "status", "status_display", "status_extra",
             
             # Campos próprios da DRE (editáveis)
-            "acionamento_seguranca_publica",
-            "interlocucao_supervisao_escolar",
+            "quais_orgaos_acionados_dre",
             "nr_processo_sei",
         )
         

@@ -131,14 +131,12 @@ class TestIntercorrencia:
 
     def test_campos_dre(self, intercorrencia_factory):
         obj = intercorrencia_factory(
-            acionamento_seguranca_publica=True,
-            interlocucao_supervisao_escolar=True,
+            quais_orgaos_acionados_dre=['comunicacao_supervisao_tecnica_saude'],
         )
         obj.full_clean()
         obj.save()
 
-        assert obj.acionamento_seguranca_publica is True
-        assert obj.interlocucao_supervisao_escolar is True
+        assert obj.quais_orgaos_acionados_dre == ['comunicacao_supervisao_tecnica_saude']
         
     def test_pode_ser_editado_por_dre(self, intercorrencia_factory):
         obj = intercorrencia_factory(status="em_preenchimento_dre")
