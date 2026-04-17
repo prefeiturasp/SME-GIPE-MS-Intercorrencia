@@ -57,6 +57,13 @@ class Intercorrencia(ModeloBase):
         ("cefai", "CEFAI"),
     ]
 
+    ORGAOS_ACIONADOS_PELA_DRE_CHOICES = [
+        ("comunicacao_supervisao_tecnica_saude", "Comunicação com Supervisão Técnica de Saúde"),
+        ("comunicacao_assistencia_social", "Comunicação com Assistência Social"),
+        ("comunicacao_gcm_ronda_escolar", "Comunicação com GCM/Ronda Escolar"),
+        ("comunicacao_gipe", "Comunicação com GIPE"),
+    ]
+
     data_ocorrencia = models.DateTimeField(
         verbose_name="Data e Hora da Ocorrência",
         help_text="Data e hora em que a intercorrência ocorreu",
@@ -176,17 +183,11 @@ class Intercorrencia(ModeloBase):
         verbose_name="Finalizado pelo Diretor por",
         blank=True
     )
-    acionamento_seguranca_publica = models.BooleanField(
-        verbose_name="A ronda escolar foi acionada?",
-        default=False,
+    quais_orgaos_acionados_dre = ArrayField(
+        models.CharField(max_length=40, choices=ORGAOS_ACIONADOS_PELA_DRE_CHOICES),
+        verbose_name="Quais órgãos foram acionados pela DRE",
         blank=True,
-        null=True,
-    )
-    interlocucao_supervisao_escolar = models.BooleanField(
-        verbose_name="A supervisão escolar foi comunicada?",
-        default=False,
-        blank=True,
-        null=True, 
+        default=list,
     )
     nr_processo_sei = models.CharField(
         max_length=25,
