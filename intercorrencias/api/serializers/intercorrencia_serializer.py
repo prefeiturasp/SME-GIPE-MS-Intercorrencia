@@ -388,8 +388,9 @@ class IntercorrenciaInfoAgressorSerializer(IntercorrenciaSerializer):
             "notificado_conselho_tutelar",
             "ocorrencia_acompanhada_pelo",
             "pessoas_agressoras",
+            "encaminhamentos_gipe",
         )
-        read_only_fields = ("uuid",)
+        read_only_fields = ("uuid", "encaminhamentos_gipe")
 
     def get_motivacao_ocorrencia_display(self, obj):
         """Retorna os labels das motivações selecionadas"""
@@ -648,8 +649,9 @@ class IntercorrenciaDiretorCompletoSerializer(serializers.ModelSerializer):
             "finalizado_diretor_em",
             "finalizado_diretor_por",
             "pessoas_agressoras",
+            "encaminhamentos_gipe",
         )
-        read_only_fields = ("id", "uuid", "user_username", "criado_em", "atualizado_em")
+        read_only_fields = ("id", "uuid", "user_username", "criado_em", "atualizado_em", "encaminhamentos_gipe")
         list_serializer_class = IntercorrenciaDiretorCompletoListSerializer
 
 
@@ -720,8 +722,9 @@ class IntercorrenciaUpdateDiretorCompletoSerializer(IntercorrenciaSerializer):
             "notificado_conselho_tutelar",
             "ocorrencia_acompanhada_pelo",
             "pessoas_agressoras",
+            "encaminhamentos_gipe",
         )
-        read_only_fields = ("uuid", "status_display")
+        read_only_fields = ("uuid", "status_display", "encaminhamentos_gipe")
 
     def update(self, instance, validated_data):
         """

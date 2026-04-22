@@ -55,6 +55,7 @@ class Intercorrencia(ModeloBase):
         ("comissao_mediacao_conflitos", "Comissão de Mediação de Conflitos"),
         ("supervisao_escolar", "Supervisão Escolar"),
         ("cefai", "CEFAI"),
+        ("vara_da_infancia", "Vara da infância")
     ]
 
     ORGAOS_ACIONADOS_PELA_DRE_CHOICES = [
