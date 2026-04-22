@@ -56,7 +56,7 @@ class TestIntercorrenciaGipeSerializer:
             "envolve_arma_ataque": EnvolveArmaOuAtaque.SIM,
             "ameaca_realizada_qual_maneira": AmeacaFoiRealizadaDeQualManeira.VIRTUALMENTE,
             "envolvido": [str(self.envolvido.uuid)],
-            "motivacao_ocorrencia": [MotivoOcorrencia.BULLYING],
+            "motivacao_ocorrencia": [MotivoOcorrencia.XENOFOBIA],
             "tipos_ocorrencia": [str(self.tipo1.uuid), str(self.tipo2.uuid)],
             "etapa_escolar": EtapaEscolar.FUNDAMENTAL_ALFABETIZACAO,
             "encaminhamentos_gipe": "Encaminhamento X",
