@@ -15,7 +15,7 @@ class TestPessoaAgressoraSerializer:
         serializer = PessoaAgressoraSerializer(instance=pessoa_agressora)
         data = serializer.data
 
-        expected_fields = {"uuid", "nome", "idade", "id", "genero", "grupo_etnico_racial", "etapa_escolar", "frequencia_escolar", "interacao_ambiente_escolar"}
+        expected_fields = {"uuid", "nome", "idade", "idade_em_meses", "id", "genero", "grupo_etnico_racial", "etapa_escolar", "frequencia_escolar", "interacao_ambiente_escolar", "nacionalidade", "pessoa_com_deficiencia"}
         assert set(data.keys()) == expected_fields, (
             f"Os campos retornados ({set(data.keys())}) não correspondem "
             f"aos esperados ({expected_fields})"

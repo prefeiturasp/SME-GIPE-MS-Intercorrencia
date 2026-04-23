@@ -10,11 +10,14 @@ class PessoaAgressoraSerializer(serializers.ModelSerializer):
             "uuid",
             "nome",
             "idade",
+            "idade_em_meses",
             "genero",
             "grupo_etnico_racial",
             "etapa_escolar",
             "frequencia_escolar",
-            "interacao_ambiente_escolar"
+            "interacao_ambiente_escolar",
+            "nacionalidade",
+            "pessoa_com_deficiencia",
         ]
         read_only_fields = ["id", "uuid"]
 

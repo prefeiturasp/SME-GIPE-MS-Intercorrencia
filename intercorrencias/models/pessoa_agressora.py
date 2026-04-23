@@ -24,6 +24,12 @@ class PessoaAgressora(ModeloBase):
         blank=True,
         null=True
     )
+    idade_em_meses = models.BooleanField(
+        verbose_name="A idade está em meses?",
+        default=False,
+        blank=True,
+        null=True,
+    )
     genero = models.CharField(
         max_length=18,
         choices=Genero.choices,
@@ -31,7 +37,7 @@ class PessoaAgressora(ModeloBase):
         blank=True,
     )
     grupo_etnico_racial = models.CharField(
-        max_length=8,
+        max_length=15,
         choices=GrupoEtnicoRacial.choices,
         verbose_name="Qual grupo étnico-racial?",
         blank=True,
@@ -51,6 +57,17 @@ class PessoaAgressora(ModeloBase):
     interacao_ambiente_escolar = models.TextField(
         verbose_name="Como é a interação da pessoa no ambiente escolar?",
         blank=True,
+    )
+    nacionalidade = models.CharField(
+        max_length=100,
+        verbose_name="A nacionalidade corresponde ao país de nascimento.",
+        blank=True,
+    )
+    pessoa_com_deficiencia = models.BooleanField(
+        verbose_name="Pessoa com deficiência?",
+        default=False,
+        blank=True,
+        null=True,
     )
     
     class Meta:

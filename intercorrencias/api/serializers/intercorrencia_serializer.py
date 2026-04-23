@@ -37,16 +37,17 @@ class IntercorrenciaSerializer(serializers.ModelSerializer):
     def _get_campos_agressor_vitima(self):
         """Retorna a lista de campos relacionados a informações de agressor/vítima"""
         return [
-            "redes_protecao_acompanhamento",
             "notificado_conselho_tutelar",
-            "acompanhado_naapa",
+            "ocorrencia_acompanhada_pelo",
         ]
 
     def _limpar_campos_agressor_vitima(self, instance, campos):
         """Limpa os campos de agressor/vítima na instância"""
         for campo in campos:
-            if campo in ["notificado_conselho_tutelar", "acompanhado_naapa"]:
+            if campo in ["notificado_conselho_tutelar"]:
                 setattr(instance, campo, None)
+            if campo in ["ocorrencia_acompanhada_pelo"]:
+                setattr(instance, campo, [])
             else:
                 setattr(instance, campo, "")
                 
@@ -117,6 +118,7 @@ class IntercorrenciaSecaoInicialSerializer(IntercorrenciaSerializer):
         fields = (
             "uuid",
             "data_ocorrencia",
+            "fora_horario_funcionamento_ue",
             "unidade_codigo_eol",
             "dre_codigo_eol",
             "sobre_furto_roubo_invasao_depredacao",
@@ -142,10 +144,6 @@ class IntercorrenciaFurtoRouboSerializer(IntercorrenciaSerializer):
     tipos_ocorrencia_detalhes = TipoOcorrenciaSerializer(
         many=True, read_only=True, source="tipos_ocorrencia"
     )
-    tipos_ocorrencia_outros = serializers.CharField(
-        required=False,
-        allow_blank=True
-    )
     descricao_ocorrencia = serializers.CharField(required=True, allow_blank=False)
     smart_sampa_situacao = serializers.ChoiceField(
         required=True, allow_blank=False, choices=Intercorrencia.SMART_SAMPA_CHOICES
@@ -157,7 +155,6 @@ class IntercorrenciaFurtoRouboSerializer(IntercorrenciaSerializer):
             "uuid",
             "tipos_ocorrencia",
             "tipos_ocorrencia_detalhes",
-            "tipos_ocorrencia_outros",
             "descricao_ocorrencia",
             "smart_sampa_situacao",
             "status_display",
@@ -230,8 +227,24 @@ class IntercorrenciaSecaoFinalSerializer(IntercorrenciaSerializer):
         choices=Intercorrencia.SEGURANCA_PUBLICA_CHOICES, required=True
     )
     protocolo_acionado = serializers.ChoiceField(
-        choices=Intercorrencia.PROTOCOLO_CHOICES, required=True
+        choices=Intercorrencia.PROTOCOLO_CHOICES, required=False
     )
+
+    def validate(self, attrs):
+        intercorrencia = self.instance
+
+        sobre_furto = attrs.get(
+            "sobre_furto_roubo_invasao_depredacao",
+            getattr(intercorrencia, "sobre_furto_roubo_invasao_depredacao", None)
+        )
+
+        protocolo = attrs.get("protocolo_acionado")
+        if sobre_furto is False and not protocolo:
+            raise serializers.ValidationError({
+                "protocolo_acionado": "Este campo é obrigatório quando a intercorrência é do tipo patrimonial."
+            })
+
+        return attrs
 
     class Meta:
         model = Intercorrencia
@@ -262,10 +275,6 @@ class IntercorrenciaNaoFurtoRouboSerializer(IntercorrenciaSerializer):
     tipos_ocorrencia_detalhes = TipoOcorrenciaSerializer(
         many=True, read_only=True, source="tipos_ocorrencia"
     )
-    tipos_ocorrencia_outros = serializers.CharField(
-        required=False,
-        allow_blank=True
-    )
     descricao_ocorrencia = serializers.CharField(required=True, allow_blank=False)
     envolvido = serializers.SlugRelatedField(
         many=True,
@@ -279,10 +288,6 @@ class IntercorrenciaNaoFurtoRouboSerializer(IntercorrenciaSerializer):
         read_only=True,
         source="envolvido"
     )
-    envolvido_outros = serializers.CharField(
-        required=False,
-        allow_blank=True
-    )
     tem_info_agressor_ou_vitima = serializers.ChoiceField(
         choices=Intercorrencia.INFORMACOES_AGRESSOR_VITIMA_CHOICES, required=True
     )
@@ -293,11 +298,9 @@ class IntercorrenciaNaoFurtoRouboSerializer(IntercorrenciaSerializer):
             "uuid",
             "tipos_ocorrencia",
             "tipos_ocorrencia_detalhes",
-            "tipos_ocorrencia_outros",
             "descricao_ocorrencia",
             "envolvido",
             "envolvido_detalhes",
-            "envolvido_outros",
             "tem_info_agressor_ou_vitima",
             "status_display",
             "status_extra",
@@ -372,15 +375,7 @@ class IntercorrenciaInfoAgressorSerializer(IntercorrenciaSerializer):
         allow_empty=False,  
     )
     motivacao_ocorrencia_display = serializers.SerializerMethodField(read_only=True)
-    motivacao_ocorrencia_outros = serializers.CharField(
-        required=False,
-        allow_blank=True
-    )
-    redes_protecao_acompanhamento = serializers.CharField(
-        required=True, allow_blank=False
-    )
     notificado_conselho_tutelar = serializers.BooleanField(required=True)
-    acompanhado_naapa = serializers.BooleanField(required=True)
 
     class Meta:
         model = Intercorrencia
@@ -390,10 +385,8 @@ class IntercorrenciaInfoAgressorSerializer(IntercorrenciaSerializer):
             "dre_codigo_eol",
             "motivacao_ocorrencia",
             "motivacao_ocorrencia_display",
-            "motivacao_ocorrencia_outros",
-            "redes_protecao_acompanhamento",
             "notificado_conselho_tutelar",
-            "acompanhado_naapa",
+            "ocorrencia_acompanhada_pelo",
             "pessoas_agressoras",
         )
         read_only_fields = ("uuid",)
@@ -632,17 +625,16 @@ class IntercorrenciaDiretorCompletoSerializer(serializers.ModelSerializer):
             "criado_em",
             "atualizado_em",
             "data_ocorrencia",
+            "fora_horario_funcionamento_ue",
             "unidade_codigo_eol",
             "dre_codigo_eol",
             "nome_unidade",
             "nome_dre",
             "user_username",
             "envolvido",
-            "envolvido_outros",
             "tem_info_agressor_ou_vitima",
             "sobre_furto_roubo_invasao_depredacao",
             "tipos_ocorrencia",
-            "tipos_ocorrencia_outros",
             "descricao_ocorrencia",
             "smart_sampa_situacao",
             "smart_sampa_situacao_display",
@@ -650,10 +642,8 @@ class IntercorrenciaDiretorCompletoSerializer(serializers.ModelSerializer):
             "comunicacao_seguranca_publica",
             "protocolo_acionado",
             "motivacao_ocorrencia_display",
-            "motivacao_ocorrencia_outros",
-            "redes_protecao_acompanhamento",
             "notificado_conselho_tutelar",
-            "acompanhado_naapa",
+            "ocorrencia_acompanhada_pelo",
             "protocolo_da_intercorrencia",
             "finalizado_diretor_em",
             "finalizado_diretor_por",
@@ -676,10 +666,6 @@ class IntercorrenciaUpdateDiretorCompletoSerializer(IntercorrenciaSerializer):
         required=False,
         write_only=True,
     )
-    tipos_ocorrencia_outros = serializers.CharField(
-        required=False,
-        allow_blank=True
-    )
     descricao_ocorrencia = serializers.CharField(required=False, allow_blank=True)
     smart_sampa_situacao = serializers.ChoiceField(
         required=False, allow_blank=True, choices=Intercorrencia.SMART_SAMPA_CHOICES
@@ -690,10 +676,6 @@ class IntercorrenciaUpdateDiretorCompletoSerializer(IntercorrenciaSerializer):
         queryset=Envolvido.objects.all(),
         required=False,
         write_only=True,
-    )
-    envolvido_outros = serializers.CharField(
-        required=False,
-        allow_blank=True
     )
     tem_info_agressor_ou_vitima = serializers.ChoiceField(
         choices=Intercorrencia.INFORMACOES_AGRESSOR_VITIMA_CHOICES,
@@ -722,24 +704,21 @@ class IntercorrenciaUpdateDiretorCompletoSerializer(IntercorrenciaSerializer):
         fields = (
             "uuid",
             "data_ocorrencia",
+            "fora_horario_funcionamento_ue",
             "unidade_codigo_eol",
             "dre_codigo_eol",
             "sobre_furto_roubo_invasao_depredacao",
             "tipos_ocorrencia",
-            "tipos_ocorrencia_outros",
             "descricao_ocorrencia",
             "smart_sampa_situacao",
             "envolvido",
-            "envolvido_outros",
             "tem_info_agressor_ou_vitima",
             "declarante",
             "comunicacao_seguranca_publica",
             "protocolo_acionado",
             "motivacao_ocorrencia",
-            "motivacao_ocorrencia_outros",
-            "redes_protecao_acompanhamento",
             "notificado_conselho_tutelar",
-            "acompanhado_naapa",
+            "ocorrencia_acompanhada_pelo",
             "pessoas_agressoras",
         )
         read_only_fields = ("uuid", "status_display")

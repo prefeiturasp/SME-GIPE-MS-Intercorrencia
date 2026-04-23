@@ -35,8 +35,6 @@ class TestIntercorrenciaDreSerializer:
             "unidade_codigo_eol": '123456',
             "dre_codigo_eol": '654321',
             "acionamento_seguranca_publica": True,
-            "interlocucao_sts": True,
-            "info_complementar_sts": "Info STS",
         }
         
     @patch("intercorrencias.api.serializers.intercorrencia_serializer.unidades_service.get_unidade")
@@ -51,8 +49,6 @@ class TestIntercorrenciaDreSerializer:
         assert serializer.is_valid(), serializer.errors
         obj = serializer.save()
         assert obj.acionamento_seguranca_publica == True
-        assert obj.interlocucao_sts == True
-        
     
     @patch("intercorrencias.api.serializers.intercorrencia_serializer.unidades_service.get_unidade")
     def test_dre_nao_pode_atualizar_unidade_de_outra_dre(self, mock_get_unidade):
@@ -81,10 +77,7 @@ class TestIntercorrenciaDreSerializer:
             "unidade_codigo_eol": "123456",
             "dre_codigo_eol": "654321",
             "acionamento_seguranca_publica": True,
-            "interlocucao_sts": False,
-            "interlocucao_cpca": False,
             "interlocucao_supervisao_escolar": False,
-            "interlocucao_naapa": False,
         }
         serializer = IntercorrenciaDreSerializer(
             instance=self.intercorrencia,
@@ -106,14 +99,7 @@ class TestIntercorrenciaDreSerializer:
             "unidade_codigo_eol": "123456",
             "dre_codigo_eol": "654321",
             "acionamento_seguranca_publica": True,
-            "interlocucao_sts": True,
-            "info_complementar_sts": "Informação sobre STS",
-            "interlocucao_cpca": True,
-            "info_complementar_cpca": "Informação sobre CPCA",
             "interlocucao_supervisao_escolar": True,
-            "info_complementar_supervisao_escolar": "Informação sobre Supervisão",
-            "interlocucao_naapa": True,
-            "info_complementar_naapa": "Informação sobre NAAPA",
         }
         serializer = IntercorrenciaDreSerializer(
             instance=self.intercorrencia,
@@ -123,103 +109,6 @@ class TestIntercorrenciaDreSerializer:
         )
         
         assert serializer.is_valid(), serializer.errors
-        obj = serializer.save()
-        assert obj.interlocucao_sts is True
-        assert obj.info_complementar_sts == "Informação sobre STS"
-        assert obj.interlocucao_cpca is True
-        assert obj.info_complementar_cpca == "Informação sobre CPCA"
-
-    @patch("intercorrencias.api.serializers.intercorrencia_serializer.unidades_service.get_unidade")
-    def test_info_complementar_sts_obrigatorio_quando_interlocucao_true(self, mock_get_unidade):
-        """info_complementar_sts deve ser obrigatorio quando interlocucao_sts e True"""
-        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
-        data = {
-            "unidade_codigo_eol": "123456",
-            "dre_codigo_eol": "654321",
-            "acionamento_seguranca_publica": True,
-            "interlocucao_sts": True,
-            "info_complementar_sts": "",
-            "interlocucao_cpca": False,
-            "interlocucao_supervisao_escolar": False,
-            "interlocucao_naapa": False,
-        }
-        serializer = IntercorrenciaDreSerializer(
-            instance=self.intercorrencia,
-            data=data,
-            context={"request": self.request},
-            partial=True
-        )
-        assert not serializer.is_valid()
-        assert "info_complementar_sts" in str(serializer.errors)
-
-    @patch("intercorrencias.api.serializers.intercorrencia_serializer.unidades_service.get_unidade")
-    def test_info_complementar_cpca_obrigatorio_quando_interlocucao_true(self, mock_get_unidade):
-        """info_complementar_cpca deve ser obrigatorio quando interlocucao_cpca e True"""
-        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
-        data = {
-            "unidade_codigo_eol": "123456",
-            "dre_codigo_eol": "654321",
-            "acionamento_seguranca_publica": False,
-            "interlocucao_sts": False,
-            "interlocucao_cpca": True,
-            "info_complementar_cpca": "",
-            "interlocucao_supervisao_escolar": False,
-            "interlocucao_naapa": False,
-        }
-        serializer = IntercorrenciaDreSerializer(
-            instance=self.intercorrencia,
-            data=data,
-            context={"request": self.request},
-            partial=True
-        )
-        assert not serializer.is_valid()
-        assert "info_complementar_cpca" in str(serializer.errors)
-
-    @patch("intercorrencias.api.serializers.intercorrencia_serializer.unidades_service.get_unidade")
-    def test_info_complementar_supervisao_obrigatorio_quando_interlocucao_true(self, mock_get_unidade):
-        """info_complementar_supervisao_escolar deve ser obrigatorio quando interlocucao_supervisao_escolar e True"""
-        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
-        data = {
-            "unidade_codigo_eol": "123456",
-            "dre_codigo_eol": "654321",
-            "acionamento_seguranca_publica": False,
-            "interlocucao_sts": False,
-            "interlocucao_cpca": False,
-            "interlocucao_supervisao_escolar": True,
-            "info_complementar_supervisao_escolar": "",
-            "interlocucao_naapa": False,
-        }
-        serializer = IntercorrenciaDreSerializer(
-            instance=self.intercorrencia,
-            data=data,
-            context={"request": self.request},
-            partial=True
-        )
-        assert not serializer.is_valid()
-        assert "info_complementar_supervisao_escolar" in str(serializer.errors)
-
-    @patch("intercorrencias.api.serializers.intercorrencia_serializer.unidades_service.get_unidade")
-    def test_info_complementar_naapa_obrigatorio_quando_interlocucao_true(self, mock_get_unidade):
-        """info_complementar_naapa deve ser obrigatorio quando interlocucao_naapa e True"""
-        mock_get_unidade.return_value = {"codigo_eol": "123456", "dre_codigo_eol": "654321"}
-        data = {
-            "unidade_codigo_eol": "123456",
-            "dre_codigo_eol": "654321",
-            "acionamento_seguranca_publica": False,
-            "interlocucao_sts": False,
-            "interlocucao_cpca": False,
-            "interlocucao_supervisao_escolar": False,
-            "interlocucao_naapa": True,
-            "info_complementar_naapa": "",
-        }
-        serializer = IntercorrenciaDreSerializer(
-            instance=self.intercorrencia,
-            data=data,
-            context={"request": self.request},
-            partial=True
-        )
-        assert not serializer.is_valid()
-        assert "info_complementar_naapa" in str(serializer.errors)
 
     @patch("intercorrencias.api.serializers.intercorrencia_serializer.unidades_service.get_unidade")
     def test_info_complementar_nao_obrigatorio_quando_interlocucao_false(self, mock_get_unidade):
@@ -229,14 +118,7 @@ class TestIntercorrenciaDreSerializer:
             "unidade_codigo_eol": "123456",
             "dre_codigo_eol": "654321",
             "acionamento_seguranca_publica": True,
-            "interlocucao_sts": False,
-            "info_complementar_sts": "",
-            "interlocucao_cpca": False,
-            "info_complementar_cpca": "",
             "interlocucao_supervisao_escolar": False,
-            "info_complementar_supervisao_escolar": "",
-            "interlocucao_naapa": False,
-            "info_complementar_naapa": "",
         }
         serializer = IntercorrenciaDreSerializer(
             instance=self.intercorrencia,
@@ -254,14 +136,7 @@ class TestIntercorrenciaDreSerializer:
             "unidade_codigo_eol": "123456",
             "dre_codigo_eol": "654321",
             "acionamento_seguranca_publica": True,
-            "interlocucao_sts": True,
-            "info_complementar_sts": "Informacao sobre STS",
-            "interlocucao_cpca": True,
-            "info_complementar_cpca": "Informacao sobre CPCA",
             "interlocucao_supervisao_escolar": True,
-            "info_complementar_supervisao_escolar": "Informacao sobre Supervisao",
-            "interlocucao_naapa": True,
-            "info_complementar_naapa": "Informacao sobre NAAPA",
         }
         serializer = IntercorrenciaDreSerializer(
             instance=self.intercorrencia,
@@ -270,10 +145,6 @@ class TestIntercorrenciaDreSerializer:
             partial=True
         )
         assert serializer.is_valid(), serializer.errors
-        obj = serializer.save()
-        assert obj.interlocucao_sts is True
-        assert obj.info_complementar_sts == "Informacao sobre STS"
-
 
     def test_get_status_extra_method_returns_expected_label(self):
         intercorrencia = MagicMock(status="EM_PREENCHIMENTO")

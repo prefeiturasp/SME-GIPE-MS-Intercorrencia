@@ -104,7 +104,7 @@ class TestIntercorrencia:
 
     def test_choices_validos(self, intercorrencia_factory):
         obj = intercorrencia_factory(
-            comunicacao_seguranca_publica="sim_pm", protocolo_acionado="alerta"
+            comunicacao_seguranca_publica="sim", protocolo_acionado="alerta"
         )
         obj.full_clean()
 
@@ -125,37 +125,20 @@ class TestIntercorrencia:
     def test_booleanos_funcionam(self, intercorrencia_factory):
         obj = intercorrencia_factory(
             notificado_conselho_tutelar=True,
-            acompanhado_naapa=False,
         )
         obj.full_clean()
         assert obj.notificado_conselho_tutelar is True
-        assert obj.acompanhado_naapa is False
 
     def test_campos_dre(self, intercorrencia_factory):
         obj = intercorrencia_factory(
             acionamento_seguranca_publica=True,
-            interlocucao_sts=True,
-            info_complementar_sts="Durante a análise da ocorrência de depredação, a STS identificou que os danos ao patrimônio geraram resíduos perigosos",
-            interlocucao_cpca=True,
-            info_complementar_cpca="Durante as investigações sobre a depredação do patrimônio, a CPCA identificou que entre os envolvidos no ato de vandalismo",
             interlocucao_supervisao_escolar=True,
-            info_complementar_supervisao_escolar="Ocorreram 3 incidentes similares no mesmo mês, sempre às quartas-feiras no período vespertino",
-            interlocucao_naapa=True,
-            info_complementar_naapa="Ocorrido na EMF Jardim Paulista",
         )
         obj.full_clean()
         obj.save()
 
         assert obj.acionamento_seguranca_publica is True
-        assert obj.interlocucao_sts is True
-        assert "resíduos perigosos" in obj.info_complementar_sts
-        assert obj.interlocucao_cpca is True
-        assert "envolvidos no ato" in obj.info_complementar_cpca
         assert obj.interlocucao_supervisao_escolar is True
-        assert "quartas-feiras" in obj.info_complementar_supervisao_escolar
-        assert obj.interlocucao_naapa is True
-        assert "EMF Jardim Paulista" in obj.info_complementar_naapa         
-        
         
     def test_pode_ser_editado_por_dre(self, intercorrencia_factory):
         obj = intercorrencia_factory(status="em_preenchimento_dre")
@@ -238,7 +221,6 @@ class TestIntercorrencia:
             envolve_arma_ataque="",
             ameaca_realizada_qual_maneira="",
             etapa_escolar="",
-            info_sobre_interacoes_virtuais_pessoa_agressora="",
             encaminhamentos_gipe="",
         )
         obj.full_clean()
@@ -246,7 +228,6 @@ class TestIntercorrencia:
         assert obj.envolve_arma_ataque == ""
         assert obj.ameaca_realizada_qual_maneira == ""
         assert obj.etapa_escolar == ""
-        assert obj.info_sobre_interacoes_virtuais_pessoa_agressora == ""
         assert obj.encaminhamentos_gipe == ""
 
     def test_campos_gipe_max_length(self):
@@ -270,9 +251,6 @@ class TestIntercorrencia:
 
     def test_campos_gipe_texto_opcionais(self, intercorrencia_factory):
         obj = intercorrencia_factory(
-            info_sobre_interacoes_virtuais_pessoa_agressora=(
-                "Agressor mantém contatos frequentes por redes sociais."
-            ),
             encaminhamentos_gipe=(
                 "Após análise, GIPE recomendou acompanhamento semanal."
             ),
@@ -281,7 +259,6 @@ class TestIntercorrencia:
         obj.full_clean()
         obj.save()
 
-        assert "redes sociais" in obj.info_sobre_interacoes_virtuais_pessoa_agressora
         assert "acompanhamento semanal" in obj.encaminhamentos_gipe
 
     def test_campos_encerramento_gipe(self, intercorrencia_factory):
@@ -328,3 +305,55 @@ class TestIntercorrencia:
     def test_pode_ser_editado_por_gipe_com_status_finalizada(self, intercorrencia_factory):
         obj = intercorrencia_factory(status="finalizada")
         assert obj.pode_ser_editado_por_gipe is True
+    
+    def test_fora_horario_funcionamento_default(self, intercorrencia_factory):
+        obj = intercorrencia_factory()
+        assert obj.fora_horario_funcionamento_ue is False
+    
+    def test_fora_horario_funcionamento_true(self, intercorrencia_factory):
+        obj = intercorrencia_factory(fora_horario_funcionamento_ue=True)
+        obj.full_clean()
+        obj.save()
+
+        assert obj.fora_horario_funcionamento_ue is True
+    
+    def test_fora_horario_funcionamento_false(self, intercorrencia_factory):
+        obj = intercorrencia_factory(fora_horario_funcionamento_ue=False)
+        obj.full_clean()
+        obj.save()
+
+        assert obj.fora_horario_funcionamento_ue is False
+
+    def test_fora_horario_funcionamento_none(self, intercorrencia_factory):
+        obj = intercorrencia_factory(fora_horario_funcionamento_ue=None)
+        obj.full_clean()
+        obj.save()
+
+        assert obj.fora_horario_funcionamento_ue is None
+    
+    def test_nr_processo_sei_pode_ser_em_branco(self, intercorrencia_factory):
+        obj = intercorrencia_factory(nr_processo_sei="")
+        obj.full_clean()
+        obj.save()
+        assert obj.nr_processo_sei == ""
+
+    def test_nr_processo_sei_max_length(self):
+        obj = Intercorrencia(
+            data_ocorrencia=timezone.now(),
+            user_username="usuario",
+            unidade_codigo_eol="123456",
+            dre_codigo_eol="654321",
+            nr_processo_sei="x" * 26
+        )
+        with pytest.raises(ValidationError) as exc:
+            obj.full_clean()
+        err = exc.value.error_dict
+        assert "nr_processo_sei" in err
+
+    def test_nr_processo_sei_valor_valido(self, intercorrencia_factory):
+        valor = "12345/2026"
+        obj = intercorrencia_factory(nr_processo_sei=valor)
+        obj.full_clean()
+        obj.save()
+        obj.refresh_from_db()
+        assert obj.nr_processo_sei == valor

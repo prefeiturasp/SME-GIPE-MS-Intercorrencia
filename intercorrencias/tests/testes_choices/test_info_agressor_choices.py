@@ -11,9 +11,9 @@ from intercorrencias.choices.info_agressor_choices import (
 def test_motivo_ocorrencia_values():
     expected_values = {
         "bullying",
+        "bullying_homofobia",
         "cyberbullying",
         "atividades_ilicitas",
-        "bullying_homofobia",
         "ideologias_extremistas",
         "bullying_misoginia",
         "bullying_machismo",
@@ -25,7 +25,6 @@ def test_motivo_ocorrencia_values():
         "uso_alcool",
         "vinganca",
         "bullying_xenofobia",
-        "outros",
     }
     assert set(MotivoOcorrencia.values) == expected_values
 
