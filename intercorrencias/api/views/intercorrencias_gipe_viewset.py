@@ -64,9 +64,11 @@ class IntercorrenciaGipeViewSet(
             serializer.is_valid(raise_exception=True)
             serializer.save(**obj_to_update)
 
+            dt_ocorrencia = instance.criado_em.strftime("%d/%m/%Y")
+
             IntercorrenciasService.alerta_finalizacao_intercorrencia(
                 username=str(instance.user_username),
-                data_ocorrencia=str(instance.criado_em),
+                data_ocorrencia=dt_ocorrencia,
                 uuid_ocorrencia=str(instance.uuid),
             )
            
