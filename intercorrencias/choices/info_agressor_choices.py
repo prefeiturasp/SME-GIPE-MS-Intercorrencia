@@ -5,21 +5,19 @@ from django.db import models
 logger = logging.getLogger(__name__)
 
 class MotivoOcorrencia(models.TextChoices):
-    BULLYING = "bullying", "Bullying"
-    BULLYING_CAPACITISMO = "bullying_capacitismo", "Bullying/Capacitismo"
-    BULLYING_HOMOFOBIA = "bullying_homofobia", "Bullying/Homofobia"
-    BULLYING_MACHISMO = "bullying_machismo", "Bullying/Machismo"
-    BULLYING_MISOGINIA = "bullying_misoginia", "Bullying/Misoginia"
-    BULLYING_RACISMO = "bullying_racismo", "Bullying/Racismo"
-    BULLYING_XENOFOBIA = "bullying_xenofobia", "Bullying/Xenofobia"
-    CYBERBULLYING = "cyberbullying", "Cyberbullying"
+    CAPACITISMO = "capacitismo", "Capacitismo"
+    CONFLITOS_AFETIVOS = "conflitos_afetivos", "Conflitos afetivos"
     ENVOLVIMENTO_COM_ATIVIDADES_ILICITAS = "atividades_ilicitas", "Envolvimento com atividades ilícitas"
+    HOMOFOBIA = "homofobia", "Homofobia"
     IDEOLOGIAS_EXTREMISTAS = "ideologias_extremistas", "Ideologias extremistas (discurso de ódio)"
-    RELACOES_AFETIVAS = "relacoes_afetivas", "Relações afetivas"
+    MACHISMO = "machismo", "Machismo"
+    MISOGINIA = "misoginia", "Misoginia"
+    RACISMO = "racismo", "Racismo"
     USO_ALCOOL = "uso_alcool", "Uso de álcool"
     USO_DROGAS = "uso_drogas", "Uso de drogas"
     VINGANCA = "vinganca", "Vingança"
     VIOLENCIA_GENERO = "violencia_genero", "Violência de Gênero"
+    XENOFOBIA = "xenofobia", "Xenofobia"
 
 
 class GrupoEtnicoRacial(models.TextChoices):

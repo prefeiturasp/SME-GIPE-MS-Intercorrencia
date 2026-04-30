@@ -192,6 +192,7 @@ CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[])
 AUTH_VERIFY_URL = os.getenv("AUTH_VERIFY_URL", "https://servico-auth/api/token/verify/")
 AUTH_ME_URL     = os.getenv("AUTH_ME_URL",     "https://servico-auth/api/me")
 UNIDADES_BASE_URL = os.getenv("UNIDADES_BASE_URL", "https://servico-auth/api/unidades") 
+USERS_BASE_URL = os.getenv("USERS_BASE_URL", "https://servico-auth/api/users")
 
 ADMIN_URL = env("DJANGO_ADMIN_URL", default="api-intercorrencias/v1/admin/")
 

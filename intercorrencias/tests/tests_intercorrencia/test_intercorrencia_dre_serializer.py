@@ -34,7 +34,7 @@ class TestIntercorrenciaDreSerializer:
         self.valid_data = {
             "unidade_codigo_eol": '123456',
             "dre_codigo_eol": '654321',
-            "acionamento_seguranca_publica": True,
+            "quais_orgaos_acionados_dre": ['comunicacao_supervisao_tecnica_saude'],
         }
         
     @patch("intercorrencias.api.serializers.intercorrencia_serializer.unidades_service.get_unidade")
@@ -48,7 +48,7 @@ class TestIntercorrenciaDreSerializer:
         )
         assert serializer.is_valid(), serializer.errors
         obj = serializer.save()
-        assert obj.acionamento_seguranca_publica == True
+        assert obj.quais_orgaos_acionados_dre == ['comunicacao_supervisao_tecnica_saude']
     
     @patch("intercorrencias.api.serializers.intercorrencia_serializer.unidades_service.get_unidade")
     def test_dre_nao_pode_atualizar_unidade_de_outra_dre(self, mock_get_unidade):
@@ -76,8 +76,7 @@ class TestIntercorrenciaDreSerializer:
         data = {
             "unidade_codigo_eol": "123456",
             "dre_codigo_eol": "654321",
-            "acionamento_seguranca_publica": True,
-            "interlocucao_supervisao_escolar": False,
+            "quais_orgaos_acionados_dre": ['comunicacao_supervisao_tecnica_saude'],
         }
         serializer = IntercorrenciaDreSerializer(
             instance=self.intercorrencia,
@@ -98,8 +97,7 @@ class TestIntercorrenciaDreSerializer:
         data = {
             "unidade_codigo_eol": "123456",
             "dre_codigo_eol": "654321",
-            "acionamento_seguranca_publica": True,
-            "interlocucao_supervisao_escolar": True,
+            "quais_orgaos_acionados_dre": ['comunicacao_supervisao_tecnica_saude'],
         }
         serializer = IntercorrenciaDreSerializer(
             instance=self.intercorrencia,
@@ -117,8 +115,7 @@ class TestIntercorrenciaDreSerializer:
         data = {
             "unidade_codigo_eol": "123456",
             "dre_codigo_eol": "654321",
-            "acionamento_seguranca_publica": True,
-            "interlocucao_supervisao_escolar": False,
+            "quais_orgaos_acionados_dre": ['comunicacao_supervisao_tecnica_saude'],
         }
         serializer = IntercorrenciaDreSerializer(
             instance=self.intercorrencia,
@@ -135,8 +132,7 @@ class TestIntercorrenciaDreSerializer:
         data = {
             "unidade_codigo_eol": "123456",
             "dre_codigo_eol": "654321",
-            "acionamento_seguranca_publica": True,
-            "interlocucao_supervisao_escolar": True,
+            "quais_orgaos_acionados_dre": ['comunicacao_supervisao_tecnica_saude'],
         }
         serializer = IntercorrenciaDreSerializer(
             instance=self.intercorrencia,

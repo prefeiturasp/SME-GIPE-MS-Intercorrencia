@@ -511,7 +511,7 @@ class TestIntercorrenciaDiretorViewSet:
         intercorrencia.save()
 
         data = {
-            "motivacao_ocorrencia": ["bullying"],
+            "motivacao_ocorrencia": ["xenofobia"],
             "genero_pessoa_agressora": "masculino",
             "grupo_etnico_racial": "branco",
             "etapa_escolar": "fundamental_alfabetizacao",

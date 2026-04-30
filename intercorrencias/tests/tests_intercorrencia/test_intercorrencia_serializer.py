@@ -219,7 +219,7 @@ class TestIntercorrenciaDiretorCompletoSerializer:
             unidade_codigo_eol="123",
             dre_codigo_eol="456",
             sobre_furto_roubo_invasao_depredacao=True,
-            motivacao_ocorrencia=["bullying_racismo", "bullying"],
+            motivacao_ocorrencia=["racismo", "xenofobia"],
         )
         
         serializer = IntercorrenciaDiretorCompletoSerializer()
@@ -711,12 +711,12 @@ class TestIntercorrenciaInfoAgressorSerializer:
             unidade_codigo_eol="123456",
             dre_codigo_eol="654321",
             tem_info_agressor_ou_vitima="sim",
-            motivacao_ocorrencia=["bullying_racismo", "bullying"],
+            motivacao_ocorrencia=["racismo", "xenofobia"],
         )
         self.valid_data = {
             "unidade_codigo_eol": "123456",
             "dre_codigo_eol": "654321",
-            "motivacao_ocorrencia": ["bullying_racismo", "bullying"],
+            "motivacao_ocorrencia": ["racismo", "xenofobia"],
             "genero_pessoa_agressora": "masculino",
             "grupo_etnico_racial": "preto",
             "etapa_escolar": "ensino_medio",
@@ -882,12 +882,12 @@ class TestIntercorrenciaInfoAgressorSerializer:
         serializer = IntercorrenciaInfoAgressorSerializer()
         
         # Lista com duplicatas
-        result = serializer.validate_motivacao_ocorrencia(["bullying_racismo", "bullying", "bullying_racismo", "bullying"])
+        result = serializer.validate_motivacao_ocorrencia(["racismo", "xenofobia", "racismo", "xenofobia"])
         
         # Deve remover duplicatas
         assert len(result) == 2
-        assert "bullying_racismo" in result
-        assert "bullying" in result
+        assert "racismo" in result
+        assert "xenofobia" in result
 
     def test_validate_pessoas_agressoras_vazio_direto(self):
         serializer = IntercorrenciaInfoAgressorSerializer()

@@ -9,6 +9,7 @@ from rest_framework.permissions import IsAuthenticated
 from intercorrencias.models.intercorrencia import Intercorrencia
 from intercorrencias.permissions import IntercorrenciaPermission
 from intercorrencias.choices.gipe_choices import get_values_gipe_choices
+from intercorrencias.services.intercorrencia_service import IntercorrenciasService
 from intercorrencias.api.serializers.intercorrencia_gipe_serializer import IntercorrenciaGipeSerializer, IntercorrenciaConclusaoGipeSerializer
 
 
@@ -62,6 +63,14 @@ class IntercorrenciaGipeViewSet(
             
             serializer.is_valid(raise_exception=True)
             serializer.save(**obj_to_update)
+
+            dt_ocorrencia = instance.criado_em.strftime("%d/%m/%Y")
+
+            IntercorrenciasService.alerta_finalizacao_intercorrencia(
+                username=str(instance.user_username),
+                data_ocorrencia=dt_ocorrencia,
+                uuid_ocorrencia=str(instance.uuid),
+            )
            
             serializer = IntercorrenciaConclusaoGipeSerializer(instance, context={"request": request})
             return Response(serializer.data, status=status.HTTP_200_OK)
