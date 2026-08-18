@@ -126,10 +126,11 @@ class TestIntercorrenciaGipeViewSet:
         viewset = IntercorrenciaGipeViewSet()
         viewset.request = type("Request", (), {"user": user})()
 
-        exc = Exception("Falha total no tratamento")
+        exc = RuntimeError("Falha total no tratamento")
+
         with patch(
             "intercorrencias.api.views.intercorrencias_gipe_viewset.exception_handler",
-            return_value=None
+            return_value=None,
         ):
             response = viewset.handle_exception(exc)
 
