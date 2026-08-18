@@ -301,7 +301,7 @@ class TestIntercorrenciaDiretorViewSet:
     def test_handle_exception_generic(self, diretor_user):
         viewset = IntercorrenciaDiretorViewSet()
         viewset.request = type("Request", (), {"user": diretor_user})()
-        exc = Exception("Erro genérico")
+        exc = RuntimeError("Erro genérico")
         response = viewset.handle_exception(exc)
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "Erro genérico" in response.data['detail']
